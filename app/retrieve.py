@@ -11,7 +11,7 @@ def search(question: str, adapter: DatabaseAdapter) -> list[dict]:
                    embedding <=> %s::vector AS distance
             FROM policy_chunks
             ORDER BY embedding <=> %s::vector ASC
-            LIMIT 1
+            LIMIT 3
             """,
             (query_vector, query_vector),
         ).fetchall()

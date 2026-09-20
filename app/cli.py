@@ -15,7 +15,7 @@ EVAL_QUESTIONS = [
     "My hotel costs $250. What do I need?",
     "Do I need a receipt for a $20 taxi?",
     "Can I claim a limousine upgrade?",
-    "Does the policy cover gym memberships?",
+    "Does the company reimburse gym memberships?",
 ]
 
 

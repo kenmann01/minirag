@@ -72,13 +72,16 @@ def test_ingest_stores_384_dimension_embeddings():
     assert len(row[0].to_list()) == 384
 
 
-def test_retrieve_returns_one_meals_chunk_for_food_question():
+def test_retrieve_returns_three_chunks_for_food_question_in_distance_order():
     adapter = PgAdapter()
     run(adapter)
     rows = search("How much can I spend on food each day?", adapter)
-    assert len(rows) == 1
+    assert len(rows) == 3
     assert rows[0]["section"] == "1"
     assert rows[0]["section_title"] == "Meals"
+    assert [row["distance"] for row in rows] == sorted(
+        row["distance"] for row in rows
+    )
 
 
 @pytest.mark.parametrize(
@@ -94,7 +97,7 @@ def test_retrieve_returns_expected_section_for_in_policy_question(question, sect
     adapter = PgAdapter()
     run(adapter)
     rows = search(question, adapter)
-    assert len(rows) == 1
+    assert len(rows) == 3
     assert rows[0]["section"] == section
     assert rows[0]["section_title"] == title
 
@@ -146,8 +149,11 @@ def test_employee_can_ask_about_meals_and_receive_grounded_json(capsys):
         "version": "2.0",
         "section": "1. Meals",
     }
-    assert len(output["retrieved_chunks"]) == 1
-    assert isinstance(output["retrieved_chunks"][0]["distance"], float)
+    assert len(output["retrieved_chunks"]) == 3
+    assert all(
+        isinstance(chunk["distance"], float)
+        for chunk in output["retrieved_chunks"]
+    )
 
 
 def test_ask_omits_citation_when_model_names_a_different_section(capsys):
@@ -157,7 +163,7 @@ def test_ask_omits_citation_when_model_names_a_different_section(capsys):
         json.dumps(
             {
                 "answer": "You may claim up to $65 per day.",
-                "section": "3. Airfare",
+                "section": "99. Missing",
             }
         )
     )
@@ -169,6 +175,7 @@ def test_ask_omits_citation_when_model_names_a_different_section(capsys):
     )
 
     output = json.loads(capsys.readouterr().out)
+    assert output["answer"] == "The provided policy does not answer this question."
     assert output["citation"] is None
 
 
@@ -280,10 +287,10 @@ def test_employee_receives_expected_policy_answer_and_citation(
         "version": "2.0",
         "section": section,
     }
-    assert len(output["retrieved_chunks"]) == 1
+    assert len(output["retrieved_chunks"]) == 3
 
 
-def test_generator_receives_only_the_top_policy_excerpt(capsys):
+def test_generator_receives_all_three_retrieved_policy_excerpts(capsys):
     adapter = PgAdapter()
     run(adapter)
     model = FakeLanguageModel(
@@ -300,12 +307,15 @@ def test_generator_receives_only_the_top_policy_excerpt(capsys):
         database_adapter=adapter,
         language_model=model,
     )
-    capsys.readouterr()
+    output = json.loads(capsys.readouterr().out)
 
     assert len(model.prompts) == 1
     assert "Employees must purchase economy airfare." in model.prompts[0]
-    assert "using only the policy excerpt" in model.prompts[0]
-    assert "Employees may claim up to $65 per day" not in model.prompts[0]
+    assert "using only the policy excerpts" in model.prompts[0]
+    assert len(output["retrieved_chunks"]) == 3
+    assert all(
+        chunk["text"] in model.prompts[0] for chunk in output["retrieved_chunks"]
+    )
 
 
 def test_ask_rejects_invalid_model_json_without_printing_partial_output(capsys):
@@ -336,7 +346,7 @@ def test_employee_receives_exact_refusal_without_citation_for_gym_memberships(ca
     )
 
     main(
-        ["ask", "Does the policy cover gym memberships?"],
+        ["ask", "Does the company reimburse gym memberships?"],
         database_adapter=adapter,
         language_model=model,
     )
@@ -344,8 +354,11 @@ def test_employee_receives_exact_refusal_without_citation_for_gym_memberships(ca
     output = json.loads(capsys.readouterr().out)
     assert output["answer"] == "The provided policy does not answer this question."
     assert output["citation"] is None
-    assert len(output["retrieved_chunks"]) == 1
-    assert isinstance(output["retrieved_chunks"][0]["distance"], float)
+    assert len(output["retrieved_chunks"]) == 3
+    assert all(
+        isinstance(chunk["distance"], float)
+        for chunk in output["retrieved_chunks"]
+    )
 
 
 def test_gym_question_instructs_model_to_use_the_exact_refusal(capsys):
@@ -357,7 +370,7 @@ def test_gym_question_instructs_model_to_use_the_exact_refusal(capsys):
     )
 
     main(
-        ["ask", "Does the policy cover gym memberships?"],
+        ["ask", "Does the company reimburse gym memberships?"],
         database_adapter=adapter,
         language_model=model,
     )
@@ -401,7 +414,7 @@ def test_eval_writes_a_replayable_record_of_all_six_questions(tmp_path):
         "My hotel costs $250. What do I need?",
         "Do I need a receipt for a $20 taxi?",
         "Can I claim a limousine upgrade?",
-        "Does the policy cover gym memberships?",
+        "Does the company reimburse gym memberships?",
     ]
     assert [result["citation"]["section"] if result["citation"] else None for result in results] == [
         "1. Meals",
@@ -412,7 +425,7 @@ def test_eval_writes_a_replayable_record_of_all_six_questions(tmp_path):
         None,
     ]
     assert results[-1]["answer"] == refusal
-    assert all(len(result["retrieved_chunks"]) <= 1 for result in results)
+    assert all(len(result["retrieved_chunks"]) == 3 for result in results)
     assert all(
         isinstance(result["retrieved_chunks"][0]["distance"], float)
         for result in results
