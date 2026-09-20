@@ -1,8 +1,10 @@
+from pathlib import Path
 from typing import Protocol
 
 from app.schemas import AskResponse, Citation, ModelAnswer, RetrievedChunk
 
 REFUSAL = "The provided policy does not answer this question."
+PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompt_v1.md"
 
 
 class LanguageModel(Protocol):
@@ -18,14 +20,9 @@ def generate(question: str, chunks: list[dict], model: LanguageModel) -> AskResp
         for section, chunk in sections.items()
     )
     prompt = (
-        "Answer the question using only the policy excerpts below. "
-        "Do not add unsupported information. "
-        f"If the excerpts do not contain the answer, answer exactly: {REFUSAL} "
-        "Return JSON with string fields answer and section. "
-        "For a supported answer, set section to its supporting excerpt section "
-        "exactly. For the refusal, set section to an empty string.\n\n"
-        f"{excerpts}\n\n"
-        f"Question: {question}"
+        PROMPT_PATH.read_text(encoding="utf-8")
+        .replace("{excerpts}", excerpts)
+        .replace("{question}", question)
     )
     generated = ModelAnswer.model_validate_json(model.chat(prompt))
     citation = None

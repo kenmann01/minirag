@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     database_url: str
     embedding_model: str = "all-MiniLM-L6-v2"
-    ollama_model: str = "mistral"
+    ollama_model: str = "qwen3:8b"
     ollama_host: str = "http://host.docker.internal:11434"
 
 

@@ -233,6 +233,7 @@ def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
             ],
             "format": "json",
             "stream": False,
+            "options": {"temperature": 0, "seed": 42},
         },
     }
 
@@ -312,6 +313,10 @@ def test_generator_receives_all_three_retrieved_policy_excerpts(capsys):
     assert len(model.prompts) == 1
     assert "Employees must purchase economy airfare." in model.prompts[0]
     assert "using only the policy excerpts" in model.prompts[0]
+    assert "requires one option" in model.prompts[0]
+    assert "specific item fits a broader prohibited category" in model.prompts[0]
+    assert "Cite the section containing the rule" in model.prompts[0]
+    assert "every claim in the answer must be supported" in model.prompts[0]
     assert len(output["retrieved_chunks"]) == 3
     assert all(
         chunk["text"] in model.prompts[0] for chunk in output["retrieved_chunks"]

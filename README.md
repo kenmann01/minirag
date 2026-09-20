@@ -1,16 +1,16 @@
 # Mini RAG
 
 A command-line RAG assistant for the Version 2.0 employee expense policy.
-Postgres with pgvector stores policy chunks; MiniLM creates embeddings; Mistral
+Postgres with pgvector stores policy chunks; MiniLM creates embeddings; Qwen 3
 generates grounded answers through Ollama.
 
 ## Setup
 
-1. Install and start Ollama on the host, then pull Mistral:
+1. Install and start Ollama on the host, then pull Qwen 3 8B:
 
    ```bash
    ollama serve
-   ollama pull mistral
+   ollama pull qwen3:8b
    ```
 
 2. Start Postgres and pgvector:
@@ -31,7 +31,7 @@ generates grounded answers through Ollama.
    ```
 
    The default Ollama URL is `http://host.docker.internal:11434` and the
-   default generation model is `mistral`.
+   default generation model is `qwen3:8b`.
 
 ## Use
 

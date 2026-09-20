@@ -17,6 +17,7 @@ class OllamaAdapter:
                 "messages": [{"role": "user", "content": prompt}],
                 "format": "json",
                 "stream": False,
+                "options": {"temperature": 0, "seed": 42},
             }
         ).encode()
         request = urllib.request.Request(

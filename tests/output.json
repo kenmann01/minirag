@@ -1,0 +1,190 @@
+[
+  {
+    "question": "How much can I spend on food each day?",
+    "answer": "Employees may claim up to $65 per day for meals while traveling overnight.",
+    "citation": {
+      "document": "Employee Expense Policy",
+      "version": "2.0",
+      "section": "1. Meals"
+    },
+    "retrieved_chunks": [
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "1. Meals",
+        "text": "Employees may claim up to $65 per day for meals while traveling overnight.\nAlcohol is not reimbursable.",
+        "distance": 0.6333822309970856
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "2. Hotels",
+        "text": "Hotels are reimbursable up to $225 per night.\nA manager must approve higher rates before booking.",
+        "distance": 0.742569088935852
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "5. Receipts",
+        "text": "Receipts are required for individual expenses of $25 or more.",
+        "distance": 0.8248731195926666
+      }
+    ]
+  },
+  {
+    "question": "Can I book first-class airfare?",
+    "answer": "No, employees must purchase economy airfare. Business-class airfare requires written approval from a vice president, and first-class is not explicitly permitted under this policy.",
+    "citation": {
+      "document": "Employee Expense Policy",
+      "version": "2.0",
+      "section": "3. Airfare"
+    },
+    "retrieved_chunks": [
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "3. Airfare",
+        "text": "Employees must purchase economy airfare.\nBusiness-class airfare requires written approval from a vice president.",
+        "distance": 0.5002872645683718
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "4. Ground Transportation",
+        "text": "Taxi, rideshare, train, and public-transit expenses are reimbursable.\nLuxury vehicle upgrades are not reimbursable.",
+        "distance": 0.7835053503513336
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "1. Meals",
+        "text": "Employees may claim up to $65 per day for meals while traveling overnight.\nAlcohol is not reimbursable.",
+        "distance": 0.8012158572673798
+      }
+    ]
+  },
+  {
+    "question": "My hotel costs $250. What do I need?",
+    "answer": "You need manager approval for the higher rate since the hotel cost exceeds the $225 per night reimbursement limit.",
+    "citation": {
+      "document": "Employee Expense Policy",
+      "version": "2.0",
+      "section": "2. Hotels"
+    },
+    "retrieved_chunks": [
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "2. Hotels",
+        "text": "Hotels are reimbursable up to $225 per night.\nA manager must approve higher rates before booking.",
+        "distance": 0.4331652859946905
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "5. Receipts",
+        "text": "Receipts are required for individual expenses of $25 or more.",
+        "distance": 0.6801888537294349
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "1. Meals",
+        "text": "Employees may claim up to $65 per day for meals while traveling overnight.\nAlcohol is not reimbursable.",
+        "distance": 0.7212385403371722
+      }
+    ]
+  },
+  {
+    "question": "Do I need a receipt for a $20 taxi?",
+    "answer": "No, a receipt is not required for a $20 taxi expense, as receipts are only required for individual expenses of $25 or more.",
+    "citation": {
+      "document": "Employee Expense Policy",
+      "version": "2.0",
+      "section": "5. Receipts"
+    },
+    "retrieved_chunks": [
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "5. Receipts",
+        "text": "Receipts are required for individual expenses of $25 or more.",
+        "distance": 0.3841610321902602
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "4. Ground Transportation",
+        "text": "Taxi, rideshare, train, and public-transit expenses are reimbursable.\nLuxury vehicle upgrades are not reimbursable.",
+        "distance": 0.6525261609240669
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "1. Meals",
+        "text": "Employees may claim up to $65 per day for meals while traveling overnight.\nAlcohol is not reimbursable.",
+        "distance": 0.6892920917694508
+      }
+    ]
+  },
+  {
+    "question": "Can I claim a limousine upgrade?",
+    "answer": "No, luxury vehicle upgrades are not reimbursable per the policy.",
+    "citation": {
+      "document": "Employee Expense Policy",
+      "version": "2.0",
+      "section": "4. Ground Transportation"
+    },
+    "retrieved_chunks": [
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "4. Ground Transportation",
+        "text": "Taxi, rideshare, train, and public-transit expenses are reimbursable.\nLuxury vehicle upgrades are not reimbursable.",
+        "distance": 0.4664325714111328
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "5. Receipts",
+        "text": "Receipts are required for individual expenses of $25 or more.",
+        "distance": 0.6954182088375092
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "3. Airfare",
+        "text": "Employees must purchase economy airfare.\nBusiness-class airfare requires written approval from a vice president.",
+        "distance": 0.7076438839647834
+      }
+    ]
+  },
+  {
+    "question": "Does the company reimburse gym memberships?",
+    "answer": "The provided policy does not answer this question.",
+    "citation": null,
+    "retrieved_chunks": [
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "4. Ground Transportation",
+        "text": "Taxi, rideshare, train, and public-transit expenses are reimbursable.\nLuxury vehicle upgrades are not reimbursable.",
+        "distance": 0.7150504162877545
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "5. Receipts",
+        "text": "Receipts are required for individual expenses of $25 or more.",
+        "distance": 0.7220831679056181
+      },
+      {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "2. Hotels",
+        "text": "Hotels are reimbursable up to $225 per night.\nA manager must approve higher rates before booking.",
+        "distance": 0.7260032161472306
+      }
+    ]
+  }
+]
