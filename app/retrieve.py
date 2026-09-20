@@ -7,7 +7,8 @@ def search(question: str, adapter: DatabaseAdapter) -> list[dict]:
     with adapter.connect() as conn:
         rows = conn.execute(
             """
-            SELECT section, section_title, embedding <=> %s::vector AS distance
+            SELECT document, version, section, section_title, text,
+                   embedding <=> %s::vector AS distance
             FROM policy_chunks
             ORDER BY embedding <=> %s::vector ASC
             LIMIT 1
@@ -15,6 +16,13 @@ def search(question: str, adapter: DatabaseAdapter) -> list[dict]:
             (query_vector, query_vector),
         ).fetchall()
     return [
-        {"section": row[0], "section_title": row[1], "distance": float(row[2])}
+        {
+            "document": row[0],
+            "version": row[1],
+            "section": row[2],
+            "section_title": row[3],
+            "text": row[4],
+            "distance": float(row[5]),
+        }
         for row in rows
     ]

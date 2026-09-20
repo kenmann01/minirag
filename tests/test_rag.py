@@ -1,10 +1,24 @@
-"""Ingest/store seam: ingest makes policy chunks retrievable from the store."""
+"""Ingest/store and Ask CLI behavior at their public seams."""
+
+import json
 
 import pytest
+from pydantic import ValidationError
 
+from app.cli import main
 from app.ingest import run
 from app.pgadapter import PgAdapter
 from app.retrieve import search
+
+
+class FakeLanguageModel:
+    def __init__(self, response: str):
+        self.response = response
+        self.prompts = []
+
+    def chat(self, prompt: str) -> str:
+        self.prompts.append(prompt)
+        return self.response
 
 
 def test_ingest_stores_six_policy_chunks():
@@ -94,3 +108,208 @@ def test_reingest_upserts_and_keeps_six_chunks():
         ).fetchone()[0]
     assert count == 6
     assert "65" in text
+
+
+def test_employee_can_ask_about_meals_and_receive_grounded_json(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "You may claim up to $65 per day for meals while traveling overnight.",
+                "section": "1. Meals",
+            }
+        )
+    )
+
+    exit_code = main(
+        ["ask", "How much can I spend on food each day?"],
+        database_adapter=adapter,
+        language_model=model,
+    )
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["answer"] == (
+        "You may claim up to $65 per day for meals while traveling overnight."
+    )
+    assert output["citation"] == {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": "1. Meals",
+    }
+    assert len(output["retrieved_chunks"]) == 1
+    assert isinstance(output["retrieved_chunks"][0]["distance"], float)
+
+
+def test_ask_omits_citation_when_model_names_a_different_section(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "You may claim up to $65 per day.",
+                "section": "3. Airfare",
+            }
+        )
+    )
+
+    main(
+        ["ask", "How much can I spend on food each day?"],
+        database_adapter=adapter,
+        language_model=model,
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    assert output["citation"] is None
+
+
+def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
+    adapter = PgAdapter()
+    run(adapter)
+    request_sent = {}
+
+    class FakeHTTPResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def read(self):
+            return json.dumps(
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "answer": "You may claim up to $65 per day.",
+                                "section": "1. Meals",
+                            }
+                        )
+                    }
+                }
+            ).encode()
+
+    def fake_urlopen(request):
+        request_sent["url"] = request.full_url
+        request_sent["body"] = json.loads(request.data)
+        return FakeHTTPResponse()
+
+    monkeypatch.setenv("OLLAMA_HOST", "http://host.docker.internal:11434")
+    monkeypatch.setenv("OLLAMA_MODEL", "mistral")
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    main(
+        ["ask", "How much can I spend on food each day?"],
+        database_adapter=adapter,
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    assert output["citation"]["section"] == "1. Meals"
+    assert request_sent == {
+        "url": "http://host.docker.internal:11434/api/chat",
+        "body": {
+            "model": "mistral",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": request_sent["body"]["messages"][0]["content"],
+                }
+            ],
+            "format": "json",
+            "stream": False,
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    ("question", "answer", "section"),
+    [
+        (
+            "How much can I spend on food each day?",
+            "Meals are reimbursable up to $65 per day while traveling overnight.",
+            "1. Meals",
+        ),
+        (
+            "Can I book first-class airfare?",
+            "You must buy economy airfare; business class requires written VP approval.",
+            "3. Airfare",
+        ),
+        (
+            "My hotel costs $250. What do I need?",
+            "A manager must approve a rate over $225 before booking.",
+            "2. Hotels",
+        ),
+        (
+            "Do I need a receipt for a $20 taxi?",
+            "No. Receipts are required for expenses of $25 or more.",
+            "5. Receipts",
+        ),
+        (
+            "Can I claim a limousine upgrade?",
+            "No. Luxury vehicle upgrades are not reimbursable.",
+            "4. Ground Transportation",
+        ),
+    ],
+)
+def test_employee_receives_expected_policy_answer_and_citation(
+    question, answer, section, capsys
+):
+    adapter = PgAdapter()
+    run(adapter)
+    model = FakeLanguageModel(json.dumps({"answer": answer, "section": section}))
+
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    assert output["answer"] == answer
+    assert output["citation"] == {
+        "document": "Employee Expense Policy",
+        "version": "2.0",
+        "section": section,
+    }
+    assert len(output["retrieved_chunks"]) == 1
+
+
+def test_generator_receives_only_the_top_policy_excerpt(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "You must buy economy airfare.",
+                "section": "3. Airfare",
+            }
+        )
+    )
+
+    main(
+        ["ask", "Can I book first-class airfare?"],
+        database_adapter=adapter,
+        language_model=model,
+    )
+    capsys.readouterr()
+
+    assert len(model.prompts) == 1
+    assert "Employees must purchase economy airfare." in model.prompts[0]
+    assert "using only the policy excerpt" in model.prompts[0]
+    assert "Employees may claim up to $65 per day" not in model.prompts[0]
+
+
+def test_ask_rejects_invalid_model_json_without_printing_partial_output(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    model = FakeLanguageModel('{"answer": "Use economy airfare."}')
+
+    with pytest.raises(ValidationError):
+        main(
+            ["ask", "Can I book first-class airfare?"],
+            database_adapter=adapter,
+            language_model=model,
+        )
+
+    assert capsys.readouterr().out == ""
