@@ -21,6 +21,14 @@ class FakeLanguageModel:
         return self.response
 
 
+class SequenceLanguageModel:
+    def __init__(self, responses: list[str]):
+        self.responses = iter(responses)
+
+    def chat(self, prompt: str) -> str:
+        return next(self.responses)
+
+
 def test_ingest_stores_six_policy_chunks():
     adapter = PgAdapter()
     run(adapter)
@@ -356,3 +364,56 @@ def test_gym_question_instructs_model_to_use_the_exact_refusal(capsys):
     capsys.readouterr()
 
     assert f"answer exactly: {refusal}" in model.prompts[0]
+
+
+def test_eval_writes_a_replayable_record_of_all_six_questions(tmp_path):
+    adapter = PgAdapter()
+    run(adapter)
+    refusal = "The provided policy does not answer this question."
+    model = SequenceLanguageModel(
+        [
+            json.dumps({"answer": "$65 per day.", "section": "1. Meals"}),
+            json.dumps({"answer": "Buy economy airfare.", "section": "3. Airfare"}),
+            json.dumps({"answer": "Get manager approval.", "section": "2. Hotels"}),
+            json.dumps({"answer": "No receipt is needed.", "section": "5. Receipts"}),
+            json.dumps(
+                {
+                    "answer": "Luxury upgrades are not reimbursable.",
+                    "section": "4. Ground Transportation",
+                }
+            ),
+            json.dumps({"answer": refusal, "section": "3. Airfare"}),
+        ]
+    )
+    output_path = tmp_path / "output.json"
+
+    exit_code = main(
+        ["eval", "--output", str(output_path)],
+        database_adapter=adapter,
+        language_model=model,
+    )
+
+    assert exit_code == 0
+    results = json.loads(output_path.read_text())
+    assert [result["question"] for result in results] == [
+        "How much can I spend on food each day?",
+        "Can I book first-class airfare?",
+        "My hotel costs $250. What do I need?",
+        "Do I need a receipt for a $20 taxi?",
+        "Can I claim a limousine upgrade?",
+        "Does the policy cover gym memberships?",
+    ]
+    assert [result["citation"]["section"] if result["citation"] else None for result in results] == [
+        "1. Meals",
+        "3. Airfare",
+        "2. Hotels",
+        "5. Receipts",
+        "4. Ground Transportation",
+        None,
+    ]
+    assert results[-1]["answer"] == refusal
+    assert all(len(result["retrieved_chunks"]) <= 1 for result in results)
+    assert all(
+        isinstance(result["retrieved_chunks"][0]["distance"], float)
+        for result in results
+    )
