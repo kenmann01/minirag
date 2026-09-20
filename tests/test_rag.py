@@ -313,3 +313,46 @@ def test_ask_rejects_invalid_model_json_without_printing_partial_output(capsys):
         )
 
     assert capsys.readouterr().out == ""
+
+
+def test_employee_receives_exact_refusal_without_citation_for_gym_memberships(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "The provided policy does not answer this question.",
+                "section": "3. Airfare",
+            }
+        )
+    )
+
+    main(
+        ["ask", "Does the policy cover gym memberships?"],
+        database_adapter=adapter,
+        language_model=model,
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    assert output["answer"] == "The provided policy does not answer this question."
+    assert output["citation"] is None
+    assert len(output["retrieved_chunks"]) == 1
+    assert isinstance(output["retrieved_chunks"][0]["distance"], float)
+
+
+def test_gym_question_instructs_model_to_use_the_exact_refusal(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    refusal = "The provided policy does not answer this question."
+    model = FakeLanguageModel(
+        json.dumps({"answer": refusal, "section": "3. Airfare"})
+    )
+
+    main(
+        ["ask", "Does the policy cover gym memberships?"],
+        database_adapter=adapter,
+        language_model=model,
+    )
+    capsys.readouterr()
+
+    assert f"answer exactly: {refusal}" in model.prompts[0]
