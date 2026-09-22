@@ -1,8 +1,20 @@
+# Internal and Confidential — Not for External Distribution.
+"""Retrieve policy chunks nearest to an embedded employee question."""
+
 from app.db import DatabaseAdapter
 from app.embeddings import embed_texts
 
 
 def search(question: str, adapter: DatabaseAdapter) -> list[dict]:
+    """Find the three policy chunks nearest to a question by cosine distance.
+
+    Args:
+        question: Employee question to embed and compare with stored chunks.
+        adapter: Provider of a managed vector-capable SQL connection.
+
+    Returns:
+        Up to three chunk dictionaries ordered by ascending cosine distance.
+    """
     query_vector = embed_texts([question])[0]
     with adapter.connect() as conn:
         rows = conn.execute(

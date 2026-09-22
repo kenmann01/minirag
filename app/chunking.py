@@ -1,3 +1,6 @@
+# Internal and Confidential — Not for External Distribution.
+"""Split the versioned expense policy into section-level chunks."""
+
 import re
 
 _HEADING = re.compile(r"^## (\d+)\. (.+)$", re.MULTILINE)
@@ -5,6 +8,18 @@ _TITLE = re.compile(r"^# (.+?) — Version (.+)$", re.MULTILINE)
 
 
 def split(markdown: str) -> list[dict]:
+    """Split a versioned expense policy into one record per numbered section.
+
+    Args:
+        markdown: Complete policy text with a versioned title and numbered
+            second-level headings.
+
+    Returns:
+        Chunk dictionaries containing policy metadata and section text.
+
+    Raises:
+        ValueError: If the policy has no title containing its version.
+    """
     title_match = _TITLE.search(markdown)
     if title_match is None:
         raise ValueError("policy markdown is missing a versioned title")

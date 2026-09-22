@@ -1,3 +1,6 @@
+# Internal and Confidential — Not for External Distribution.
+"""Ingest policy sections and their embeddings into the vector store."""
+
 from pathlib import Path
 
 from app.chunking import split
@@ -37,6 +40,15 @@ ON CONFLICT (chunk_id) DO UPDATE SET
 
 
 def run(adapter: DatabaseAdapter) -> None:
+    """Replace stored policy chunks with the current embedded policy sections.
+
+    Args:
+        adapter: Provider of a managed vector-capable SQL connection.
+
+    Side Effects:
+        Reads ``policy.md``, creates the vector extension and table when
+        needed, upserts current chunks, and deletes stale chunks.
+    """
     chunks = split(POLICY_PATH.read_text(encoding="utf-8"))
     vectors = embed_texts([chunk["text"] for chunk in chunks])
     with adapter.connect() as conn:

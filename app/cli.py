@@ -1,3 +1,6 @@
+# Internal and Confidential — Not for External Distribution.
+"""Dispatch Mini RAG ingestion, question answering, and evaluation commands."""
+
 import argparse
 import json
 import sys
@@ -25,6 +28,17 @@ def main(
     database_adapter: DatabaseAdapter | None = None,
     language_model: LanguageModel | None = None,
 ) -> int:
+    """Run a Mini RAG command.
+
+    Args:
+        argv: Command-line arguments excluding the executable name. Uses the
+            process arguments when omitted.
+        database_adapter: Optional database dependency, primarily for testing.
+        language_model: Optional generation dependency, primarily for testing.
+
+    Returns:
+        A process exit status: zero for a handled command and one otherwise.
+    """
     parser = argparse.ArgumentParser(prog="app")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("ingest", help="Ingest policy.md into the vector store")
