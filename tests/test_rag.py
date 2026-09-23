@@ -6,10 +6,18 @@ import pytest
 from pydantic import ValidationError
 
 from app.cli import EVAL_QUESTIONS, main
-from app.generate import section_label
+from app.generate import PROMPT_PATH, section_label
 from app.ingest import run
 from app.pgadapter import PgAdapter
 from app.retrieve import search
+
+
+@pytest.fixture(autouse=True)
+def empty_question_cache():
+    adapter = PgAdapter()
+    with adapter.connect() as conn:
+        conn.execute("DROP TABLE IF EXISTS question_cache")
+    yield
 
 
 class FakeLanguageModel:
@@ -476,6 +484,393 @@ def test_gym_question_instructs_model_to_use_the_exact_refusal(capsys):
     capsys.readouterr()
 
     assert f"answer exactly: {refusal}" in model.prompts[0]
+
+
+def test_repeat_ask_returns_the_stored_answer_without_calling_the_model(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    label = section_label(search(question, adapter)[0])
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "Domestic travel meals are $75 per day.",
+                "section": label,
+            }
+        )
+    )
+
+    first = main(["ask", question], database_adapter=adapter, language_model=model)
+    first_output = json.loads(capsys.readouterr().out)
+    second = main(["ask", question], database_adapter=adapter, language_model=model)
+    second_output = json.loads(capsys.readouterr().out)
+
+    assert first == 0
+    assert second == 0
+    assert first_output["answer"] == "Domestic travel meals are $75 per day."
+    assert first_output["citation"]["source_doc"] == "minion_expense_policy_2024.md"
+    assert second_output == first_output
+    assert len(model.prompts) == 1
+
+
+def test_ask_treats_case_and_whitespace_as_the_same_question(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    padded = "  How   MUCH\tcan I spend\non food each day?  "
+    label = section_label(search(question, adapter)[0])
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "Domestic travel meals are $75 per day.",
+                "section": label,
+            }
+        )
+    )
+
+    main(["ask", padded], database_adapter=adapter, language_model=model)
+    first_output = json.loads(capsys.readouterr().out)
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    second_output = json.loads(capsys.readouterr().out)
+
+    assert first_output["answer"] == "Domestic travel meals are $75 per day."
+    assert second_output == first_output
+    assert len(model.prompts) == 1
+
+
+def test_miss_sends_the_typed_question_to_the_model(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    padded = "  How   MUCH\tcan I spend\non food each day?  "
+    label = section_label(search("How much can I spend on food each day?", adapter)[0])
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "Domestic travel meals are $75 per day.",
+                "section": label,
+            }
+        )
+    )
+
+    main(["ask", padded], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+
+    assert padded in model.prompts[0]
+
+
+def test_repeat_ask_returns_the_stored_answer_after_chunks_are_removed(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    label = section_label(search(question, adapter)[0])
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "Domestic travel meals are $75 per day.",
+                "section": label,
+            }
+        )
+    )
+
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    stored = json.loads(capsys.readouterr().out)
+    with adapter.connect() as conn:
+        conn.execute("DROP TABLE policy_chunks")
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    replay = json.loads(capsys.readouterr().out)
+
+    assert replay == stored
+    assert replay["answer"] == "Domestic travel meals are $75 per day."
+    assert len(model.prompts) == 1
+
+
+def test_a_different_question_does_not_reuse_the_stored_answer(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    meals = "How much can I spend on food each day?"
+    airfare = "Can I book first-class airfare?"
+    meals_label = section_label(search(meals, adapter)[0])
+    airfare_label = section_label(search(airfare, adapter)[0])
+    model = SequenceLanguageModel(
+        [
+            json.dumps(
+                {"answer": "Meals are $75 per day.", "section": meals_label}
+            ),
+            json.dumps({"answer": "Economy only.", "section": airfare_label}),
+        ]
+    )
+
+    main(["ask", meals], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+    main(["ask", airfare], database_adapter=adapter, language_model=model)
+    airfare_output = json.loads(capsys.readouterr().out)
+    main(["ask", meals], database_adapter=adapter, language_model=model)
+    replay = json.loads(capsys.readouterr().out)
+
+    assert airfare_output["answer"] == "Economy only."
+    assert replay["answer"] == "Meals are $75 per day."
+
+
+def test_invalid_ask_stores_nothing_and_the_next_valid_ask_calls_the_model(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "Can I book first-class airfare?"
+    label = section_label(search(question, adapter)[0])
+    model = SequenceLanguageModel(
+        [
+            '{"answer": "Use economy airfare."}',
+            json.dumps({"answer": "Economy only.", "section": label}),
+        ]
+    )
+
+    with pytest.raises(ValidationError):
+        main(["ask", question], database_adapter=adapter, language_model=model)
+    assert capsys.readouterr().out == ""
+
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["answer"] == "Economy only."
+    assert output["citation"]["section"] == label
+
+
+def test_ask_misses_when_the_generation_model_changes(capsys, monkeypatch):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    label = section_label(search(question, adapter)[0])
+    model = SequenceLanguageModel(
+        [
+            json.dumps({"answer": "Meals are $75 per day.", "section": label}),
+            json.dumps({"answer": "A different model says $75.", "section": label}),
+        ]
+    )
+
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3:8b")
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+    monkeypatch.setenv("OLLAMA_MODEL", "mistral")
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["answer"] == "A different model says $75."
+
+
+def test_ask_returns_the_earlier_answer_when_the_generation_model_returns(
+    capsys, monkeypatch
+):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    label = section_label(search(question, adapter)[0])
+    model = SequenceLanguageModel(
+        [
+            json.dumps({"answer": "Meals are $75 per day.", "section": label}),
+            json.dumps({"answer": "A different model says $75.", "section": label}),
+        ]
+    )
+
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3:8b")
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+    monkeypatch.setenv("OLLAMA_MODEL", "mistral")
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3:8b")
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    replay = json.loads(capsys.readouterr().out)
+
+    assert replay["answer"] == "Meals are $75 per day."
+
+
+def test_ask_misses_when_the_embedder_changes(capsys, monkeypatch):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    label = section_label(search(question, adapter)[0])
+    with adapter.connect() as conn:
+        stored_vector = conn.execute(
+            "SELECT embedding FROM policy_chunks WHERE chunk_id = %s",
+            ("minion_expense_policy_2024:s5:c01",),
+        ).fetchone()[0]
+        vector = stored_vector.to_list()
+    model = SequenceLanguageModel(
+        [
+            json.dumps({"answer": "Meals are $75 per day.", "section": label}),
+            json.dumps(
+                {"answer": "A different embedder says $75.", "section": label}
+            ),
+        ]
+    )
+
+    monkeypatch.setenv("EMBEDDING_MODEL", "all-mpnet-base-v2")
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+    monkeypatch.setenv("EMBEDDING_MODEL", "other-embedder")
+    monkeypatch.setattr(
+        "app.retrieve.embed_texts", lambda texts: [vector for _ in texts]
+    )
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["answer"] == "A different embedder says $75."
+
+
+def test_ask_misses_when_the_prompt_version_changes(capsys, monkeypatch):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    label = section_label(search(question, adapter)[0])
+    model = SequenceLanguageModel(
+        [
+            json.dumps({"answer": "Meals are $75 per day.", "section": label}),
+            json.dumps({"answer": "Prompt v2 says $75.", "section": label}),
+        ]
+    )
+
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+
+    class PromptV2:
+        stem = "prompt_v2"
+
+    monkeypatch.setattr("app.cache.PROMPT_PATH", PromptV2())
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["answer"] == "Prompt v2 says $75."
+
+
+def test_each_embedder_keeps_its_own_stored_answer(capsys, monkeypatch):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    label = section_label(search(question, adapter)[0])
+    with adapter.connect() as conn:
+        stored_vector = conn.execute(
+            "SELECT embedding FROM policy_chunks WHERE chunk_id = %s",
+            ("minion_expense_policy_2024:s5:c01",),
+        ).fetchone()[0]
+        vector = stored_vector.to_list()
+    model = SequenceLanguageModel(
+        [
+            json.dumps({"answer": "Meals are $75 per day.", "section": label}),
+            json.dumps(
+                {"answer": "A different embedder says $75.", "section": label}
+            ),
+        ]
+    )
+
+    monkeypatch.setenv("EMBEDDING_MODEL", "all-mpnet-base-v2")
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+    monkeypatch.setenv("EMBEDDING_MODEL", "other-embedder")
+    monkeypatch.setattr(
+        "app.retrieve.embed_texts", lambda texts: [vector for _ in texts]
+    )
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+    monkeypatch.setenv("EMBEDDING_MODEL", "all-mpnet-base-v2")
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    replay = json.loads(capsys.readouterr().out)
+
+    assert replay["answer"] == "Meals are $75 per day."
+
+
+def test_each_prompt_version_keeps_its_own_stored_answer(capsys, monkeypatch):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    label = section_label(search(question, adapter)[0])
+    model = SequenceLanguageModel(
+        [
+            json.dumps({"answer": "Meals are $75 per day.", "section": label}),
+            json.dumps({"answer": "Prompt v2 says $75.", "section": label}),
+        ]
+    )
+
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+
+    class PromptV2:
+        stem = "prompt_v2"
+
+    monkeypatch.setattr("app.cache.PROMPT_PATH", PromptV2())
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    capsys.readouterr()
+    monkeypatch.setattr("app.cache.PROMPT_PATH", PROMPT_PATH)
+    main(["ask", question], database_adapter=adapter, language_model=model)
+    replay = json.loads(capsys.readouterr().out)
+
+    assert replay["answer"] == "Meals are $75 per day."
+
+
+def test_eval_measures_a_question_ask_already_stored(tmp_path):
+    adapter = PgAdapter()
+    run(adapter)
+    meals = EVAL_QUESTIONS[0]
+    meals_label = section_label(search(meals, adapter)[0])
+    stored = FakeLanguageModel(
+        json.dumps({"answer": "Stored meals answer.", "section": meals_label})
+    )
+    main(["ask", meals], database_adapter=adapter, language_model=stored)
+
+    labels = [
+        section_label(search(question, adapter)[0]) for question in EVAL_QUESTIONS[:-1]
+    ]
+    refusal = "The provided policy does not answer this question."
+    model = SequenceLanguageModel(
+        [
+            json.dumps({"answer": "From the policy.", "section": label})
+            for label in labels
+        ]
+        + [json.dumps({"answer": refusal, "section": ""})]
+    )
+    output_path = tmp_path / "output.json"
+
+    exit_code = main(
+        ["eval", "--output", str(output_path)],
+        database_adapter=adapter,
+        language_model=model,
+    )
+    results = json.loads(output_path.read_text())
+
+    assert exit_code == 0
+    assert [result["question"] for result in results] == list(EVAL_QUESTIONS)
+    assert [result["answer"] for result in results] == ["From the policy."] * 5 + [
+        refusal
+    ]
+
+
+def test_ask_after_eval_still_runs_the_pipeline(capsys, tmp_path):
+    adapter = PgAdapter()
+    run(adapter)
+    labels = [
+        section_label(search(question, adapter)[0]) for question in EVAL_QUESTIONS[:-1]
+    ]
+    refusal = "The provided policy does not answer this question."
+    eval_model = SequenceLanguageModel(
+        [
+            json.dumps({"answer": "From the policy.", "section": label})
+            for label in labels
+        ]
+        + [json.dumps({"answer": refusal, "section": ""})]
+    )
+    main(
+        ["eval", "--output", str(tmp_path / "output.json")],
+        database_adapter=adapter,
+        language_model=eval_model,
+    )
+
+    question = EVAL_QUESTIONS[0]
+    ask_model = FakeLanguageModel(
+        json.dumps({"answer": "Asked after eval.", "section": labels[0]})
+    )
+    main(["ask", question], database_adapter=adapter, language_model=ask_model)
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["answer"] == "Asked after eval."
+    assert len(ask_model.prompts) == 1
 
 
 def test_eval_writes_a_replayable_record_of_all_six_questions(tmp_path):

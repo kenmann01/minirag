@@ -3,6 +3,7 @@ import json
 import sys
 from pathlib import Path
 
+from app.cache import lookup, store
 from app.db import DatabaseAdapter
 from app.generate import LanguageModel, generate
 from app.ingest import run
@@ -46,7 +47,14 @@ def main(
 
             language_model = OllamaAdapter()
     if args.command == "ask":
-        response = generate(args.question, search(args.question, adapter), language_model)
+        cached = lookup(args.question, adapter)
+        if cached is not None:
+            print(cached.model_dump_json())
+            return 0
+        response = generate(
+            args.question, search(args.question, adapter), language_model
+        )
+        store(args.question, response, adapter)
         print(response.model_dump_json())
         return 0
     if args.command == "eval":
