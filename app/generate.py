@@ -11,10 +11,12 @@ class LanguageModel(Protocol):
     def chat(self, prompt: str) -> str: ...
 
 
+def section_label(chunk: dict) -> str:
+    return f"{chunk['source_doc']} {chunk['section']}. {chunk['section_title']}"
+
+
 def generate(question: str, chunks: list[dict], model: LanguageModel) -> AskResponse:
-    sections = {
-        f"{chunk['section']}. {chunk['section_title']}": chunk for chunk in chunks
-    }
+    sections = {section_label(chunk): chunk for chunk in chunks}
     excerpts = "\n\n".join(
         f"Section: {section}\nExcerpt:\n{chunk['text']}"
         for section, chunk in sections.items()
@@ -30,16 +32,16 @@ def generate(question: str, chunks: list[dict], model: LanguageModel) -> AskResp
     supporting_chunk = sections.get(generated.section)
     if answer != REFUSAL and supporting_chunk is not None:
         citation = Citation(
-            document=supporting_chunk["document"],
-            version=supporting_chunk["version"],
+            source_doc=supporting_chunk["source_doc"],
+            effective_date=supporting_chunk["effective_date"],
             section=generated.section,
         )
     elif answer != REFUSAL:
         answer = REFUSAL
     retrieved = [
         RetrievedChunk(
-            document=chunk["document"],
-            version=chunk["version"],
+            source_doc=chunk["source_doc"],
+            effective_date=chunk["effective_date"],
             section=section,
             text=chunk["text"],
             distance=chunk["distance"],

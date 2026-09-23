@@ -7,14 +7,14 @@ class ModelAnswer(BaseModel):
 
 
 class Citation(BaseModel):
-    document: str
-    version: str
+    source_doc: str
+    effective_date: str | None
     section: str
 
 
 class RetrievedChunk(BaseModel):
-    document: str
-    version: str
+    source_doc: str
+    effective_date: str | None
     section: str
     text: str
     distance: float

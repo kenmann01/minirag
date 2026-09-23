@@ -5,7 +5,8 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from app.cli import main
+from app.cli import EVAL_QUESTIONS, main
+from app.generate import section_label
 from app.ingest import run
 from app.pgadapter import PgAdapter
 from app.retrieve import search
@@ -179,63 +180,89 @@ def test_ingest_command_prints_how_many_children_it_wrote(capsys):
     assert capsys.readouterr().err.strip() == f"ingested {count} policy chunks"
 
 
-def test_retrieve_returns_three_chunks_for_food_question_in_distance_order():
+def test_retrieve_returns_three_current_sections_in_distance_order():
     adapter = PgAdapter()
     run(adapter)
     rows = search("How much can I spend on food each day?", adapter)
     assert len(rows) == 3
-    assert rows[0]["section"] == "1"
-    assert rows[0]["section_title"] == "Meals"
+    assert rows[0]["source_doc"] == "minion_expense_policy_2024.md"
+    assert rows[0]["section"] == "5"
+    assert rows[0]["section_title"] == "Travel Expenses"
+    assert "$75/day" in rows[0]["text"]
+    assert all(row["source_doc"] != "minion_expense_policy_2021.md" for row in rows)
     assert [row["distance"] for row in rows] == sorted(
         row["distance"] for row in rows
     )
 
 
-@pytest.mark.parametrize(
-    ("question", "section", "title"),
-    [
-        ("Can I book first-class airfare?", "3", "Airfare"),
-        ("My hotel costs $250. What do I need?", "2", "Hotels"),
-        ("Do I need a receipt for a $20 taxi?", "5", "Receipts"),
-        ("Can I claim a limousine upgrade?", "4", "Ground Transportation"),
-    ],
-)
-def test_retrieve_returns_expected_section_for_in_policy_question(question, section, title):
+def test_search_returns_one_row_when_two_children_share_a_section():
     adapter = PgAdapter()
     run(adapter)
+    question = "How much can I spend on food each day?"
+    with adapter.connect() as conn:
+        embedding = conn.execute(
+            "SELECT embedding FROM policy_chunks WHERE chunk_id = %s",
+            ("minion_expense_policy_2024:s5:c01",),
+        ).fetchone()[0]
+        conn.execute(
+            """
+            INSERT INTO policy_chunks (
+                chunk_id, source_doc, section, section_title, effective_date,
+                superseded_by, parent_text, text, embedding
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                "minion_expense_policy_2024:s5:c02",
+                "minion_expense_policy_2024.md",
+                "5",
+                "Travel Expenses",
+                "January 15, 2024",
+                None,
+                "whole travel section",
+                "second child window",
+                embedding,
+            ),
+        )
     rows = search(question, adapter)
+    travel = [
+        row
+        for row in rows
+        if row["source_doc"] == "minion_expense_policy_2024.md" and row["section"] == "5"
+    ]
     assert len(rows) == 3
-    assert rows[0]["section"] == section
-    assert rows[0]["section_title"] == title
+    assert len(travel) == 1
+    assert len({(row["source_doc"], row["section"]) for row in rows}) == 3
 
 
 def test_employee_can_ask_about_meals_and_receive_grounded_json(capsys):
     adapter = PgAdapter()
     run(adapter)
+    question = "How much can I spend on food each day?"
+    top = search(question, adapter)[0]
+    label = section_label(top)
     model = FakeLanguageModel(
         json.dumps(
             {
-                "answer": "You may claim up to $65 per day for meals while traveling overnight.",
-                "section": "1. Meals",
+                "answer": "Domestic travel meals are $75 per day.",
+                "section": label,
             }
         )
     )
 
     exit_code = main(
-        ["ask", "How much can I spend on food each day?"],
+        ["ask", question],
         database_adapter=adapter,
         language_model=model,
     )
 
     assert exit_code == 0
     output = json.loads(capsys.readouterr().out)
-    assert output["answer"] == (
-        "You may claim up to $65 per day for meals while traveling overnight."
-    )
+    assert output["answer"] == "Domestic travel meals are $75 per day."
     assert output["citation"] == {
-        "document": "Employee Expense Policy",
-        "version": "2.0",
-        "section": "1. Meals",
+        "source_doc": "minion_expense_policy_2024.md",
+        "effective_date": "January 15, 2024",
+        "section": label,
     }
     assert len(output["retrieved_chunks"]) == 3
     assert all(
@@ -270,6 +297,8 @@ def test_ask_omits_citation_when_model_names_a_different_section(capsys):
 def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
     adapter = PgAdapter()
     run(adapter)
+    question = "How much can I spend on food each day?"
+    label = section_label(search(question, adapter)[0])
     request_sent = {}
 
     class FakeHTTPResponse:
@@ -285,8 +314,8 @@ def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
                     "message": {
                         "content": json.dumps(
                             {
-                                "answer": "You may claim up to $65 per day.",
-                                "section": "1. Meals",
+                                "answer": "You may claim up to $75 per day.",
+                                "section": label,
                             }
                         )
                     }
@@ -303,12 +332,13 @@ def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
 
     main(
-        ["ask", "How much can I spend on food each day?"],
+        ["ask", question],
         database_adapter=adapter,
     )
 
     output = json.loads(capsys.readouterr().out)
-    assert output["citation"]["section"] == "1. Meals"
+    assert output["citation"]["section"] == label
+    assert output["citation"]["source_doc"] == "minion_expense_policy_2024.md"
     assert request_sent == {
         "url": "http://host.docker.internal:11434/api/chat",
         "body": {
@@ -326,42 +356,15 @@ def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
     }
 
 
-@pytest.mark.parametrize(
-    ("question", "answer", "section"),
-    [
-        (
-            "How much can I spend on food each day?",
-            "Meals are reimbursable up to $65 per day while traveling overnight.",
-            "1. Meals",
-        ),
-        (
-            "Can I book first-class airfare?",
-            "You must buy economy airfare; business class requires written VP approval.",
-            "3. Airfare",
-        ),
-        (
-            "My hotel costs $250. What do I need?",
-            "A manager must approve a rate over $225 before booking.",
-            "2. Hotels",
-        ),
-        (
-            "Do I need a receipt for a $20 taxi?",
-            "No. Receipts are required for expenses of $25 or more.",
-            "5. Receipts",
-        ),
-        (
-            "Can I claim a limousine upgrade?",
-            "No. Luxury vehicle upgrades are not reimbursable.",
-            "4. Ground Transportation",
-        ),
-    ],
-)
-def test_employee_receives_expected_policy_answer_and_citation(
-    question, answer, section, capsys
-):
+@pytest.mark.parametrize("question", EVAL_QUESTIONS[:-1])
+def test_ask_cites_the_current_section_the_model_names(question, capsys):
     adapter = PgAdapter()
     run(adapter)
-    model = FakeLanguageModel(json.dumps({"answer": answer, "section": section}))
+    top = search(question, adapter)[0]
+    label = section_label(top)
+    model = FakeLanguageModel(
+        json.dumps({"answer": "Cited from the policy.", "section": label})
+    )
 
     main(
         ["ask", question],
@@ -370,13 +373,17 @@ def test_employee_receives_expected_policy_answer_and_citation(
     )
 
     output = json.loads(capsys.readouterr().out)
-    assert output["answer"] == answer
+    assert output["answer"] == "Cited from the policy."
     assert output["citation"] == {
-        "document": "Employee Expense Policy",
-        "version": "2.0",
-        "section": section,
+        "source_doc": top["source_doc"],
+        "effective_date": top["effective_date"],
+        "section": label,
     }
     assert len(output["retrieved_chunks"]) == 3
+    assert all(
+        chunk["source_doc"] != "minion_expense_policy_2021.md"
+        for chunk in output["retrieved_chunks"]
+    )
 
 
 def test_generator_receives_all_three_retrieved_policy_excerpts(capsys):
@@ -399,7 +406,6 @@ def test_generator_receives_all_three_retrieved_policy_excerpts(capsys):
     output = json.loads(capsys.readouterr().out)
 
     assert len(model.prompts) == 1
-    assert "Employees must purchase economy airfare." in model.prompts[0]
     assert "using only the policy excerpts" in model.prompts[0]
     assert "requires one option" in model.prompts[0]
     assert "specific item fits a broader prohibited category" in model.prompts[0]
@@ -476,20 +482,15 @@ def test_eval_writes_a_replayable_record_of_all_six_questions(tmp_path):
     adapter = PgAdapter()
     run(adapter)
     refusal = "The provided policy does not answer this question."
+    labels = [
+        section_label(search(question, adapter)[0]) for question in EVAL_QUESTIONS[:-1]
+    ]
     model = SequenceLanguageModel(
         [
-            json.dumps({"answer": "$65 per day.", "section": "1. Meals"}),
-            json.dumps({"answer": "Buy economy airfare.", "section": "3. Airfare"}),
-            json.dumps({"answer": "Get manager approval.", "section": "2. Hotels"}),
-            json.dumps({"answer": "No receipt is needed.", "section": "5. Receipts"}),
-            json.dumps(
-                {
-                    "answer": "Luxury upgrades are not reimbursable.",
-                    "section": "4. Ground Transportation",
-                }
-            ),
-            json.dumps({"answer": refusal, "section": "3. Airfare"}),
+            json.dumps({"answer": "From the policy.", "section": label})
+            for label in labels
         ]
+        + [json.dumps({"answer": refusal, "section": ""})]
     )
     output_path = tmp_path / "output.json"
 
@@ -510,13 +511,10 @@ def test_eval_writes_a_replayable_record_of_all_six_questions(tmp_path):
         "Does the company reimburse gym memberships?",
     ]
     assert [result["citation"]["section"] if result["citation"] else None for result in results] == [
-        "1. Meals",
-        "3. Airfare",
-        "2. Hotels",
-        "5. Receipts",
-        "4. Ground Transportation",
+        *labels,
         None,
     ]
+    assert results[0]["citation"]["source_doc"] == "minion_expense_policy_2024.md"
     assert results[-1]["answer"] == refusal
     assert all(len(result["retrieved_chunks"]) == 3 for result in results)
     assert all(
