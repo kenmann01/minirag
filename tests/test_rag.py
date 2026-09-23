@@ -29,47 +29,154 @@ class SequenceLanguageModel:
         return next(self.responses)
 
 
-def test_ingest_stores_six_policy_chunks():
+def test_ingest_stores_2024_purpose_as_a_768_child():
     adapter = PgAdapter()
-    run(adapter)
     with adapter.connect() as conn:
-        count = conn.execute("SELECT COUNT(*) FROM policy_chunks").fetchone()[0]
-    assert count == 6
-
-
-def test_ingest_stores_meals_chunk_metadata():
-    adapter = PgAdapter()
+        conn.execute("DROP TABLE IF EXISTS policy_chunks")
+        conn.execute(
+            """
+            CREATE TABLE policy_chunks (
+                chunk_id TEXT PRIMARY KEY,
+                document TEXT NOT NULL,
+                version TEXT NOT NULL,
+                section TEXT NOT NULL,
+                section_title TEXT NOT NULL,
+                text TEXT NOT NULL,
+                embedding vector(384) NOT NULL
+            )
+            """
+        )
     run(adapter)
     with adapter.connect() as conn:
         row = conn.execute(
             """
-            SELECT chunk_id, document, version, section, section_title, text
+            SELECT chunk_id, source_doc, section, section_title, effective_date,
+                   superseded_by, parent_text, text, embedding
             FROM policy_chunks
-            WHERE section = %s
+            WHERE chunk_id = %s
             """,
-            ("1",),
+            ("minion_expense_policy_2024:s1:c01",),
         ).fetchone()
-    assert row == (
-        "expense-policy:v2.0:section-1",
-        "Employee Expense Policy",
-        "2.0",
-        "1",
-        "Meals",
-        "Employees may claim up to $65 per day for meals while traveling overnight.\n"
-        "Alcohol is not reimbursable.",
+    assert row is not None
+    assert row[0] == "minion_expense_policy_2024:s1:c01"
+    assert row[1] == "minion_expense_policy_2024.md"
+    assert row[2] == "1"
+    assert row[3] == "Purpose"
+    assert row[4] == "January 15, 2024"
+    assert row[5] is None
+    purpose = (
+        "This policy explains what lair will pay Minion back for, and what lair "
+        "will absolutely not, no matter how good the reason sounded at 2 AM when "
+        "Minion thought of it."
     )
+    assert row[6] == purpose
+    assert row[7] == purpose
+    assert len(row[8].to_list()) == 768
 
 
-def test_ingest_stores_384_dimension_embeddings():
+def test_ingest_stores_every_policy_in_the_folder():
     adapter = PgAdapter()
     run(adapter)
     with adapter.connect() as conn:
-        row = conn.execute(
-            "SELECT embedding FROM policy_chunks WHERE section = %s",
-            ("1",),
+        sources = {
+            row[0]
+            for row in conn.execute("SELECT DISTINCT source_doc FROM policy_chunks")
+        }
+    assert sources == {
+        "minion_expense_policy_2021.md",
+        "minion_expense_policy_2024.md",
+        "minion_pto_policy.md",
+        "minion_remote_work_policy.md",
+    }
+
+
+def test_ingest_marks_the_2021_expense_policy_superseded():
+    adapter = PgAdapter()
+    run(adapter)
+    with adapter.connect() as conn:
+        pointers = {
+            row[0]
+            for row in conn.execute(
+                """
+                SELECT DISTINCT superseded_by
+                FROM policy_chunks
+                WHERE source_doc = %s
+                """,
+                ("minion_expense_policy_2021.md",),
+            )
+        }
+        other_pointers = conn.execute(
+            """
+            SELECT COUNT(*) FROM policy_chunks
+            WHERE source_doc <> %s AND superseded_by IS NOT NULL
+            """,
+            ("minion_expense_policy_2021.md",),
+        ).fetchone()[0]
+    assert pointers == {"minion_expense_policy_2024.md"}
+    assert other_pointers == 0
+
+
+def test_ingest_keeps_a_prose_effective_date():
+    adapter = PgAdapter()
+    run(adapter)
+    with adapter.connect() as conn:
+        dates = {
+            row[0]
+            for row in conn.execute(
+                """
+                SELECT DISTINCT effective_date
+                FROM policy_chunks
+                WHERE source_doc = %s
+                """,
+                ("minion_remote_work_policy.md",),
+            )
+        }
+    assert dates == {"the day after Kevin flooded the sub-basement"}
+
+
+def test_reingest_drops_rows_it_did_not_see():
+    adapter = PgAdapter()
+    run(adapter)
+    with adapter.connect() as conn:
+        before = conn.execute("SELECT COUNT(*) FROM policy_chunks").fetchone()[0]
+        conn.execute(
+            """
+            INSERT INTO policy_chunks (
+                chunk_id, source_doc, section, section_title, effective_date,
+                superseded_by, parent_text, text, embedding
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                "orphan:s0:c01",
+                "orphan.md",
+                "0",
+                "Orphan",
+                None,
+                None,
+                "parent",
+                "child",
+                [0.0] * 768,
+            ),
+        )
+    run(adapter)
+    with adapter.connect() as conn:
+        count = conn.execute("SELECT COUNT(*) FROM policy_chunks").fetchone()[0]
+        orphan = conn.execute(
+            "SELECT 1 FROM policy_chunks WHERE chunk_id = %s",
+            ("orphan:s0:c01",),
         ).fetchone()
-    assert row is not None
-    assert len(row[0].to_list()) == 384
+    assert orphan is None
+    assert count == before
+
+
+def test_ingest_command_prints_how_many_children_it_wrote(capsys):
+    adapter = PgAdapter()
+    exit_code = main(["ingest"], database_adapter=adapter)
+    assert exit_code == 0
+    with adapter.connect() as conn:
+        count = conn.execute("SELECT COUNT(*) FROM policy_chunks").fetchone()[0]
+    assert capsys.readouterr().err.strip() == f"ingested {count} policy chunks"
 
 
 def test_retrieve_returns_three_chunks_for_food_question_in_distance_order():
@@ -100,25 +207,6 @@ def test_retrieve_returns_expected_section_for_in_policy_question(question, sect
     assert len(rows) == 3
     assert rows[0]["section"] == section
     assert rows[0]["section_title"] == title
-
-
-def test_reingest_upserts_and_keeps_six_chunks():
-    adapter = PgAdapter()
-    run(adapter)
-    with adapter.connect() as conn:
-        conn.execute(
-            "UPDATE policy_chunks SET text = %s WHERE section = %s",
-            ("changed", "1"),
-        )
-    run(adapter)
-    with adapter.connect() as conn:
-        count = conn.execute("SELECT COUNT(*) FROM policy_chunks").fetchone()[0]
-        text = conn.execute(
-            "SELECT text FROM policy_chunks WHERE section = %s",
-            ("1",),
-        ).fetchone()[0]
-    assert count == 6
-    assert "65" in text
 
 
 def test_employee_can_ask_about_meals_and_receive_grounded_json(capsys):

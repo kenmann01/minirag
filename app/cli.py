@@ -27,7 +27,7 @@ def main(
 ) -> int:
     parser = argparse.ArgumentParser(prog="app")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("ingest", help="Ingest policy.md into the vector store")
+    sub.add_parser("ingest", help="Ingest the Policy folder into the vector store")
     ask_parser = sub.add_parser("ask", help="Answer a question from the policy")
     ask_parser.add_argument("question")
     eval_parser = sub.add_parser("eval", help="Evaluate the required questions")
@@ -37,8 +37,8 @@ def main(
     args = parser.parse_args(argv)
     adapter = database_adapter or PgAdapter()
     if args.command == "ingest":
-        run(adapter)
-        print("ingested 6 policy chunks", file=sys.stderr)
+        count = run(adapter)
+        print(f"ingested {count} policy chunks", file=sys.stderr)
         return 0
     if args.command in {"ask", "eval"}:
         if language_model is None:
