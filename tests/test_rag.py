@@ -125,6 +125,12 @@ def test_ingest_stores_every_policy_in_the_folder():
         "minion_expense_policy_2024.md",
         "minion_pto_policy.md",
         "minion_remote_work_policy.md",
+        "minion_travel_security_policy.md",
+        "minion_equipment_policy.md",
+        "minion_dress_code_policy.md",
+        "minion_training_policy.md",
+        "minion_communications_policy.md",
+        "minion_visitors_policy.md",
     }
 
 
@@ -152,6 +158,20 @@ def test_ingest_marks_the_2021_expense_policy_superseded():
         ).fetchone()[0]
     assert pointers == {"minion_expense_policy_2024.md"}
     assert other_pointers == 0
+
+
+def test_the_villain_protocol_question_surfaces_the_travel_security_trigger_section():
+    adapter = PgAdapter()
+    run(adapter)
+    rows = search("What triggers the Villain Protocol?", adapter)
+    trigger_sections = {
+        (row["source_doc"], row["section"])
+        for row in rows
+        if row["source_doc"] == "minion_travel_security_policy.md"
+        and "Villain Protocol" in row["text"]
+        and "trigger" in row["text"]
+    }
+    assert trigger_sections, [row["chunk_id"] for row in rows]
 
 
 def test_ingest_keeps_a_prose_effective_date():
