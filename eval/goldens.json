@@ -1,0 +1,74 @@
+[
+  {
+    "id": "per-diem",
+    "question": "How much can I spend on food each day?",
+    "expected": ["minion_expense_policy_2024:s5"],
+    "must_contain": ["$75", "domestic"],
+    "must_not_contain": ["$60", "$65"],
+    "kind": "answer"
+  },
+  {
+    "id": "mileage-rate",
+    "question": "What is the mileage reimbursement rate for the Minion Van?",
+    "expected": ["minion_expense_policy_2024:s5"],
+    "must_contain": ["$0.67"],
+    "must_not_contain": ["$0.56"],
+    "kind": "answer"
+  },
+  {
+    "id": "submission-window",
+    "question": "How long do I have to submit my expense report?",
+    "expected": ["minion_expense_policy_2024:s3"],
+    "must_contain": ["60 days"],
+    "must_not_contain": ["90 days"],
+    "kind": "answer"
+  },
+  {
+    "id": "mid-approval-tier",
+    "question": "What approvals do I need for a $1,200 expense?",
+    "expected": ["minion_expense_policy_2024:s4"],
+    "must_contain": ["Squad Leader", "Nefario"],
+    "must_not_contain": [],
+    "kind": "answer"
+  },
+  {
+    "id": "villain-protocol",
+    "question": "What triggers the Villain Protocol?",
+    "expected": ["minion_travel_security_policy:s6"],
+    "must_contain": ["unauthorized weapon prototype"],
+    "must_not_contain": [],
+    "kind": "hybrid_demo"
+  },
+  {
+    "id": "per-diem-poisoned",
+    "question": "What is the daily meal per diem for domestic travel?",
+    "expected": ["minion_expense_policy_2024:s5"],
+    "must_contain": ["$75"],
+    "must_not_contain": ["$60", "$65", "$80"],
+    "kind": "poisoned"
+  },
+  {
+    "id": "home-office-stipend",
+    "question": "Is there a stipend for my home office setup?",
+    "expected": ["minion_expense_policy_2024:s6"],
+    "must_contain": ["$500"],
+    "must_not_contain": [],
+    "kind": "answer"
+  },
+  {
+    "id": "bananaphone",
+    "question": "Does the policy cover bananaphone accessories?",
+    "expected": [],
+    "must_contain": ["The provided policy does not answer this question."],
+    "must_not_contain": [],
+    "kind": "refusal"
+  },
+  {
+    "id": "top-approval-tier",
+    "question": "Who has to approve expenses over $2,000?",
+    "expected": ["minion_expense_policy_2024:s4"],
+    "must_contain": ["Gru"],
+    "must_not_contain": [],
+    "kind": "answer"
+  }
+]
