@@ -164,7 +164,8 @@ def test_ingest_marks_the_2021_expense_policy_superseded():
 def test_the_villain_protocol_question_surfaces_the_travel_security_trigger_section():
     adapter = PgAdapter()
     run(adapter)
-    rows = search("What triggers the Villain Protocol?", adapter)
+    question = "What triggers the Villain Protocol?"
+    rows = search(question, adapter)
     trigger_sections = {
         (row["source_doc"], row["section"])
         for row in rows
@@ -173,6 +174,25 @@ def test_the_villain_protocol_question_surfaces_the_travel_security_trigger_sect
         and "trigger" in row["text"]
     }
     assert trigger_sections, [row["chunk_id"] for row in rows]
+    trigger_chunk_id = next(
+        row["chunk_id"]
+        for row in rows
+        if row["source_doc"] == "minion_travel_security_policy.md"
+        and "Villain Protocol" in row["text"]
+        and "trigger" in row["text"]
+    )
+    with adapter.connect() as conn:
+        keyword_rank = conn.execute(
+            """
+            SELECT ts_rank(tsv, websearch_to_tsquery('english', %s))
+            FROM policy_chunks
+            WHERE chunk_id = %s
+            """,
+            (question, trigger_chunk_id),
+        ).fetchone()[0]
+    assert keyword_rank is not None and keyword_rank > 0, (
+        "the trigger section must match the keyword lane's query"
+    )
 
 
 def test_ingest_keeps_a_prose_effective_date():

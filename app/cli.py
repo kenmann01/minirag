@@ -59,25 +59,20 @@ def main(
         if reranker is None:
             reranker = CrossEncoderReranker()
     if args.command == "ask":
-        if args.include_superseded:
-            response = generate(
-                args.question,
-                reranker.rank(
-                    args.question,
-                    search(args.question, adapter, include_superseded=True),
-                ),
-                language_model,
-            )
-            print(response.model_dump_json())
-            return 0
-        cached = lookup(args.question, adapter)
-        if cached is not None:
-            print(cached.model_dump_json())
-            return 0
+        if not args.include_superseded:
+            cached = lookup(args.question, adapter)
+            if cached is not None:
+                print(cached.model_dump_json())
+                return 0
         response = generate(
-            args.question, reranker.rank(args.question, search(args.question, adapter)), language_model
+            args.question,
+            reranker.rank(
+                args.question,
+                search(args.question, adapter, include_superseded=args.include_superseded),
+            ),
+            language_model,
         )
-        if response.answer != REFUSAL:
+        if response.answer != REFUSAL and not args.include_superseded:
             store(args.question, response, adapter)
         print(response.model_dump_json())
         return 0

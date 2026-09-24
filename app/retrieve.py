@@ -1,5 +1,9 @@
+from typing import Literal
+
 from app.db import DatabaseAdapter
 from app.embeddings import embed_texts
+
+Mode = Literal["hybrid", "vector"]
 
 
 _VECTOR_SQL = """
@@ -72,7 +76,7 @@ def fuse(vector_rows: list[dict], keyword_rows: list[dict], k: int = 60) -> list
 def search(
     question: str,
     adapter: DatabaseAdapter,
-    mode: str = "hybrid",
+    mode: Mode = "hybrid",
     include_superseded: bool = False,
 ) -> list[dict]:
     query_vector = embed_texts([question])[0]

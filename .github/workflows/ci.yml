@@ -26,6 +26,8 @@ jobs:
       DATABASE_URL: postgresql://minirag:minirag@localhost:5432/minirag
     steps:
       - uses: actions/checkout@v4
+      # setup-python's pip cache carries the torch wheel (the heaviest
+      # dependency), keyed on requirements.txt.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

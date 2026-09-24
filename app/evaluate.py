@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from app.db import DatabaseAdapter
 from app.generate import LanguageModel, generate
 from app.reranker import Reranker
-from app.retrieve import search
+from app.retrieve import Mode, search
 from app.schemas import AskResponse
 from app.validate import REFUSAL
 
@@ -71,7 +71,7 @@ def run_exam(
     adapter: DatabaseAdapter,
     model: LanguageModel,
     reranker: Reranker,
-    mode: str = "hybrid",
+    mode: Mode = "hybrid",
     include_superseded: bool = False,
 ) -> dict:
     """Each golden through the exact ask path minus the question cache."""
@@ -121,10 +121,9 @@ def run_exam(
 def format_table(record: dict) -> str:
     summary = record["summary"]
     lines = [
-        "retriever={retriever}  goldens={total}  passed={passed}  "
-        "recall={recall_hits}/{total}  answers={answer_passes}/{total}".format(
-            retriever=record["retriever"], **summary
-        ),
+        f"retriever={record['retriever']}  goldens={summary['total']}  "
+        f"passed={summary['passed']}  recall={summary['recall_hits']}/{summary['total']}  "
+        f"answers={summary['answer_passes']}/{summary['total']}",
         "",
         f"{'id':<22}{'kind':<13}{'recall':<8}{'answer':<8}result",
     ]

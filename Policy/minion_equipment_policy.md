@@ -20,7 +20,7 @@ Equipment beyond the standard kit is checked out through the armory ledger: tag 
 
 ## 4. Restricted Equipment
 
-Freeze rays, shrink rays, magnet boots, and anything else with the word "ray" in its inventory tag require Dr. Nefario's signature and a Level 2 certification from the Training Policy (LAIR-POL-018). Possession without either triggers review under the Travel Security Policy (LAIR-POL-015) and a conversation nobody enjoys.
+Freeze rays, shrink rays, and anything else with the word "ray" in its inventory tag require Dr. Nefario's signature and a Level 2 certification from the Training Policy (LAIR-POL-018). Magnet boots sit at Level 3 there, along with everyone who has ever worn them, briefly. Possession without the right level triggers review under the Travel Security Policy (LAIR-POL-015) and a conversation nobody enjoys.
 
 ## 5. Maintenance and Inspections
 
