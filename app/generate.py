@@ -7,7 +7,7 @@ from typing import Protocol
 from app.schemas import AskResponse, ModelAnswer, RetrievedChunk
 from app.validate import REFUSAL, gate
 
-PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompt_v2.md"
+PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompt_v3.md"
 
 
 class LanguageModel(Protocol):

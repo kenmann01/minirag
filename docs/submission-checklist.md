@@ -69,7 +69,7 @@ Open and screenshot these files:
 
 ```
 app/chunking.py    # heading split, 800-1200 char child windows, 120+ overlap
-app/embeddings.py  # all-mpnet-base-v2, normalized
+app/embeddings.py  # Alibaba-NLP/gte-modernbert-base, normalized
 app/ingest.py      # table schema, upsert, orphan cleanup, parent/child columns
 ```
 

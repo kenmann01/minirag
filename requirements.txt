@@ -4,4 +4,5 @@ psycopg[binary]>=3
 pgvector>=0.3
 python-dotenv>=1
 sentence-transformers>=3
+transformers>=4.48
 pytest>=8

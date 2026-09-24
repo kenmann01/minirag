@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
-          key: hf-all-mpnet-base-v2-cross-encoder-ms-marco-MiniLM-L-6-v2
+          key: hf-Alibaba-NLP-gte-modernbert-base-cross-encoder-ms-marco-MiniLM-L-6-v2
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Bootstrap the store before the tests
@@ -74,7 +74,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
-          key: hf-all-mpnet-base-v2-cross-encoder-ms-marco-MiniLM-L-6-v2
+          key: hf-Alibaba-NLP-gte-modernbert-base-cross-encoder-ms-marco-MiniLM-L-6-v2
       - name: Cache the generator model
         uses: actions/cache@v4
         with:

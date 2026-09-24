@@ -1,7 +1,7 @@
 # Mini RAG
 
 A command-line RAG assistant for the Version 2.0 employee expense policy.
-Postgres with pgvector stores policy chunks; all-mpnet-base-v2 creates
+Postgres with pgvector stores policy chunks; Alibaba-NLP/gte-modernbert-base creates
 embeddings; Qwen 3 generates grounded answers through Ollama. Each ask
 retrieves policy sections through hybrid vector and keyword search fused with
 reciprocal rank fusion, then reranks the fused candidates with a cross-encoder
