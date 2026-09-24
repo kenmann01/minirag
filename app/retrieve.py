@@ -52,16 +52,20 @@ def fuse(vector_rows: list[dict], keyword_rows: list[dict], k: int = 60) -> list
     return [(chunk_id, score) for chunk_id, score, _, _ in scored]
 
 
-def search(question: str, adapter: DatabaseAdapter) -> list[dict]:
+def search(question: str, adapter: DatabaseAdapter, mode: str = "hybrid") -> list[dict]:
     query_vector = embed_texts([question])[0]
     with adapter.connect() as conn:
         vector_rows = [
             _candidate(row) for row in conn.execute(_VECTOR_SQL, (query_vector,)).fetchall()
         ]
-        keyword_rows = [
-            _candidate(row)
-            for row in conn.execute(_KEYWORD_SQL, (query_vector, question, question)).fetchall()
-        ]
+        keyword_rows = (
+            []
+            if mode == "vector"
+            else [
+                _candidate(row)
+                for row in conn.execute(_KEYWORD_SQL, (query_vector, question, question)).fetchall()
+            ]
+        )
     by_chunk_id = {row["chunk_id"]: row for row in [*vector_rows, *keyword_rows]}
     fused = fuse(vector_rows, keyword_rows)[:20]
     return [

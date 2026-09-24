@@ -5,8 +5,9 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from app.cli import EVAL_QUESTIONS, main
+from app.cli import main
 from app.embeddings import embed_texts
+from app.evaluate import load_goldens
 from app.generate import PROMPT_PATH, section_label
 from app.ingest import run
 from app.pgadapter import PgAdapter
@@ -715,7 +716,12 @@ def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
     }
 
 
-@pytest.mark.parametrize("question", EVAL_QUESTIONS[:-1])
+ANSWER_QUESTIONS = [
+    golden.question for golden in load_goldens() if golden.kind == "answer"
+]
+
+
+@pytest.mark.parametrize("question", ANSWER_QUESTIONS)
 def test_ask_cites_the_current_section_the_model_names(question, capsys):
     adapter = PgAdapter()
     run(adapter)
@@ -1248,118 +1254,3 @@ def test_each_prompt_version_keeps_its_own_stored_answer(capsys, monkeypatch):
 
     assert replay["answer"] == "Meals are $75 per day."
 
-
-def test_eval_measures_a_question_ask_already_stored(tmp_path):
-    adapter = PgAdapter()
-    run(adapter)
-    meals = EVAL_QUESTIONS[0]
-    meals_label = section_label(search(meals, adapter)[0])
-    stored = FakeLanguageModel(
-        json.dumps({"answer": "Stored meals answer.", "section": meals_label})
-    )
-    main(["ask", meals], database_adapter=adapter, language_model=stored, reranker=TopFiveReranker())
-
-    labels = [
-        section_label(search(question, adapter)[0]) for question in EVAL_QUESTIONS[:-1]
-    ]
-    refusal = "The provided policy does not answer this question."
-    model = SequenceLanguageModel(
-        [
-            json.dumps({"answer": "From the policy.", "section": label})
-            for label in labels
-        ]
-        + [json.dumps({"answer": refusal, "section": ""})]
-    )
-    output_path = tmp_path / "output.json"
-
-    exit_code = main(
-        ["eval", "--output", str(output_path)],
-        database_adapter=adapter,
-        language_model=model,
-        reranker=TopFiveReranker(),
-    )
-    results = json.loads(output_path.read_text())
-
-    assert exit_code == 0
-    assert [result["question"] for result in results] == list(EVAL_QUESTIONS)
-    assert [result["answer"] for result in results] == ["From the policy."] * 5 + [
-        refusal
-    ]
-
-
-def test_ask_after_eval_still_runs_the_pipeline(capsys, tmp_path):
-    adapter = PgAdapter()
-    run(adapter)
-    labels = [
-        section_label(search(question, adapter)[0]) for question in EVAL_QUESTIONS[:-1]
-    ]
-    refusal = "The provided policy does not answer this question."
-    eval_model = SequenceLanguageModel(
-        [
-            json.dumps({"answer": "From the policy.", "section": label})
-            for label in labels
-        ]
-        + [json.dumps({"answer": refusal, "section": ""})]
-    )
-    main(
-        ["eval", "--output", str(tmp_path / "output.json")],
-        database_adapter=adapter,
-        language_model=eval_model,
-        reranker=TopFiveReranker(),
-    )
-
-    question = EVAL_QUESTIONS[0]
-    ask_model = FakeLanguageModel(
-        json.dumps({"answer": "Asked after eval.", "section": labels[0]})
-    )
-    main(["ask", question], database_adapter=adapter, language_model=ask_model, reranker=TopFiveReranker())
-    output = json.loads(capsys.readouterr().out)
-
-    assert output["answer"] == "Asked after eval."
-    assert len(ask_model.prompts) == 1
-
-
-def test_eval_writes_a_replayable_record_of_all_six_questions(tmp_path):
-    adapter = PgAdapter()
-    run(adapter)
-    refusal = "The provided policy does not answer this question."
-    labels = [
-        section_label(search(question, adapter)[0]) for question in EVAL_QUESTIONS[:-1]
-    ]
-    model = SequenceLanguageModel(
-        [
-            json.dumps({"answer": "From the policy.", "section": label})
-            for label in labels
-        ]
-        + [json.dumps({"answer": refusal, "section": ""})]
-    )
-    output_path = tmp_path / "output.json"
-
-    exit_code = main(
-        ["eval", "--output", str(output_path)],
-        database_adapter=adapter,
-        language_model=model,
-        reranker=TopFiveReranker(),
-    )
-
-    assert exit_code == 0
-    results = json.loads(output_path.read_text())
-    assert [result["question"] for result in results] == [
-        "How much can I spend on food each day?",
-        "Can I book first-class airfare?",
-        "My hotel costs $250. What do I need?",
-        "Do I need a receipt for a $20 taxi?",
-        "Can I claim a limousine upgrade?",
-        "Does the company reimburse gym memberships?",
-    ]
-    assert [result["citation"]["section"] if result["citation"] else None for result in results] == [
-        *labels,
-        None,
-    ]
-    assert results[0]["citation"]["source_doc"] == "minion_expense_policy_2024.md"
-    assert results[-1]["answer"] == refusal
-    assert all(len(result["retrieved_chunks"]) == 5 for result in results)
-    assert all(
-        isinstance(result["retrieved_chunks"][0]["distance"], float)
-        for result in results
-    )

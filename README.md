@@ -50,10 +50,20 @@ Ask one question:
 python -m app ask "How much can I spend on food each day?"
 ```
 
-Run all six required questions and write `tests/output.json`:
+Run the fixed nine-golden exam, print the per-golden table, and write
+`eval/record.json`:
 
 ```bash
 python -m app eval
 ```
 
-Choose a different output path with `python -m app eval --output <path>`.
+A/B the retriever by disabling the keyword lane (`vector` runs vector-only,
+which is the Part 3 comparison arm):
+
+```bash
+python -m app eval --retriever vector --output eval/record-vector.json
+```
+
+The exam exits nonzero when any golden fails recall or its answer checks.
+The goldens live in `eval/goldens.json`; the harness bypasses the question
+cache so its numbers always measure the pipeline.
