@@ -359,6 +359,7 @@ def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
             ],
             "format": "json",
             "stream": False,
+            "think": False,
             "options": {"temperature": 0, "seed": 42},
         },
     }
@@ -484,6 +485,38 @@ def test_gym_question_instructs_model_to_use_the_exact_refusal(capsys):
     capsys.readouterr()
 
     assert f"answer exactly: {refusal}" in model.prompts[0]
+
+
+def test_refusal_is_never_cached_and_recomputes_on_every_ask(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "The provided policy does not answer this question.",
+                "section": "",
+            }
+        )
+    )
+
+    first = main(
+        ["ask", "Does the company reimburse gym memberships?"],
+        database_adapter=adapter,
+        language_model=model,
+    )
+    first_output = json.loads(capsys.readouterr().out)
+    second = main(
+        ["ask", "Does the company reimburse gym memberships?"],
+        database_adapter=adapter,
+        language_model=model,
+    )
+    second_output = json.loads(capsys.readouterr().out)
+
+    assert first == 0
+    assert second == 0
+    assert len(model.prompts) == 2
+    assert first_output["answer"] == "The provided policy does not answer this question."
+    assert second_output["answer"] == "The provided policy does not answer this question."
 
 
 def test_repeat_ask_returns_the_stored_answer_without_calling_the_model(capsys):
