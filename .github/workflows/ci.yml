@@ -1,0 +1,100 @@
+name: ci
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  fast:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: minirag
+          POSTGRES_PASSWORD: minirag
+          POSTGRES_DB: minirag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U minirag"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://minirag:minirag@localhost:5432/minirag
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Cache the embedding and reranking models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-all-mpnet-base-v2-cross-encoder-ms-marco-MiniLM-L-6-v2
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Bootstrap the store before the tests
+        run: python -m app ingest
+      - name: Fast suite (real retrieval and reranking, faked generation)
+        run: pytest -q
+
+  full:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: minirag
+          POSTGRES_PASSWORD: minirag
+          POSTGRES_DB: minirag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U minirag"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://minirag:minirag@localhost:5432/minirag
+      OLLAMA_HOST: http://127.0.0.1:11434
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Cache the embedding and reranking models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-all-mpnet-base-v2-cross-encoder-ms-marco-MiniLM-L-6-v2
+      - name: Cache the generator model
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama
+          key: ollama-qwen3-8b
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Install the generator host and pull the model
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          nohup ollama serve > /tmp/ollama.log 2>&1 &
+          sleep 5
+          ollama pull qwen3:8b
+      - name: Bootstrap the store before the tests
+        run: python -m app ingest
+      - name: Real harness through the real generator
+        run: python -m app eval --output eval/record-real.json
+      - name: llm-marked tests
+        run: pytest -q -m llm
+      - name: Upload the real harness record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: record-real
+          path: eval/record-real.json
