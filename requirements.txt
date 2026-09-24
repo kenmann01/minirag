@@ -6,3 +6,4 @@ python-dotenv>=1
 sentence-transformers>=3
 transformers>=4.48
 pytest>=8
+pytest-cov>=5

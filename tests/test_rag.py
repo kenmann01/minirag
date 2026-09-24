@@ -165,7 +165,15 @@ def test_the_adapter_bootstraps_the_vector_extension_on_a_fresh_database():
     adapter = PgAdapter()
     with adapter.connect() as conn:
         conn.execute("DROP TABLE IF EXISTS policy_chunks")
-        conn.execute("DROP EXTENSION IF EXISTS vector CASCADE")
+        owned = conn.execute(
+            """
+            SELECT pg_get_userbyid(extowner) = current_user
+            FROM pg_extension
+            WHERE extname = 'vector'
+            """
+        ).fetchone()
+        if owned is None or owned[0]:
+            conn.execute("DROP EXTENSION IF EXISTS vector CASCADE")
 
     run(adapter)
 
