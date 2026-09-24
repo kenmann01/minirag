@@ -52,20 +52,6 @@ def fuse(vector_rows: list[dict], keyword_rows: list[dict], k: int = 60) -> list
     return [(chunk_id, score) for chunk_id, score, _, _ in scored]
 
 
-def select_sections(candidates: list[dict], limit: int = 3) -> list[dict]:
-    selected: list[dict] = []
-    seen: set[tuple[str, str]] = set()
-    for candidate in candidates:
-        key = (candidate["source_doc"], candidate["section"])
-        if key in seen:
-            continue
-        seen.add(key)
-        selected.append(candidate)
-        if len(selected) == limit:
-            break
-    return selected
-
-
 def search(question: str, adapter: DatabaseAdapter) -> list[dict]:
     query_vector = embed_texts([question])[0]
     with adapter.connect() as conn:

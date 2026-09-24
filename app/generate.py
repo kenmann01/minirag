@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Protocol
 
-from app.schemas import AskResponse, Citation, ModelAnswer, RetrievedChunk
+from app.schemas import AskResponse, ModelAnswer, RetrievedChunk
+from app.validate import REFUSAL, gate
 
-REFUSAL = "The provided policy does not answer this question."
-PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompt_v1.md"
+PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompt_v2.md"
 
 
 class LanguageModel(Protocol):
@@ -16,6 +16,8 @@ def section_label(chunk: dict) -> str:
 
 
 def generate(question: str, chunks: list[dict], model: LanguageModel) -> AskResponse:
+    if not chunks:
+        return AskResponse(answer=REFUSAL, citation=None, retrieved_chunks=[])
     sections = {section_label(chunk): chunk for chunk in chunks}
     excerpts = "\n\n".join(
         f"Section: {section}\nExcerpt:\n{chunk['text']}"
@@ -27,17 +29,7 @@ def generate(question: str, chunks: list[dict], model: LanguageModel) -> AskResp
         .replace("{question}", question)
     )
     generated = ModelAnswer.model_validate_json(model.chat(prompt))
-    citation = None
-    answer = generated.answer
-    supporting_chunk = sections.get(generated.section)
-    if answer != REFUSAL and supporting_chunk is not None:
-        citation = Citation(
-            source_doc=supporting_chunk["source_doc"],
-            effective_date=supporting_chunk["effective_date"],
-            section=generated.section,
-        )
-    elif answer != REFUSAL:
-        answer = REFUSAL
+    answer, citation = gate(generated, sections)
     retrieved = [
         RetrievedChunk(
             source_doc=chunk["source_doc"],

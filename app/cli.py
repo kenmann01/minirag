@@ -8,7 +8,8 @@ from app.db import DatabaseAdapter
 from app.generate import REFUSAL, LanguageModel, generate
 from app.ingest import run
 from app.pgadapter import PgAdapter
-from app.retrieve import search, select_sections
+from app.reranker import CrossEncoderReranker, Reranker
+from app.retrieve import search
 
 EVAL_QUESTIONS = [
     "How much can I spend on food each day?",
@@ -25,6 +26,7 @@ def main(
     *,
     database_adapter: DatabaseAdapter | None = None,
     language_model: LanguageModel | None = None,
+    reranker: Reranker | None = None,
 ) -> int:
     parser = argparse.ArgumentParser(prog="app")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -46,13 +48,15 @@ def main(
             from app.ollama import OllamaAdapter
 
             language_model = OllamaAdapter()
+        if reranker is None:
+            reranker = CrossEncoderReranker()
     if args.command == "ask":
         cached = lookup(args.question, adapter)
         if cached is not None:
             print(cached.model_dump_json())
             return 0
         response = generate(
-            args.question, select_sections(search(args.question, adapter)), language_model
+            args.question, reranker.rank(args.question, search(args.question, adapter)), language_model
         )
         if response.answer != REFUSAL:
             store(args.question, response, adapter)
@@ -62,7 +66,7 @@ def main(
         results = []
         for question in EVAL_QUESTIONS:
             response = generate(
-                question, select_sections(search(question, adapter)), language_model
+                question, reranker.rank(question, search(question, adapter)), language_model
             )
             results.append({"question": question, **response.model_dump()})
         args.output.write_text(json.dumps(results, indent=2) + "\n")
