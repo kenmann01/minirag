@@ -161,6 +161,23 @@ def test_ingest_marks_the_2021_expense_policy_superseded():
     assert other_pointers == 0
 
 
+def test_the_adapter_bootstraps_the_vector_extension_on_a_fresh_database():
+    adapter = PgAdapter()
+    with adapter.connect() as conn:
+        conn.execute("DROP TABLE IF EXISTS policy_chunks")
+        conn.execute("DROP EXTENSION IF EXISTS vector CASCADE")
+
+    run(adapter)
+
+    with adapter.connect() as conn:
+        extension = conn.execute(
+            "SELECT 1 FROM pg_extension WHERE extname = 'vector'"
+        ).fetchone()
+        count = conn.execute("SELECT COUNT(*) FROM policy_chunks").fetchone()[0]
+    assert extension is not None
+    assert count > 0
+
+
 def test_the_villain_protocol_question_surfaces_the_travel_security_trigger_section():
     adapter = PgAdapter()
     run(adapter)

@@ -13,6 +13,7 @@ class PgAdapter:
     @contextmanager
     def _connection(self):
         conn = psycopg.connect(get_settings().database_url)
+        conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
         register_vector(conn)
         try:
             yield conn
