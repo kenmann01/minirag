@@ -6,10 +6,11 @@ import pytest
 from pydantic import ValidationError
 
 from app.cli import EVAL_QUESTIONS, main
+from app.embeddings import embed_texts
 from app.generate import PROMPT_PATH, section_label
 from app.ingest import run
 from app.pgadapter import PgAdapter
-from app.retrieve import search
+from app.retrieve import fuse, search, select_sections
 
 
 @pytest.fixture(autouse=True)
@@ -179,6 +180,59 @@ def test_reingest_drops_rows_it_did_not_see():
     assert count == before
 
 
+def test_ingest_creates_the_stored_tsvector_column_and_gin_index():
+    adapter = PgAdapter()
+    run(adapter)
+    with adapter.connect() as conn:
+        tsv = conn.execute(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'policy_chunks' AND column_name = 'tsv'
+            """
+        ).fetchone()
+        gin = conn.execute(
+            """
+            SELECT 1
+            FROM pg_indexes
+            WHERE tablename = 'policy_chunks' AND indexname = 'policy_chunks_tsv_gin'
+            """
+        ).fetchone()
+    assert tsv is not None
+    assert gin is not None
+
+
+def test_ingest_recreates_a_table_missing_the_tsvector_column():
+    adapter = PgAdapter()
+    with adapter.connect() as conn:
+        conn.execute("DROP TABLE IF EXISTS policy_chunks")
+        conn.execute(
+            """
+            CREATE TABLE policy_chunks (
+                chunk_id TEXT PRIMARY KEY,
+                source_doc TEXT NOT NULL,
+                section TEXT NOT NULL,
+                section_title TEXT NOT NULL,
+                effective_date TEXT,
+                superseded_by TEXT,
+                parent_text TEXT NOT NULL,
+                text TEXT NOT NULL,
+                embedding vector(768) NOT NULL
+            )
+            """
+        )
+    run(adapter)
+    with adapter.connect() as conn:
+        tsv = conn.execute(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'policy_chunks' AND column_name = 'tsv'
+            """
+        ).fetchone()
+    assert tsv is not None
+
+
 def test_ingest_command_prints_how_many_children_it_wrote(capsys):
     adapter = PgAdapter()
     exit_code = main(["ingest"], database_adapter=adapter)
@@ -188,22 +242,102 @@ def test_ingest_command_prints_how_many_children_it_wrote(capsys):
     assert capsys.readouterr().err.strip() == f"ingested {count} policy chunks"
 
 
-def test_retrieve_returns_three_current_sections_in_distance_order():
+def test_fuse_ties_a_rank_1_and_4_pair_with_its_mirror_and_orders_deterministically():
+    forward = fuse(
+        [
+            {"chunk_id": "a"},
+            {"chunk_id": "v2"},
+            {"chunk_id": "v3"},
+            {"chunk_id": "b"},
+        ],
+        [
+            {"chunk_id": "b"},
+            {"chunk_id": "k2"},
+            {"chunk_id": "k3"},
+            {"chunk_id": "a"},
+        ],
+    )
+    mirrored = fuse(
+        [
+            {"chunk_id": "b"},
+            {"chunk_id": "k2"},
+            {"chunk_id": "k3"},
+            {"chunk_id": "a"},
+        ],
+        [
+            {"chunk_id": "a"},
+            {"chunk_id": "v2"},
+            {"chunk_id": "v3"},
+            {"chunk_id": "b"},
+        ],
+    )
+    forward_scores = dict(forward)
+    mirrored_scores = dict(mirrored)
+    assert round(forward_scores["a"], 4) == 0.0320
+    assert round(forward_scores["b"], 4) == 0.0320
+    assert forward_scores["a"] == mirrored_scores["b"]
+    assert forward_scores["b"] == mirrored_scores["a"]
+    assert [chunk_id for chunk_id, _ in forward[:2]] == ["a", "b"]
+    assert [chunk_id for chunk_id, _ in mirrored[:2]] == ["b", "a"]
+
+
+def test_fuse_scores_a_single_lane_candidate_one_share_and_it_loses_to_double():
+    fused = fuse(
+        [{"chunk_id": "single"}, {"chunk_id": "both"}],
+        [{"chunk_id": "both"}],
+    )
+    scores = dict(fused)
+    assert scores["single"] == 1 / 61
+    assert round(scores["single"], 4) == 0.0164
+    assert fused[0][0] == "both"
+    assert fused[1][0] == "single"
+
+
+def test_fuse_of_two_empty_lanes_is_empty():
+    assert fuse([], []) == []
+
+
+def test_select_sections_keeps_the_best_child_per_section_in_fused_order():
+    candidates = [
+        {"chunk_id": "a:s5:c01", "source_doc": "a.md", "section": "5"},
+        {"chunk_id": "b:s2:c01", "source_doc": "b.md", "section": "2"},
+        {"chunk_id": "a:s5:c02", "source_doc": "a.md", "section": "5"},
+        {"chunk_id": "c:s1:c01", "source_doc": "c.md", "section": "1"},
+        {"chunk_id": "d:s9:c01", "source_doc": "d.md", "section": "9"},
+    ]
+    selected = select_sections(candidates)
+    assert [chunk["chunk_id"] for chunk in selected] == [
+        "a:s5:c01",
+        "b:s2:c01",
+        "c:s1:c01",
+    ]
+    assert select_sections(candidates, limit=2) == [candidates[0], candidates[1]]
+    assert select_sections([]) == []
+
+
+def test_search_returns_up_to_twenty_fused_current_candidates():
     adapter = PgAdapter()
     run(adapter)
     rows = search("How much can I spend on food each day?", adapter)
-    assert len(rows) == 3
+    assert len(rows) == 20
     assert rows[0]["source_doc"] == "minion_expense_policy_2024.md"
     assert rows[0]["section"] == "5"
     assert rows[0]["section_title"] == "Travel Expenses"
     assert "$75/day" in rows[0]["text"]
     assert all(row["source_doc"] != "minion_expense_policy_2021.md" for row in rows)
-    assert [row["distance"] for row in rows] == sorted(
-        row["distance"] for row in rows
+    assert all(isinstance(row["distance"], float) for row in rows)
+    assert isinstance(rows[0]["rrf_score"], float)
+    assert [row["rrf_score"] for row in rows] == sorted(
+        (row["rrf_score"] for row in rows), reverse=True
     )
+    sections = select_sections(rows, 3)
+    assert len(sections) == 3
+    assert len({(row["source_doc"], row["section"]) for row in sections}) == 3
+    assert sections[0]["source_doc"] == "minion_expense_policy_2024.md"
+    assert sections[0]["section"] == "5"
 
 
-def test_search_returns_one_row_when_two_children_share_a_section():
+def test_search_can_return_two_children_of_a_section_and_select_keeps_one():
     adapter = PgAdapter()
     run(adapter)
     question = "How much can I spend on food each day?"
@@ -238,9 +372,53 @@ def test_search_returns_one_row_when_two_children_share_a_section():
         for row in rows
         if row["source_doc"] == "minion_expense_policy_2024.md" and row["section"] == "5"
     ]
-    assert len(rows) == 3
-    assert len(travel) == 1
-    assert len({(row["source_doc"], row["section"]) for row in rows}) == 3
+    selected = select_sections(rows, 3)
+    selected_travel = [
+        row
+        for row in selected
+        if row["source_doc"] == "minion_expense_policy_2024.md" and row["section"] == "5"
+    ]
+    assert len(travel) == 2
+    assert len(selected) == 3
+    assert len(selected_travel) == 1
+
+
+def test_exact_term_reaches_the_fused_candidates_through_the_keyword_lane():
+    adapter = PgAdapter()
+    run(adapter)
+    question = "What is the zagat-grade muffin budget of 250 dollars?"
+    opposite = [-value for value in embed_texts([question])[0]]
+    with adapter.connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO policy_chunks (
+                chunk_id, source_doc, section, section_title, effective_date,
+                superseded_by, parent_text, text, embedding
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                "test_zagat:s1:c01",
+                "test_zagat.md",
+                "1",
+                "Muffin Budget",
+                None,
+                None,
+                "The snack budget is fixed.",
+                "The zagat-grade muffin budget of 250 dollars covers morning snacks.",
+                opposite,
+            ),
+        )
+    rows = search(question, adapter)
+    rescued = [row for row in rows if row["chunk_id"] == "test_zagat:s1:c01"]
+    sections = select_sections(rows, 3)
+    assert len(rescued) == 1
+    assert len(sections) == 3
+    with adapter.connect() as conn:
+        conn.execute(
+            "DELETE FROM policy_chunks WHERE chunk_id = %s",
+            ("test_zagat:s1:c01",),
+        )
 
 
 def test_employee_can_ask_about_meals_and_receive_grounded_json(capsys):

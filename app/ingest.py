@@ -16,7 +16,8 @@ CREATE TABLE policy_chunks (
     superseded_by TEXT,
     parent_text TEXT NOT NULL,
     text TEXT NOT NULL,
-    embedding vector(768) NOT NULL
+    embedding vector(768) NOT NULL,
+    tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', text)) STORED
 )
 """
 
@@ -42,18 +43,25 @@ ON CONFLICT (chunk_id) DO UPDATE SET
 """
 
 
+_CREATE_TSV_INDEX = """
+CREATE INDEX IF NOT EXISTS policy_chunks_tsv_gin ON policy_chunks USING GIN (tsv)
+"""
+
+
 def _ensure_schema(conn) -> None:
     conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    parent_text = conn.execute(
+    columns = conn.execute(
         """
-        SELECT 1
+        SELECT column_name
         FROM information_schema.columns
-        WHERE table_name = 'policy_chunks' AND column_name = 'parent_text'
+        WHERE table_name = 'policy_chunks'
+          AND column_name IN ('parent_text', 'tsv')
         """
-    ).fetchone()
-    if parent_text is None:
+    ).fetchall()
+    if len(columns) < 2:
         conn.execute("DROP TABLE IF EXISTS policy_chunks")
         conn.execute(_CREATE_TABLE)
+    conn.execute(_CREATE_TSV_INDEX)
 
 
 def _chunks() -> list[dict]:

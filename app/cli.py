@@ -8,7 +8,7 @@ from app.db import DatabaseAdapter
 from app.generate import REFUSAL, LanguageModel, generate
 from app.ingest import run
 from app.pgadapter import PgAdapter
-from app.retrieve import search
+from app.retrieve import search, select_sections
 
 EVAL_QUESTIONS = [
     "How much can I spend on food each day?",
@@ -52,7 +52,7 @@ def main(
             print(cached.model_dump_json())
             return 0
         response = generate(
-            args.question, search(args.question, adapter), language_model
+            args.question, select_sections(search(args.question, adapter)), language_model
         )
         if response.answer != REFUSAL:
             store(args.question, response, adapter)
@@ -61,7 +61,9 @@ def main(
     if args.command == "eval":
         results = []
         for question in EVAL_QUESTIONS:
-            response = generate(question, search(question, adapter), language_model)
+            response = generate(
+                question, select_sections(search(question, adapter)), language_model
+            )
             results.append({"question": question, **response.model_dump()})
         args.output.write_text(json.dumps(results, indent=2) + "\n")
         return 0
