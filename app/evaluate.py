@@ -72,11 +72,17 @@ def run_exam(
     model: LanguageModel,
     reranker: Reranker,
     mode: str = "hybrid",
+    include_superseded: bool = False,
 ) -> dict:
     """Each golden through the exact ask path minus the question cache."""
     results = []
     for golden in goldens:
-        candidates = search(golden.question, adapter, mode=mode)
+        candidates = search(
+            golden.question,
+            adapter,
+            mode=mode,
+            include_superseded=include_superseded,
+        )
         ranked = reranker.rank(golden.question, candidates)
         response = generate(golden.question, ranked, model)
         ranked_chunk_ids = [chunk["chunk_id"] for chunk in ranked]
@@ -99,6 +105,7 @@ def run_exam(
         )
     return {
         "retriever": mode,
+        "include_superseded": include_superseded,
         "results": results,
         "summary": {
             "total": len(results),

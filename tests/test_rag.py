@@ -553,6 +553,90 @@ def test_search_can_return_two_children_of_a_section_and_rank_keeps_one():
     assert len(ranked_travel) == 1
 
 
+def test_the_lineage_bypass_admits_the_stale_per_diem_section_into_the_vector_lane():
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    default_rows = search(question, adapter)
+    bypassed = search(question, adapter, include_superseded=True)
+    assert all(
+        not row["chunk_id"].startswith("minion_expense_policy_2021:")
+        for row in default_rows
+    )
+    assert any(
+        row["chunk_id"].startswith("minion_expense_policy_2021:s5:")
+        for row in bypassed
+    )
+
+
+def test_the_lineage_bypass_admits_the_stale_section_into_the_keyword_lane():
+    adapter = PgAdapter()
+    run(adapter)
+    question = "What was the 2021 mileage reimbursement of 0.56 dollars per mile?"
+    default_rows = search(question, adapter)
+    bypassed = search(question, adapter, include_superseded=True)
+    assert all(
+        not row["chunk_id"].startswith("minion_expense_policy_2021:")
+        for row in default_rows
+    )
+    assert any(
+        row["chunk_id"].startswith("minion_expense_policy_2021:s5:")
+        for row in bypassed
+    )
+
+
+def test_ask_with_the_lineage_bypass_reproduces_the_stale_answer_and_never_caches(capsys):
+    adapter = PgAdapter()
+    run(adapter)
+    question = "How much can I spend on food each day?"
+    bypassed = search(question, adapter, include_superseded=True)
+    stale = next(
+        row
+        for row in bypassed
+        if row["chunk_id"].startswith("minion_expense_policy_2021:s5:")
+    )
+    model = FakeLanguageModel(
+        json.dumps(
+            {
+                "answer": "Meals are reimbursed at $60 per day domestic.",
+                "section": section_label(stale),
+            }
+        )
+    )
+    reranker = OrderingReranker([stale["chunk_id"]])
+
+    first = main(
+        ["ask", question, "--include-superseded"],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=reranker,
+    )
+    output = json.loads(capsys.readouterr().out)
+    second = main(
+        ["ask", question, "--include-superseded"],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=reranker,
+    )
+    capsys.readouterr()
+    third = main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
+    capsys.readouterr()
+
+    assert first == 0 and second == 0 and third == 0
+    assert output["answer"] == "Meals are reimbursed at $60 per day domestic."
+    assert output["citation"]["source_doc"] == "minion_expense_policy_2021.md"
+    assert any(
+        chunk["source_doc"] == "minion_expense_policy_2021.md"
+        for chunk in output["retrieved_chunks"]
+    )
+    assert len(model.prompts) == 3
+
+
 def test_exact_term_reaches_the_fused_candidates_through_the_keyword_lane():
     adapter = PgAdapter()
     run(adapter)

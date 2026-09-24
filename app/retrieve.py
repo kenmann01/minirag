@@ -20,6 +20,23 @@ ORDER BY ts_rank(tsv, websearch_to_tsquery('english', %s)) DESC
 LIMIT 20
 """
 
+_VECTOR_SQL_ALL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+ORDER BY distance
+LIMIT 20
+"""
+
+_KEYWORD_SQL_ALL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+WHERE tsv @@ websearch_to_tsquery('english', %s)
+ORDER BY ts_rank(tsv, websearch_to_tsquery('english', %s)) DESC
+LIMIT 20
+"""
+
 
 def _candidate(row) -> dict:
     return {
@@ -52,18 +69,25 @@ def fuse(vector_rows: list[dict], keyword_rows: list[dict], k: int = 60) -> list
     return [(chunk_id, score) for chunk_id, score, _, _ in scored]
 
 
-def search(question: str, adapter: DatabaseAdapter, mode: str = "hybrid") -> list[dict]:
+def search(
+    question: str,
+    adapter: DatabaseAdapter,
+    mode: str = "hybrid",
+    include_superseded: bool = False,
+) -> list[dict]:
     query_vector = embed_texts([question])[0]
+    vector_sql = _VECTOR_SQL_ALL if include_superseded else _VECTOR_SQL
+    keyword_sql = _KEYWORD_SQL_ALL if include_superseded else _KEYWORD_SQL
     with adapter.connect() as conn:
         vector_rows = [
-            _candidate(row) for row in conn.execute(_VECTOR_SQL, (query_vector,)).fetchall()
+            _candidate(row) for row in conn.execute(vector_sql, (query_vector,)).fetchall()
         ]
         keyword_rows = (
             []
             if mode == "vector"
             else [
                 _candidate(row)
-                for row in conn.execute(_KEYWORD_SQL, (query_vector, question, question)).fetchall()
+                for row in conn.execute(keyword_sql, (query_vector, question, question)).fetchall()
             ]
         )
     by_chunk_id = {row["chunk_id"]: row for row in [*vector_rows, *keyword_rows]}

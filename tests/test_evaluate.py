@@ -358,6 +358,57 @@ def test_eval_exits_nonzero_when_a_golden_quotes_the_stale_number(tmp_path, caps
     assert by_id["per-diem-poisoned"]["passed"] is False
 
 
+def test_eval_with_the_lineage_bypass_admits_stale_chunks_into_the_exam(tmp_path):
+    adapter = PgAdapter()
+    run(adapter)
+    goldens = load_goldens()
+    output_path = tmp_path / "record-bypass.json"
+
+    exit_code = main(
+        ["eval", "--include-superseded", "--output", str(output_path)],
+        database_adapter=adapter,
+        language_model=GoldenCannedModel(goldens),
+        reranker=CrossEncoderReranker(),
+    )
+
+    assert exit_code == 0
+    record = json.loads(output_path.read_text())
+    assert record["include_superseded"] is True
+    every_id = [
+        chunk_id
+        for result in record["results"]
+        for chunk_id in result["ranked_chunk_ids"]
+    ]
+    assert any(
+        chunk_id.startswith("minion_expense_policy_2021:") for chunk_id in every_id
+    )
+
+
+def test_eval_without_the_bypass_keeps_stale_chunks_out_of_the_exam(tmp_path):
+    adapter = PgAdapter()
+    run(adapter)
+    goldens = load_goldens()
+    output_path = tmp_path / "record.json"
+
+    main(
+        ["eval", "--output", str(output_path)],
+        database_adapter=adapter,
+        language_model=GoldenCannedModel(goldens),
+        reranker=CrossEncoderReranker(),
+    )
+
+    record = json.loads(output_path.read_text())
+    assert record["include_superseded"] is False
+    every_id = [
+        chunk_id
+        for result in record["results"]
+        for chunk_id in result["ranked_chunk_ids"]
+    ]
+    assert not any(
+        chunk_id.startswith("minion_expense_policy_2021:") for chunk_id in every_id
+    )
+
+
 def test_the_record_table_lists_every_failure_detail():
     record = {
         "retriever": "vector",

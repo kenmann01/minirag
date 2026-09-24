@@ -25,6 +25,11 @@ def main(
     sub.add_parser("ingest", help="Ingest the Policy folder into the vector store")
     ask_parser = sub.add_parser("ask", help="Answer a question from the policy")
     ask_parser.add_argument("question")
+    ask_parser.add_argument(
+        "--include-superseded",
+        action="store_true",
+        help="Bypass the lineage filter to reproduce the planted defect; never cached",
+    )
     eval_parser = sub.add_parser(
         "eval", help="Run the golden exam and write the harness record"
     )
@@ -34,6 +39,11 @@ def main(
         choices=["hybrid", "vector"],
         default="hybrid",
         help="A/B the retriever: vector disables the keyword lane",
+    )
+    eval_parser.add_argument(
+        "--include-superseded",
+        action="store_true",
+        help="Bypass the lineage filter in the exam retrieval",
     )
     args = parser.parse_args(argv)
     adapter = database_adapter or PgAdapter()
@@ -49,6 +59,17 @@ def main(
         if reranker is None:
             reranker = CrossEncoderReranker()
     if args.command == "ask":
+        if args.include_superseded:
+            response = generate(
+                args.question,
+                reranker.rank(
+                    args.question,
+                    search(args.question, adapter, include_superseded=True),
+                ),
+                language_model,
+            )
+            print(response.model_dump_json())
+            return 0
         cached = lookup(args.question, adapter)
         if cached is not None:
             print(cached.model_dump_json())
@@ -68,6 +89,7 @@ def main(
             model=language_model,
             reranker=reranker,
             mode=args.retriever,
+            include_superseded=args.include_superseded,
         )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(record, indent=2) + "\n")

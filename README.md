@@ -50,6 +50,11 @@ Ask one question:
 python -m app ask "How much can I spend on food each day?"
 ```
 
+Both ask and eval accept `--include-superseded`, an opt-in lineage bypass
+that admits the superseded 2021 duplicate into both retrieval lanes. It
+exists to reproduce the planted per-diem defect on demand (see
+docs/part6-diagnosis.md); bypassed asks are never cached.
+
 Run the fixed nine-golden exam, print the per-golden table, and write
 `eval/record.json`:
 
