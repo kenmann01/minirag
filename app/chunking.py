@@ -1,3 +1,4 @@
+# Internal and Confidential - Not for External Distribution.
 """Parent sections and child windows for policy retrieval.
 
 Child windows target 800-1200 characters with 120-150 characters of overlap.
@@ -40,6 +41,12 @@ def _span_length(body: str, spans: list[tuple[int, int]], start: int, end: int) 
 
 
 def _child_windows(body: str) -> list[str]:
+    """Grow sentence-span windows into 800-1200 character child chunks.
+
+    Windows stop growing at the target size and always overlap the next
+    window by at least ``_OVERLAP_MIN`` characters so a rule split across
+    the boundary stays retrievable from either side.
+    """
     spans = _sentence_spans(body)
     if not spans:
         return []
@@ -73,6 +80,16 @@ def _child_windows(body: str) -> list[str]:
 
 
 def split(markdown: str, source_doc: str) -> list[dict]:
+    """Split one policy document into parent sections and child windows.
+
+    Args:
+        markdown: Complete policy text with numbered second-level headings.
+        source_doc: File name of the source policy, used in chunk identifiers.
+
+    Returns:
+        Chunk dictionaries holding section metadata, the full parent text,
+        and one child window per chunk.
+    """
     effective = _EFFECTIVE_DATE.search(markdown)
     superseded = _SUPERSEDED_BY.search(markdown)
     effective_date = effective.group(1).strip() if effective else None

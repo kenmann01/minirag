@@ -1,3 +1,6 @@
+# Internal and Confidential - Not for External Distribution.
+"""Provide pgvector-enabled PostgreSQL connections for application services."""
+
 from contextlib import contextmanager
 
 import psycopg
@@ -7,11 +10,20 @@ from app.config import get_settings
 
 
 class PgAdapter:
+    """Provide managed PostgreSQL connections with pgvector type support."""
+
     def connect(self):
+        """Create a context manager for a configured PostgreSQL connection.
+
+        Returns:
+            A context manager that yields a pgvector-enabled connection.
+        """
         return self._connection()
 
     @contextmanager
     def _connection(self):
+        """Yield a connection, committing success and always closing it."""
+
         conn = psycopg.connect(get_settings().database_url)
         conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
         register_vector(conn)

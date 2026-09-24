@@ -1,10 +1,12 @@
+# Internal and Confidential - Not for External Distribution.
+"""Hybrid policy retrieval: vector and keyword lanes fused by reciprocal rank."""
+
 from typing import Literal
 
 from app.db import DatabaseAdapter
 from app.embeddings import embed_texts
 
 Mode = Literal["hybrid", "vector"]
-
 
 _VECTOR_SQL = """
 SELECT chunk_id, source_doc, section, section_title, effective_date,
@@ -79,6 +81,19 @@ def search(
     mode: Mode = "hybrid",
     include_superseded: bool = False,
 ) -> list[dict]:
+    """Fuse the vector and keyword lanes for an embedded employee question.
+
+    Args:
+        question: Employee question to embed and match against stored chunks.
+        adapter: Provider of a managed vector-capable SQL connection.
+        mode: ``hybrid`` runs both lanes; ``vector`` runs cosine search only.
+        include_superseded: Keep chunks whose document is marked superseded.
+            The lineage filter stays on by default so stale policy versions
+            never reach the prompt.
+
+    Returns:
+        Up to twenty chunk dictionaries ordered by fused reciprocal rank.
+    """
     query_vector = embed_texts([question])[0]
     vector_sql = _VECTOR_SQL_ALL if include_superseded else _VECTOR_SQL
     keyword_sql = _KEYWORD_SQL_ALL if include_superseded else _KEYWORD_SQL

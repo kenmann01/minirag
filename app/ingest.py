@@ -1,3 +1,6 @@
+# Internal and Confidential - Not for External Distribution.
+"""Ingest policy sections and their embeddings into the vector store."""
+
 from pathlib import Path
 
 from app.chunking import split
@@ -49,6 +52,11 @@ CREATE INDEX IF NOT EXISTS policy_chunks_tsv_gin ON policy_chunks USING GIN (tsv
 
 
 def _ensure_schema(conn) -> None:
+    """Create the vector extension, table, and keyword index when missing.
+
+    A table from an older schema (no ``parent_text`` or ``tsv`` columns) is
+    dropped and rebuilt; the ingest that follows repopulates it.
+    """
     conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
     columns = conn.execute(
         """
@@ -72,6 +80,16 @@ def _chunks() -> list[dict]:
 
 
 def run(adapter: DatabaseAdapter) -> int:
+    """Replace stored policy chunks with every embedded policy document.
+
+    Args:
+        adapter: Provider of a managed vector-capable SQL connection.
+
+    Side Effects:
+        Reads every ``Policy/*.md`` file, creates the vector extension and
+        table when needed, upserts current chunks, deletes stale chunks,
+        and returns the number of chunks ingested.
+    """
     chunks = _chunks()
     vectors = embed_texts([chunk["text"] for chunk in chunks])
     with adapter.connect() as conn:

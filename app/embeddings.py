@@ -1,3 +1,6 @@
+# Internal and Confidential - Not for External Distribution.
+"""Create normalized vector embeddings with the configured sentence-transformers model."""
+
 from contextlib import contextmanager
 
 from huggingface_hub import logging as hf_logging
@@ -15,6 +18,8 @@ _model = None
 
 @contextmanager
 def _quiet_model_loading():
+    """Suppress model-loading logs and progress bars within the context."""
+
     hf_level = hf_logging.get_verbosity()
     hf_progress_disabled = are_progress_bars_disabled()
     transformers_level = transformers_logging.get_verbosity()
@@ -35,6 +40,14 @@ def _quiet_model_loading():
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
+    """Embed text as normalized vectors with a lazily loaded shared model.
+
+    Args:
+        texts: Text values to encode in input order.
+
+    Returns:
+        One floating-point embedding per input text.
+    """
     global _model
     if _model is None:
         from sentence_transformers import SentenceTransformer
