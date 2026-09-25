@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ask the policy</title>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+
+    const form = document.querySelector("form");
+    const error = document.querySelector("#error");
+    const diagram = document.querySelector("#diagram");
+    const detail = document.querySelector("#detail");
+    const answer = document.querySelector("#answer");
+    const citation = document.querySelector("#citation");
+    const raw = document.querySelector("#raw");
+    const download = document.querySelector("#download");
+    let lastTrace = null;
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      error.textContent = "";
+      diagram.innerHTML = "";
+      detail.textContent = "";
+      answer.textContent = "";
+      citation.textContent = "";
+      raw.textContent = "";
+      download.hidden = true;
+      const question = new FormData(form).get("question");
+      const includeSuperseded = form.include_superseded.checked;
+      const response = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, include_superseded: includeSuperseded }),
+      });
+      const result = await response.json();
+      if (result.error) {
+        error.textContent = result.error;
+        return;
+      }
+      lastTrace = result;
+      download.hidden = false;
+      answer.textContent = result.response.answer;
+      citation.textContent = result.response.citation
+        ? JSON.stringify(result.response.citation, null, 2)
+        : "";
+      raw.textContent = JSON.stringify(result.response, null, 2);
+      const visible = result.trace.some((stage) => stage.name === "cache" && stage.status === "hit")
+        ? result.trace.filter((stage) => stage.name === "cache")
+        : result.trace;
+      const lines = ["flowchart LR"];
+      visible.forEach((stage, index) => {
+        const label = stage.name.replaceAll("_", " ");
+        lines.push(`  s${index}["${label}"]`);
+        if (index > 0) lines.push(`  s${index - 1} --> s${index}`);
+      });
+      const rendered = await mermaid.render("trace", lines.join("\n"));
+      diagram.innerHTML = rendered.svg;
+      diagram.querySelectorAll(".node").forEach((node, index) => {
+        node.addEventListener("click", () => {
+          detail.textContent = JSON.stringify(visible[index], null, 2);
+        });
+      });
+    });
+
+    download.addEventListener("click", () => {
+      if (!lastTrace) return;
+      const file = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Ask trace</title></head>
+<body>
+${diagram.innerHTML}
+<h2>Answer</h2><p>${escapeHtml(answer.textContent)}</p>
+<h2>Citation</h2><pre>${escapeHtml(citation.textContent)}</pre>
+<h2>JSON</h2><pre>${escapeHtml(raw.textContent)}</pre>
+<h2>Trace</h2><pre>${escapeHtml(JSON.stringify(lastTrace.trace, null, 2))}</pre>
+</body></html>`;
+      const blob = new Blob([file], { type: "text/html" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "ask-trace.html";
+      link.click();
+    });
+
+    function escapeHtml(value) {
+      return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    }
+  </script>
+</head>
+<body>
+  <form>
+    <label>Question <input name="question" required></label>
+    <label><input name="include_superseded" type="checkbox"> Include superseded policy</label>
+    <button type="submit">Ask</button>
+  </form>
+  <p id="error"></p>
+  <div id="diagram"></div>
+  <pre id="detail"></pre>
+  <h2>Answer</h2>
+  <p id="answer"></p>
+  <h2>Citation</h2>
+  <pre id="citation"></pre>
+  <h2>JSON</h2>
+  <pre id="raw"></pre>
+  <button id="download" type="button" hidden>Download this trace</button>
+</body>
+</html>

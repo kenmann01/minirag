@@ -50,6 +50,14 @@ Ask one question:
 python -m app ask "How much can I spend on food each day?"
 ```
 
+Open the ask-trace page (the question runs the same path, and the diagram shows each stage):
+
+```bash
+python -m app serve
+```
+
+Then open http://127.0.0.1:8765.
+
 Both ask and eval accept `--include-superseded`, an opt-in lineage bypass
 that admits the superseded 2021 duplicate into both retrieval lanes. It
 exists to reproduce the planted per-diem defect on demand (see

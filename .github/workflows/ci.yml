@@ -32,13 +32,27 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - name: Cache the embedding and reranking models
-        uses: actions/cache@v4
+      # Restore only. actions/cache saves in a post step that runs solely
+      # on a green job, so a failing suite never stored the new weights and
+      # every later push downloaded them again inside pytest.
+      - name: Restore the embedding and reranking models
+        id: hf-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/huggingface
           key: hf-Alibaba-NLP-gte-modernbert-base-cross-encoder-ms-marco-MiniLM-L-6-v2
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Download models when the cache missed
+        if: steps.hf-cache.outputs.cache-hit != 'true'
+        run: |
+          python -c "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('Alibaba-NLP/gte-modernbert-base'); CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+      - name: Save the embedding and reranking models
+        if: steps.hf-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/huggingface
+          key: ${{ steps.hf-cache.outputs.cache-primary-key }}
       - name: Bootstrap the store before the tests
         run: python -m app ingest
       - name: Fast suite (real retrieval and reranking, faked generation)
@@ -70,24 +84,42 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - name: Cache the embedding and reranking models
-        uses: actions/cache@v4
+      - name: Restore the embedding and reranking models
+        id: hf-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/huggingface
           key: hf-Alibaba-NLP-gte-modernbert-base-cross-encoder-ms-marco-MiniLM-L-6-v2
-      - name: Cache the generator model
-        uses: actions/cache@v4
+      - name: Restore the generator model
+        id: ollama-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.ollama
           key: ollama-qwen3-8b
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Download models when the cache missed
+        if: steps.hf-cache.outputs.cache-hit != 'true'
+        run: |
+          python -c "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('Alibaba-NLP/gte-modernbert-base'); CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+      - name: Save the embedding and reranking models
+        if: steps.hf-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/huggingface
+          key: ${{ steps.hf-cache.outputs.cache-primary-key }}
       - name: Install the generator host and pull the model
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
           nohup ollama serve > /tmp/ollama.log 2>&1 &
           sleep 5
           ollama pull qwen3:8b
+      - name: Save the generator model
+        if: steps.ollama-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.ollama
+          key: ${{ steps.ollama-cache.outputs.cache-primary-key }}
       - name: Bootstrap the store before the tests
         run: python -m app ingest
       - name: Real harness through the real generator

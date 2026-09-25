@@ -60,7 +60,21 @@ def main(
         action="store_true",
         help="Bypass the lineage filter in the exam retrieval",
     )
+    serve_parser = sub.add_parser("serve", help="Open the ask-trace page")
+    serve_parser.add_argument("--host", default="127.0.0.1")
+    serve_parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args(argv)
+    if args.command == "serve":
+        from app.serve import serve
+
+        serve(
+            args.host,
+            args.port,
+            database_adapter=database_adapter,
+            language_model=language_model,
+            reranker=reranker,
+        )
+        return 0
     adapter = database_adapter or PgAdapter()
     if args.command == "ingest":
         count = run(adapter)
