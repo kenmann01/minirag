@@ -63,7 +63,7 @@ def _trace(
                 ],
             }
     stored_chunks = _stored_chunks(database_adapter)
-    vector_rows, keyword_rows = _lanes(
+    vector_rows, keyword_rows, keyword_query = _lanes(
         question, database_adapter, include_superseded=include_superseded
     )
     by_chunk_id = {row["chunk_id"]: row for row in [*vector_rows, *keyword_rows]}
@@ -82,7 +82,7 @@ def _trace(
     trace.extend(
         [
             {"name": "question_embedding", "chunks": vector_rows},
-            {"name": "keyword_search", "chunks": keyword_rows},
+            {"name": "keyword_search", "query": keyword_query, "chunks": keyword_rows},
             {"name": "rrf", "chunks": fused},
             {"name": "cross_encoder", "chunks": ranked},
             {
@@ -113,7 +113,9 @@ def _stored_chunks(adapter: DatabaseAdapter) -> list[dict]:
     ]
 
 
-def _lanes(question: str, adapter: DatabaseAdapter, *, include_superseded: bool) -> tuple[list[dict], list[dict]]:
+def _lanes(
+    question: str, adapter: DatabaseAdapter, *, include_superseded: bool
+) -> tuple[list[dict], list[dict], str]:
     query_vector = embed_texts([question])[0]
     vector_sql = _VECTOR_SQL_ALL if include_superseded else _VECTOR_SQL
     keyword_sql = _KEYWORD_SQL_ALL if include_superseded else _KEYWORD_SQL
@@ -121,8 +123,12 @@ def _lanes(question: str, adapter: DatabaseAdapter, *, include_superseded: bool)
         vector_rows = [
             _candidate(row) for row in conn.execute(vector_sql, (query_vector,)).fetchall()
         ]
+        keyword_query = conn.execute(
+            "SELECT websearch_to_tsquery('english', %s)::text",
+            (question,),
+        ).fetchone()[0]
         keyword_rows = [
             _candidate(row)
             for row in conn.execute(keyword_sql, (query_vector, question, question)).fetchall()
         ]
-    return vector_rows, keyword_rows
+    return vector_rows, keyword_rows, keyword_query or ""

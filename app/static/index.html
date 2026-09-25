@@ -2,158 +2,434 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Ask the policy</title>
-  <script type="module">
-    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-    mermaid.initialize({
-      startOnLoad: false,
-      securityLevel: "loose",
-      flowchart: { htmlLabels: true, wrappingWidth: 360 },
-    });
-
+  <title>Policy trace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,560&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1612;
+      --muted: #6d6258;
+      --line: #d9cfc3;
+      --paper: #f4efe6;
+      --card: #fbf7f1;
+      --used: #e5f2ea;
+      --used-ink: #1d5c3a;
+      --cited: #f8e4dc;
+      --cited-ink: #9c2f1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Newsreader, "Iowan Old Style", Palatino, serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 1px 1px, rgba(28, 22, 18, 0.05) 1px, transparent 0) 0 0 / 14px 14px,
+        var(--paper);
+    }
+    header, main { width: min(1100px, calc(100% - 32px)); margin: 0 auto; min-width: 0; }
+    body { overflow-x: hidden; }
+    header { padding: 36px 0 8px; }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
+    .kicker {
+      margin: 0 0 8px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--cited-ink);
+    }
+    h1 {
+      font-family: Fraunces, Newsreader, serif;
+      font-size: clamp(42px, 6vw, 68px);
+      font-weight: 560;
+      line-height: 0.92;
+      margin: 0;
+      letter-spacing: -0.035em;
+      max-width: 12ch;
+    }
+    form {
+      display: grid;
+      gap: 14px;
+      margin: 28px 0 8px;
+      padding: 0 0 8px;
+      border-bottom: 1px solid var(--ink);
+    }
+    label { display: grid; gap: 6px; font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    label:first-child { width: 100%; }
+    input[name="question"] {
+      font: 560 28px/1.2 Fraunces, Newsreader, serif;
+      padding: 10px 0 14px;
+      border: 0;
+      border-bottom: 2px solid var(--ink);
+      border-radius: 0;
+      width: 100%;
+      min-width: 0;
+      background: transparent;
+      color: var(--ink);
+    }
+    input[name="question"]:focus { outline: none; border-bottom-color: var(--cited-ink); }
+    .actions { display: flex; gap: 12px; align-items: center; }
+    .check { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; text-transform: none; letter-spacing: 0; font-size: 14px; }
+    button, .ghost {
+      font: 500 13px "IBM Plex Mono", monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: var(--ink);
+      color: var(--paper);
+      cursor: pointer;
+    }
+    .ghost { background: transparent; color: var(--ink); }
+    #error { color: var(--cited-ink); font-family: "IBM Plex Mono", monospace; }
+    #status { color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: 13px; }
+    button:disabled { opacity: 0.4; cursor: wait; }
+    #results { display: grid; gap: 18px; padding: 12px 0 64px; min-width: 0; }
+    article {
+      background: #fff;
+      border: 1px solid #cfc6ba;
+      border-radius: 2px;
+      padding: 22px 24px 26px;
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+    }
+    article h2 {
+      margin: 0 0 12px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    #answer-text {
+      font-family: Fraunces, Newsreader, serif;
+      font-size: 26px;
+      font-weight: 560;
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    pre {
+      margin: 0;
+      max-height: 280px;
+      overflow: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: #241c16;
+      background: #f7f3ec;
+      padding: 12px;
+    }
+    .flow {
+      display: flex;
+      gap: 0;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      padding: 6px 2px 12px;
+      align-items: stretch;
+    }
+    .step {
+      width: 280px;
+      flex: 0 0 280px;
+      background: #fff;
+      border: 1px solid #1c1612;
+      border-radius: 2px;
+      padding: 12px;
+    }
+    .arrow { align-self: center; color: var(--cited-ink); padding: 0 8px; font-size: 22px; font-family: Fraunces, serif; }
+    .step h3 { margin: 0 0 8px; font-family: Fraunces, serif; font-size: 18px; font-weight: 560; text-transform: capitalize; }
+    .row {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      padding: 8px;
+      border-radius: 2px;
+      margin: 5px 0;
+      background: #f6f1e8;
+      color: #1c1612;
+      border-left: 3px solid #d9cfc3;
+      overflow-wrap: anywhere;
+    }
+    .row.used { background: #e7f6ee; color: #145c38; border-left-color: #1d7a4a; }
+    .row.cited { background: #fde8e2; color: #8d2616; border-left-color: #c4452d; font-weight: 500; }
+    .tag { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 6px; }
+    .more { margin-top: 6px; }
+    .log details { border-top: 1px solid var(--line); padding: 10px 0; }
+    .log summary { cursor: pointer; font-weight: 700; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="kicker">Evidence brief</p>
+    <h1>Policy trace</h1>
+    <p>How a question moved through retrieval to the answer.</p>
+    <form>
+      <label>Question
+        <input name="question" type="text" required placeholder="How much can I spend on food each day?">
+      </label>
+      <div class="actions">
+        <label class="check"><input name="include_superseded" type="checkbox"> Include superseded policy</label>
+        <button type="submit">Ask</button>
+      </div>
+    </form>
+    <p id="status"></p>
+    <p id="error"></p>
+  </header>
+  <main id="results" class="hidden"></main>
+  <script>
     const form = document.querySelector("form");
     const error = document.querySelector("#error");
-    const diagram = document.querySelector("#diagram");
-    const detail = document.querySelector("#detail");
-    const answer = document.querySelector("#answer");
-    const citation = document.querySelector("#citation");
-    const raw = document.querySelector("#raw");
-    const download = document.querySelector("#download");
-    let lastTrace = null;
+    const status = document.querySelector("#status");
+    const askButton = form.querySelector("button[type=submit]");
+    const results = document.querySelector("#results");
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (askButton.disabled) return;
       error.textContent = "";
-      diagram.innerHTML = "";
-      detail.textContent = "";
-      answer.textContent = "";
-      citation.textContent = "";
-      document.querySelector("#citation-block").hidden = true;
-      raw.textContent = "";
-      download.hidden = true;
+      status.textContent = "Tracing the question through retrieval. This can take a moment.";
+      askButton.disabled = true;
+      results.classList.add("hidden");
+      results.replaceChildren();
       const question = new FormData(form).get("question");
       const includeSuperseded = form.include_superseded.checked;
-      const response = await fetch("/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, include_superseded: includeSuperseded }),
-      });
-      const result = await response.json();
-      if (result.error) {
-        error.textContent = result.error;
-        return;
-      }
-      lastTrace = result;
-      download.hidden = false;
-      answer.textContent = result.response.answer;
-      const citationText = result.response.citation
-        ? JSON.stringify(result.response.citation, null, 2)
-        : "";
-      citation.textContent = citationText;
-      document.querySelector("#citation-block").hidden = citationText === "";
-      raw.textContent = JSON.stringify(result.response, null, 2);
-      const visible = result.trace.some((stage) => stage.name === "cache" && stage.status === "hit")
-        ? result.trace.filter((stage) => stage.name === "cache")
-        : result.trace;
-      const lines = ["flowchart LR"];
-      visible.forEach((stage, index) => {
-        lines.push(`  s${index}["${stageLabel(stage)}"]`);
-        if (index > 0) lines.push(`  s${index - 1} --> s${index}`);
-      });
-      const rendered = await mermaid.render(`trace-${Date.now()}`, lines.join("\n"));
-      diagram.innerHTML = rendered.svg;
-      diagram.querySelectorAll(".node").forEach((node, index) => {
-        node.addEventListener("click", () => {
-          detail.textContent = JSON.stringify(visible[index], null, 2);
+      try {
+        const response = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, include_superseded: includeSuperseded }),
         });
-      });
+        const result = await response.json();
+        if (result.error) {
+          error.textContent = result.error;
+          return;
+        }
+        render(result);
+        results.classList.remove("hidden");
+      } catch (failure) {
+        error.textContent = "The trace did not finish. Try again.";
+      } finally {
+        status.textContent = "";
+        askButton.disabled = false;
+      }
     });
 
-    download.addEventListener("click", () => {
-      if (!lastTrace) return;
-      const citationSection = citation.textContent
-        ? `<h2>Citation</h2><pre>${escapeHtml(citation.textContent)}</pre>`
-        : "";
-      const file = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>Ask trace</title></head>
-<body>
-${diagram.innerHTML}
-<h2>Answer</h2><p>${escapeHtml(answer.textContent)}</p>
-${citationSection}
-<h2>JSON</h2><pre>${escapeHtml(raw.textContent)}</pre>
-<h2>Trace</h2><pre>${escapeHtml(JSON.stringify(lastTrace.trace, null, 2))}</pre>
-</body></html>`;
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-expand]");
+      if (!button) return;
+      const more = button.nextElementSibling;
+      const open = more.classList.toggle("hidden") === false;
+      button.textContent = open ? "▾ Show less" : button.dataset.label;
+    });
+
+    function render(result) {
+      const decision = decisionIds(result.trace);
+      const citation = result.response.citation;
+      results.append(
+        article("Answer", paragraph(result.response.answer, "answer-text")),
+        citation ? article("Citation", pre(JSON.stringify(citation, null, 2))) : "",
+        article("JSON", pre(JSON.stringify(result.response, null, 2))),
+        article("Flow", flow(result.trace, decision, citation)),
+        article("Trace log", logs(result.trace, decision, citation)),
+      );
+      const download = document.createElement("button");
+      download.type = "button";
+      download.className = "ghost";
+      download.textContent = "Download this view";
+      download.addEventListener("click", () => save(results));
+      results.append(download);
+    }
+
+    function decisionIds(trace) {
+      const ids = new Set();
+      for (const stage of trace) {
+        if (stage.name !== "passed_for_generation" && stage.name !== "cross_encoder") continue;
+        for (const chunk of stage.chunks || []) ids.add(chunk.chunk_id);
+      }
+      return ids;
+    }
+
+    function rank(chunk, decision, citation) {
+      if (isCited(chunk, citation)) return 0;
+      if (decision.has(chunk.chunk_id)) return 1;
+      return 2;
+    }
+
+    function isCited(chunk, citation) {
+      if (!citation || !chunk.source_doc) return false;
+      return citation.source_doc === chunk.source_doc
+        && String(citation.section || "").startsWith(`${chunk.source_doc} ${chunk.section}.`);
+    }
+
+    function flow(trace, decision, citation) {
+      const wrap = document.createElement("div");
+      wrap.className = "flow";
+      trace.forEach((stage, index) => {
+        if (index) {
+          const arrow = document.createElement("div");
+          arrow.className = "arrow";
+          arrow.textContent = "→";
+          wrap.append(arrow);
+        }
+        wrap.append(step(stage, decision, citation));
+      });
+      return wrap;
+    }
+
+    function step(stage, decision, citation) {
+      const card = document.createElement("div");
+      card.className = "step";
+      const title = document.createElement("h3");
+      title.textContent = stage.name.replaceAll("_", " ");
+      card.append(title);
+      if (stage.name === "cache") {
+        card.append(line(`${stage.status}${stage.response ? "" : ""}`, ""));
+        if (stage.response) card.append(truncated(stage.response.answer));
+        return card;
+      }
+      if (stage.name === "store") {
+        card.append(line(stage.stored ? "Answer stored" : "Not stored", ""));
+        return card;
+      }
+      if (stage.name === "keyword_search") card.append(line(`Search ${stage.query || "(empty)"}`, ""));
+      if (stage.answer) card.append(truncated(stage.answer));
+      const chunks = [...(stage.chunks || [])].sort(
+        (a, b) => rank(a, decision, citation) - rank(b, decision, citation),
+      );
+      const kept = chunks.filter((chunk) => rank(chunk, decision, citation) < 2);
+      const rest = chunks.filter((chunk) => rank(chunk, decision, citation) === 2);
+      const shown = kept.length ? kept : rest.slice(0, 3);
+      const hidden = kept.length ? rest : rest.slice(3);
+      for (const chunk of shown) card.append(chunkRow(chunk, decision, citation));
+      if (!shown.length) card.append(line("Nothing held", ""));
+      if (hidden.length) card.append(expander(hidden, decision, citation));
+      return card;
+    }
+
+    function expander(chunks, decision, citation) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ghost";
+      button.dataset.expand = "1";
+      button.dataset.label = `▸ ${chunks.length} more`;
+      button.textContent = button.dataset.label;
+      const more = document.createElement("div");
+      more.className = "more hidden";
+      for (const chunk of chunks) more.append(chunkRow(chunk, decision, citation));
+      const wrap = document.createElement("div");
+      wrap.append(button, more);
+      return wrap;
+    }
+
+    function chunkRow(chunk, decision, citation) {
+      const cited = isCited(chunk, citation);
+      const used = decision.has(chunk.chunk_id);
+      const label = cited ? "Cited" : used ? "Used" : "";
+      const title = chunk.section_title ? `${chunk.section_title}` : `§${chunk.section}`;
+      const found = `${title} · ${chunk.source_doc}`;
+      if (chunk.distance != null && chunk.rrf_score == null) {
+        const row = line(`Found ${found}`, label, cited ? "cited" : used ? "used" : "");
+        row.append(document.createElement("br"), `distance ${Number(chunk.distance).toFixed(3)}`);
+        return row;
+      }
+      const score = chunk.rrf_score != null ? `rrf ${Number(chunk.rrf_score).toFixed(3)}` : "";
+      return line(`${found}${score ? " · " + score : ""}`, label, cited ? "cited" : used ? "used" : "");
+    }
+
+    function line(text, tag, kind) {
+      const row = document.createElement("div");
+      row.className = `row ${kind || ""}`.trim();
+      if (tag) {
+        const mark = document.createElement("span");
+        mark.className = "tag";
+        mark.textContent = tag;
+        row.append(mark);
+      }
+      row.append(text);
+      return row;
+    }
+
+    function truncated(text) {
+      if (text.length <= 140) return line(text, "");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ghost";
+      button.dataset.expand = "1";
+      button.dataset.label = "▸ Show the rest";
+      button.textContent = button.dataset.label;
+      const more = document.createElement("div");
+      more.className = "more hidden";
+      more.append(line(text, ""));
+      const wrap = document.createElement("div");
+      wrap.append(line(`${text.slice(0, 140)}…`, ""), button, more);
+      return wrap;
+    }
+
+    function logs(trace, decision, citation) {
+      const wrap = document.createElement("div");
+      wrap.className = "log";
+      for (const stage of trace) {
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = stage.name.replaceAll("_", " ");
+        details.append(summary);
+        for (const chunk of stage.chunks || []) details.append(chunkRow(chunk, decision, citation));
+        if (stage.query) details.append(line(`Search ${stage.query}`, ""));
+        if (stage.status) details.append(line(stage.status, ""));
+        if (stage.stored != null) details.append(line(stage.stored ? "Answer stored" : "Not stored", ""));
+        if (stage.answer) details.append(line(stage.answer, ""));
+        const raw = document.createElement("details");
+        const rawSummary = document.createElement("summary");
+        rawSummary.textContent = "Raw stage";
+        raw.append(rawSummary, pre(JSON.stringify(stage, null, 2)));
+        details.append(raw);
+        wrap.append(details);
+      }
+      return wrap;
+    }
+
+    function article(title, body) {
+      if (!body) return document.createTextNode("");
+      const section = document.createElement("article");
+      const heading = document.createElement("h2");
+      heading.textContent = title;
+      section.append(heading, body);
+      return section;
+    }
+
+    function paragraph(text, id) {
+      const node = document.createElement("p");
+      node.id = id;
+      node.textContent = text;
+      return node;
+    }
+
+    function pre(text) {
+      const node = document.createElement("pre");
+      node.textContent = text;
+      return node;
+    }
+
+    function save(root) {
+      const style = document.querySelector("style").textContent;
+      const file = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Policy trace</title><style>${style}</style></head><body>${root.innerHTML}<script>document.addEventListener("click",function(event){var button=event.target.closest("[data-expand]");if(!button)return;var more=button.nextElementSibling;var open=more.classList.toggle("hidden")===false;button.textContent=open?"▾ Show less":button.dataset.label;});<\/script></body></html>`;
       const blob = new Blob([file], { type: "text/html" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = "ask-trace.html";
       link.click();
-    });
-
-    function stageLabel(stage) {
-      const lines = [stage.name.replaceAll("_", " ")];
-      if (stage.name === "cache") {
-        lines.push(stage.status);
-        if (stage.response) lines.push(stage.response.answer);
-      } else if (stage.name === "ingest") {
-        for (const chunk of stage.chunks) {
-          lines.push(`${chunk.source_doc} §${chunk.section} ${chunk.effective_date ?? ""} ${chunk.superseded ? "superseded" : "current"}`);
-        }
-      } else if (stage.name === "question_embedding" || stage.name === "keyword_search") {
-        for (const chunk of stage.chunks) {
-          lines.push(`${chunk.source_doc} §${chunk.section} distance ${chunk.distance}`);
-        }
-      } else if (stage.name === "rrf") {
-        for (const chunk of stage.chunks) {
-          lines.push(`${chunk.source_doc} §${chunk.section} rrf ${chunk.rrf_score}`);
-        }
-      } else if (stage.name === "cross_encoder") {
-        for (const chunk of stage.chunks) {
-          lines.push(`${chunk.source_doc} §${chunk.section}`);
-        }
-      } else if (stage.name === "passed_for_generation") {
-        for (const chunk of stage.chunks) {
-          lines.push(`${chunk.source_doc} §${chunk.section}`);
-        }
-        lines.push(stage.answer);
-        lines.push(stage.citation ? JSON.stringify(stage.citation) : "no citation");
-      } else if (stage.name === "store") {
-        lines.push(stage.stored ? "stored" : "not stored");
-      }
-      return lines.map(escapeMermaid).join("<br/>");
-    }
-
-    function escapeMermaid(value) {
-      return String(value)
-        .replaceAll('"', "'")
-        .replaceAll("[", "(")
-        .replaceAll("]", ")")
-        .replaceAll("#", "")
-        .replaceAll("\n", " ");
-    }
-
-    function escapeHtml(value) {
-      return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
     }
   </script>
-</head>
-<body>
-  <form>
-    <label>Question <input name="question" required></label>
-    <label><input name="include_superseded" type="checkbox"> Include superseded policy</label>
-    <button type="submit">Ask</button>
-  </form>
-  <p id="error"></p>
-  <div id="diagram" style="overflow-x: auto"></div>
-  <pre id="detail"></pre>
-  <h2>Answer</h2>
-  <p id="answer"></p>
-  <div id="citation-block">
-    <h2>Citation</h2>
-    <pre id="citation"></pre>
-  </div>
-  <h2>JSON</h2>
-  <pre id="raw"></pre>
-  <button id="download" type="button" hidden>Download this trace</button>
 </body>
 </html>

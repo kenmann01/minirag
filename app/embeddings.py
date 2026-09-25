@@ -14,6 +14,8 @@ from transformers.utils import logging as transformers_logging
 from app.config import get_settings
 
 _model = None
+_loaded_name: str | None = None
+_vectors: dict[tuple[str, str], list[float]] = {}
 
 
 @contextmanager
@@ -42,17 +44,31 @@ def _quiet_model_loading():
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """Embed text as normalized vectors with a lazily loaded shared model.
 
+    A text already encoded by the configured model in this process is returned
+    from memory. A different configured model loads separately and does not
+    reuse those vectors.
+
     Args:
         texts: Text values to encode in input order.
 
     Returns:
         One floating-point embedding per input text.
     """
-    global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
+    global _model, _loaded_name
+    model_name = get_settings().embedding_model
+    missing = [
+        text
+        for text in dict.fromkeys(texts)
+        if (model_name, text) not in _vectors
+    ]
+    if missing:
+        if _model is None or _loaded_name != model_name:
+            from sentence_transformers import SentenceTransformer
 
-        with _quiet_model_loading():
-            _model = SentenceTransformer(get_settings().embedding_model)
-    vectors = _model.encode(texts, normalize_embeddings=True)
-    return [vector.tolist() for vector in vectors]
+            with _quiet_model_loading():
+                _model = SentenceTransformer(model_name)
+            _loaded_name = model_name
+        encoded = _model.encode(missing, normalize_embeddings=True)
+        for text, vector in zip(missing, encoded, strict=True):
+            _vectors[(model_name, text)] = vector.tolist()
+    return [_vectors[(model_name, text)] for text in texts]
