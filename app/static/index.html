@@ -5,7 +5,11 @@
   <title>Ask the policy</title>
   <script type="module">
     import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-    mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "loose",
+      flowchart: { htmlLabels: true, wrappingWidth: 360 },
+    });
 
     const form = document.querySelector("form");
     const error = document.querySelector("#error");
@@ -24,6 +28,7 @@
       detail.textContent = "";
       answer.textContent = "";
       citation.textContent = "";
+      document.querySelector("#citation-block").hidden = true;
       raw.textContent = "";
       download.hidden = true;
       const question = new FormData(form).get("question");
@@ -41,20 +46,21 @@
       lastTrace = result;
       download.hidden = false;
       answer.textContent = result.response.answer;
-      citation.textContent = result.response.citation
+      const citationText = result.response.citation
         ? JSON.stringify(result.response.citation, null, 2)
         : "";
+      citation.textContent = citationText;
+      document.querySelector("#citation-block").hidden = citationText === "";
       raw.textContent = JSON.stringify(result.response, null, 2);
       const visible = result.trace.some((stage) => stage.name === "cache" && stage.status === "hit")
         ? result.trace.filter((stage) => stage.name === "cache")
         : result.trace;
       const lines = ["flowchart LR"];
       visible.forEach((stage, index) => {
-        const label = stage.name.replaceAll("_", " ");
-        lines.push(`  s${index}["${label}"]`);
+        lines.push(`  s${index}["${stageLabel(stage)}"]`);
         if (index > 0) lines.push(`  s${index - 1} --> s${index}`);
       });
-      const rendered = await mermaid.render("trace", lines.join("\n"));
+      const rendered = await mermaid.render(`trace-${Date.now()}`, lines.join("\n"));
       diagram.innerHTML = rendered.svg;
       diagram.querySelectorAll(".node").forEach((node, index) => {
         node.addEventListener("click", () => {
@@ -65,12 +71,15 @@
 
     download.addEventListener("click", () => {
       if (!lastTrace) return;
+      const citationSection = citation.textContent
+        ? `<h2>Citation</h2><pre>${escapeHtml(citation.textContent)}</pre>`
+        : "";
       const file = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><title>Ask trace</title></head>
 <body>
 ${diagram.innerHTML}
 <h2>Answer</h2><p>${escapeHtml(answer.textContent)}</p>
-<h2>Citation</h2><pre>${escapeHtml(citation.textContent)}</pre>
+${citationSection}
 <h2>JSON</h2><pre>${escapeHtml(raw.textContent)}</pre>
 <h2>Trace</h2><pre>${escapeHtml(JSON.stringify(lastTrace.trace, null, 2))}</pre>
 </body></html>`;
@@ -80,6 +89,48 @@ ${diagram.innerHTML}
       link.download = "ask-trace.html";
       link.click();
     });
+
+    function stageLabel(stage) {
+      const lines = [stage.name.replaceAll("_", " ")];
+      if (stage.name === "cache") {
+        lines.push(stage.status);
+        if (stage.response) lines.push(stage.response.answer);
+      } else if (stage.name === "ingest") {
+        for (const chunk of stage.chunks) {
+          lines.push(`${chunk.source_doc} §${chunk.section} ${chunk.effective_date ?? ""} ${chunk.superseded ? "superseded" : "current"}`);
+        }
+      } else if (stage.name === "question_embedding" || stage.name === "keyword_search") {
+        for (const chunk of stage.chunks) {
+          lines.push(`${chunk.source_doc} §${chunk.section} distance ${chunk.distance}`);
+        }
+      } else if (stage.name === "rrf") {
+        for (const chunk of stage.chunks) {
+          lines.push(`${chunk.source_doc} §${chunk.section} rrf ${chunk.rrf_score}`);
+        }
+      } else if (stage.name === "cross_encoder") {
+        for (const chunk of stage.chunks) {
+          lines.push(`${chunk.source_doc} §${chunk.section}`);
+        }
+      } else if (stage.name === "passed_for_generation") {
+        for (const chunk of stage.chunks) {
+          lines.push(`${chunk.source_doc} §${chunk.section}`);
+        }
+        lines.push(stage.answer);
+        lines.push(stage.citation ? JSON.stringify(stage.citation) : "no citation");
+      } else if (stage.name === "store") {
+        lines.push(stage.stored ? "stored" : "not stored");
+      }
+      return lines.map(escapeMermaid).join("<br/>");
+    }
+
+    function escapeMermaid(value) {
+      return String(value)
+        .replaceAll('"', "'")
+        .replaceAll("[", "(")
+        .replaceAll("]", ")")
+        .replaceAll("#", "")
+        .replaceAll("\n", " ");
+    }
 
     function escapeHtml(value) {
       return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -93,12 +144,14 @@ ${diagram.innerHTML}
     <button type="submit">Ask</button>
   </form>
   <p id="error"></p>
-  <div id="diagram"></div>
+  <div id="diagram" style="overflow-x: auto"></div>
   <pre id="detail"></pre>
   <h2>Answer</h2>
   <p id="answer"></p>
-  <h2>Citation</h2>
-  <pre id="citation"></pre>
+  <div id="citation-block">
+    <h2>Citation</h2>
+    <pre id="citation"></pre>
+  </div>
   <h2>JSON</h2>
   <pre id="raw"></pre>
   <button id="download" type="button" hidden>Download this trace</button>
