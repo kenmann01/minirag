@@ -21,7 +21,7 @@ Before the lineage fix, this question could return $60/day citing the
 
 **1. Was it retrieval?** No. Retrieval is measured directly: the golden
 exam's per-diem case requires the 2024 travel-expenses section in the
-final five and passes (`python -m app eval`, recall 9/9). Both lanes and
+final five and passes (`python -m app eval`, recall 10/10). Both lanes and
 the reranker deliver the governing section; nothing in the retrieval
 path prefers the stale document.
 

@@ -29,6 +29,7 @@ EXPECTED_EXAM = {
     "submission-window": "answer",
     "mid-approval-tier": "answer",
     "villain-protocol": "hybrid_demo",
+    "form-zx-4491": "hybrid_demo",
     "per-diem-poisoned": "poisoned",
     "home-office-stipend": "answer",
     "bananaphone": "refusal",
@@ -36,7 +37,7 @@ EXPECTED_EXAM = {
 }
 
 
-def test_the_golden_file_holds_the_nine_case_exam():
+def test_the_golden_file_holds_the_ten_case_exam():
     goldens = load_goldens()
     assert {golden.id: golden.kind for golden in goldens} == EXPECTED_EXAM
     assert all(golden.question.strip().endswith("?") for golden in goldens)
@@ -227,13 +228,14 @@ def test_the_exam_passes_end_to_end_with_canned_generation_and_real_retrieval():
     )
     assert record["retriever"] == "hybrid"
     assert record["summary"] == {
-        "total": 9,
-        "passed": 9,
-        "recall_hits": 9,
-        "answer_passes": 9,
+        "total": 10,
+        "passed": 10,
+        "recall_hits": 10,
+        "answer_passes": 10,
     }
     by_id = {result["id"]: result for result in record["results"]}
     assert by_id["villain-protocol"]["recall"] is True
+    assert by_id["form-zx-4491"]["recall"] is True
     assert any(
         chunk_id.startswith("minion_travel_security_policy:s6:")
         for chunk_id in by_id["villain-protocol"]["ranked_chunk_ids"]
@@ -281,7 +283,28 @@ def test_the_exam_runs_every_golden_through_the_model_even_when_cached(capsys):
         model=exam_model,
         reranker=CrossEncoderReranker(),
     )
-    assert len(exam_model.prompts) == 9
+    assert len(exam_model.prompts) == 10
+
+
+def test_form_zx_4491_is_retrieved_by_hybrid_and_missed_by_vector_only():
+    adapter = PgAdapter()
+    run(adapter)
+    golden = _golden("form-zx-4491")
+    hybrid_rows = search(golden.question, adapter)
+    vector_rows = search(golden.question, adapter, mode="vector")
+    hybrid_ids = [
+        chunk["chunk_id"]
+        for chunk in CrossEncoderReranker().rank(golden.question, hybrid_rows)
+    ]
+    assert recall_pass(hybrid_ids, golden)
+    assert any(
+        chunk["chunk_id"].startswith("minion_dress_code_policy:s11:")
+        for chunk in hybrid_rows
+    )
+    assert all(
+        not chunk["chunk_id"].startswith("minion_dress_code_policy:s11:")
+        for chunk in vector_rows
+    )
 
 
 def test_vector_mode_disables_the_keyword_lane_and_drops_the_exact_term_rescue():
@@ -348,12 +371,12 @@ def test_eval_prints_the_table_and_writes_the_record(tmp_path, capsys):
     assert exit_code == 0
     table = capsys.readouterr().out
     assert "retriever=hybrid" in table
-    assert "passed=9" in table
+    assert "passed=10" in table
     for golden in goldens:
         assert golden.id in table
     record = json.loads(output_path.read_text())
-    assert record["summary"]["passed"] == 9
-    assert record["summary"]["total"] == 9
+    assert record["summary"]["passed"] == 10
+    assert record["summary"]["total"] == 10
 
 
 def test_eval_exits_nonzero_when_a_golden_quotes_the_stale_number(tmp_path, capsys):

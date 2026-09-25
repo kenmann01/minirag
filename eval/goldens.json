@@ -40,6 +40,14 @@
     "kind": "hybrid_demo"
   },
   {
+    "id": "form-zx-4491",
+    "question": "What does form ZX-4491 authorize?",
+    "expected": ["minion_dress_code_policy:s11"],
+    "must_contain": ["$40"],
+    "must_not_contain": [],
+    "kind": "hybrid_demo"
+  },
+  {
     "id": "per-diem-poisoned",
     "question": "What is the daily meal per diem for domestic travel?",
     "expected": ["minion_expense_policy_2024:s5"],

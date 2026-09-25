@@ -104,26 +104,30 @@ is presentation over data the schema already holds.
 Flip condition: documented user demand for change visibility, then ship
 it as a query over the lineage pointer and both parent_texts.
 
-## 8. Golden-level vector-only failure for the hybrid demo (deviation, 2026-09-24)
+## 8. Form ZX-4491 is the hybrid flip (measured 2026-09-25)
 
-The spec asked for a hybrid-demo golden that fails under vector-only and
-passes under hybrid. Probing the real stack showed this is not
-constructible at this corpus scale: the keyword lane matches only chunks
-containing every question stem, and any chunk containing the question's
-rare exact phrase ("Villain Protocol" plus a trigger stem) also ranks in
-the vector lane's top 20 of roughly 90 chunks (measured rank 2 under
-maximal dilution; the next chunk after the phrase cluster sits far
-behind at distance 0.65 against 0.56). Every keyword-reachable chunk is
-vector-reachable, so no natural golden can fail one lane and pass the
-other.
+The Villain Protocol question is not the flip. Its section is vector rank
+4 and keyword-reachable, so both lanes pass it. The flip is form ZX-4491,
+one sentence in the dress-code laundry-cage section
+(`minion_dress_code_policy:s11`). The question is "What does form ZX-4491
+authorize?" Every stem the keyword lane requires is in that section. The
+child window that holds the code is mostly cage procedure, so the
+bi-encoder ranks that child 26. The vector lane keeps `LIMIT 20`, and
+vector-only search does not return the section. Hybrid fusion still
+includes the keyword hit, and the cross-encoder keeps the section in the
+final five.
 
-Kept: the A/B flag and honest A/B reporting, the Villain Protocol golden
-as the exam's hybrid showcase, and the keyword-rescue mechanism proof at
-the test seam (an exact-term chunk with an adversarial embedding that
-hybrid retrieves and vector-only drops, the same pattern the suite
-already used). This entry records the deviation from the frozen
-blueprint.
+The vector limit stays 20. Goldens the keyword lane cannot save
+(per-diem, the approval tiers, the home stipend) have vector ranks 1-3,
+so the safe floor is 3. ZX-4491 at rank 26 is already outside that floor.
+Dropping the limit is unnecessary.
 
-Flip condition: per-lane candidate limits below the phrase-cluster size,
-or a corpus large enough that the vector top 20 no longer covers every
-exact-phrase chunk.
+The negated-embedding test remains a mechanism check of the keyword lane.
+It is not the rubric demonstration. The demonstration is
+`python -m app eval` against `python -m app eval --retriever vector`:
+form-zx-4491 passes hybrid and misses vector-only.
+
+Flip condition: an embedder that ranks the ZX-4491 child inside the
+vector top 20. Lengthen the laundry-cage section until the rank falls
+back outside 20. Do not drop the vector limit below the keyword-miss
+floor.

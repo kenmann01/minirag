@@ -844,7 +844,7 @@ def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
             "format": "json",
             "stream": False,
             "think": False,
-            "options": {"temperature": 0, "seed": 42},
+            "options": {"temperature": 0, "seed": 77},
         },
     }
 

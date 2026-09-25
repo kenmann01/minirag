@@ -89,22 +89,17 @@ Code:
 app/retrieve.py    # both lanes, RRF fusion (k=60), the mode switch
 ```
 
-Demonstration (exact-phrase rescue: hybrid keeps the chunk,
-vector-only drops it):
-
-```
-pytest -q tests/test_evaluate.py -k vector_mode
-```
-
-Optional side-by-side table capture:
+Demonstration (form ZX-4491: hybrid keeps the section, vector-only
+drops it). Screenshot both tables. Hybrid passes form-zx-4491. Vector-only
+marks that one golden MISS and exits nonzero. The other goldens still pass.
 
 ```
 python -m app eval --output eval/record-hybrid.json
 python -m app eval --retriever vector --output eval/record-vector.json
 ```
 
-See docs/decision-log.md entry 8 for why the A/B tables alone do not
-show a recall flip at this corpus scale.
+See docs/decision-log.md entry 8 for the measured ranks (vector rank 26,
+keyword hit, limit left at 20).
 
 ## 6. Reranking code
 
@@ -115,7 +110,7 @@ app/reranker.py    # ms-marco cross-encoder, best-first, one child per section, 
 ## 7. Evaluation test set and harness code
 
 ```
-eval/goldens.json  # the nine-case exam with expected sections and facts
+eval/goldens.json  # the ten-case exam with expected sections and facts
 app/evaluate.py    # recall@5 prefix rule, answer checks, run_exam, table
 ```
 
@@ -125,7 +120,7 @@ app/evaluate.py    # recall@5 prefix rule, answer checks, run_exam, table
 python -m app eval
 ```
 
-Screenshot the per-golden table (target: 9/9 passed) and keep
+Screenshot the per-golden table (target: 10/10 passed) and keep
 `eval/record.json` as the machine-readable artifact.
 
 ## 9. Planted-issue question, flawed answer, written diagnosis

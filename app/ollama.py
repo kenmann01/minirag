@@ -33,7 +33,7 @@ class OllamaAdapter:
                 "format": "json",
                 "stream": False,
                 "think": False,
-                "options": {"temperature": 0, "seed": 42},
+                "options": {"temperature": 0, "seed": 77},
             }
         ).encode()
         request = urllib.request.Request(
