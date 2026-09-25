@@ -5,6 +5,7 @@ import json
 import pytest
 
 from app.cli import main
+from app.generate import PROMPT_PATH
 from app.embeddings import embed_texts
 from app.evaluate import (
     Golden,
@@ -179,10 +180,14 @@ class GoldenCannedModel:
 
     def chat(self, prompt: str) -> str:
         self.prompts.append(prompt)
-        golden = next(g for g in self.goldens if g.question in prompt)
+        asked = prompt.rsplit("\nQuestion:\n", 1)[-1]
+        golden = next(g for g in self.goldens if g.question in asked)
         if golden.kind == "refusal":
             return json.dumps({"answer": REFUSAL, "section": ""})
-        label = prompt.split("Section: ", 1)[1].split("\n", 1)[0]
+        excerpts = prompt.rsplit("\nPolicy excerpts:\n", 1)[-1].split(
+            "\nQuestion:\n", 1
+        )[0]
+        label = excerpts.split("Section: ", 1)[1].split("\n", 1)[0]
         if golden.id == self.stale_for:
             return json.dumps(
                 {
@@ -193,6 +198,21 @@ class GoldenCannedModel:
         return json.dumps(
             {"answer": " ".join(golden.must_contain), "section": label}
         )
+
+
+def test_the_canned_model_cites_the_retrieved_section_not_the_few_shot_example():
+    golden = _golden("per-diem")
+    prompt = (
+        PROMPT_PATH.read_text(encoding="utf-8")
+        .replace(
+            "{excerpts}",
+            "Section: minion_expense_policy_2024.md 3. Meals\nExcerpt:\nDomestic per diem is $75.",
+        )
+        .replace("{question}", golden.question)
+    )
+    reply = json.loads(GoldenCannedModel([golden]).chat(prompt))
+    assert reply["section"] == "minion_expense_policy_2024.md 3. Meals"
+    assert "$75" in reply["answer"]
 
 
 def test_the_exam_passes_end_to_end_with_canned_generation_and_real_retrieval():
