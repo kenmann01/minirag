@@ -1,4 +1,4 @@
-# Internal and Confidential — Not for External Distribution.
+# Internal and Confidential - Not for External Distribution.
 """Define the database connection contract used by application services."""
 
 from contextlib import AbstractContextManager
@@ -9,7 +9,7 @@ class DatabaseAdapter(Protocol):
     """Supply managed SQL connections without exposing a database driver.
 
     Returned connections must accept SQL statements with Python bind
-    parameters, including lists bound to ``vector(384)`` values.
+    parameters, including lists bound to ``vector(768)`` values.
     """
 
     def connect(self) -> AbstractContextManager:

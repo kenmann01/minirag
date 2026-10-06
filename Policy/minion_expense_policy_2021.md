@@ -3,6 +3,7 @@
 **Organization:** Gru's Evil Lair & Associates
 **Document ID:** LAIR-POL-009
 **Effective Date:** June 1, 2021
+**Superseded-By:** minion_expense_policy_2024.md
 **Last Reviewed:** June 1, 2021
 **Owner:** Dr. Nefario (younger, marginally less tired)
 

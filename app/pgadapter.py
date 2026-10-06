@@ -1,4 +1,4 @@
-# Internal and Confidential — Not for External Distribution.
+# Internal and Confidential - Not for External Distribution.
 """Provide pgvector-enabled PostgreSQL connections for application services."""
 
 from contextlib import contextmanager
@@ -25,6 +25,7 @@ class PgAdapter:
         """Yield a connection, committing success and always closing it."""
 
         conn = psycopg.connect(get_settings().database_url)
+        conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
         register_vector(conn)
         try:
             yield conn

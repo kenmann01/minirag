@@ -1,4 +1,4 @@
-# Internal and Confidential — Not for External Distribution.
+# Internal and Confidential - Not for External Distribution.
 """Define validated models for generated answers, citations, and responses."""
 
 from pydantic import BaseModel
@@ -12,18 +12,18 @@ class ModelAnswer(BaseModel):
 
 
 class Citation(BaseModel):
-    """Identify the policy document, version, and section supporting an answer."""
+    """Identify the policy document, effective date, and section behind an answer."""
 
-    document: str
-    version: str
+    source_doc: str
+    effective_date: str | None
     section: str
 
 
 class RetrievedChunk(BaseModel):
-    """Represent a policy excerpt returned by vector similarity search."""
+    """Represent a policy excerpt returned by hybrid retrieval."""
 
-    document: str
-    version: str
+    source_doc: str
+    effective_date: str | None
     section: str
     text: str
     distance: float

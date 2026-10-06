@@ -1,4 +1,4 @@
-# Internal and Confidential — Not for External Distribution.
+# Internal and Confidential - Not for External Distribution.
 """Provide an HTTP adapter for structured chat completion through Ollama."""
 
 import json
@@ -32,7 +32,8 @@ class OllamaAdapter:
                 "messages": [{"role": "user", "content": prompt}],
                 "format": "json",
                 "stream": False,
-                "options": {"temperature": 0, "seed": 42},
+                "think": False,
+                "options": {"temperature": 0, "seed": 77},
             }
         ).encode()
         request = urllib.request.Request(

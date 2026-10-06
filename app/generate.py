@@ -1,13 +1,13 @@
-# Internal and Confidential — Not for External Distribution.
+# Internal and Confidential - Not for External Distribution.
 """Generate grounded answers and validated citations from retrieved chunks."""
 
 from pathlib import Path
 from typing import Protocol
 
-from app.schemas import AskResponse, Citation, ModelAnswer, RetrievedChunk
+from app.schemas import AskResponse, ModelAnswer, RetrievedChunk
+from app.validate import REFUSAL, gate
 
-REFUSAL = "The provided policy does not answer this question."
-PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompt_v1.md"
+PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompt_v3.md"
 
 
 class LanguageModel(Protocol):
@@ -25,6 +25,10 @@ class LanguageModel(Protocol):
         ...
 
 
+def section_label(chunk: dict) -> str:
+    return f"{chunk['source_doc']} {chunk['section']}. {chunk['section_title']}"
+
+
 def generate(question: str, chunks: list[dict], model: LanguageModel) -> AskResponse:
     """Generate and validate an answer grounded in retrieved policy chunks.
 
@@ -35,11 +39,12 @@ def generate(question: str, chunks: list[dict], model: LanguageModel) -> AskResp
 
     Returns:
         A validated response containing the answer, an optional trusted
-        citation, and the retrieved chunks.
+        citation, and the retrieved chunks. Empty retrieval yields the
+        standard refusal.
     """
-    sections = {
-        f"{chunk['section']}. {chunk['section_title']}": chunk for chunk in chunks
-    }
+    if not chunks:
+        return AskResponse(answer=REFUSAL, citation=None, retrieved_chunks=[])
+    sections = {section_label(chunk): chunk for chunk in chunks}
     excerpts = "\n\n".join(
         f"Section: {section}\nExcerpt:\n{chunk['text']}"
         for section, chunk in sections.items()
@@ -50,21 +55,11 @@ def generate(question: str, chunks: list[dict], model: LanguageModel) -> AskResp
         .replace("{question}", question)
     )
     generated = ModelAnswer.model_validate_json(model.chat(prompt))
-    citation = None
-    answer = generated.answer
-    supporting_chunk = sections.get(generated.section)
-    if answer != REFUSAL and supporting_chunk is not None:
-        citation = Citation(
-            document=supporting_chunk["document"],
-            version=supporting_chunk["version"],
-            section=generated.section,
-        )
-    elif answer != REFUSAL:
-        answer = REFUSAL
+    answer, citation = gate(generated, sections)
     retrieved = [
         RetrievedChunk(
-            document=chunk["document"],
-            version=chunk["version"],
+            source_doc=chunk["source_doc"],
+            effective_date=chunk["effective_date"],
             section=section,
             text=chunk["text"],
             distance=chunk["distance"],

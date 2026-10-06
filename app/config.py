@@ -1,4 +1,4 @@
-# Internal and Confidential — Not for External Distribution.
+# Internal and Confidential - Not for External Distribution.
 """Load Mini RAG configuration from environment variables."""
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str
-    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_model: str = "Alibaba-NLP/gte-modernbert-base"
     ollama_model: str = "qwen3:8b"
     ollama_host: str = "http://host.docker.internal:11434"
 

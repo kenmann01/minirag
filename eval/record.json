@@ -1,0 +1,197 @@
+{
+  "retriever": "hybrid",
+  "include_superseded": false,
+  "results": [
+    {
+      "id": "per-diem",
+      "kind": "answer",
+      "question": "How much can I spend on food each day?",
+      "recall": true,
+      "answer_failures": [],
+      "passed": true,
+      "answer": "You can spend up to $75 per day on meals while traveling domestically, and $95 per day internationally, with tips included. This is the per diem rate for meals while traveling.",
+      "citation": {
+        "source_doc": "minion_expense_policy_2024.md",
+        "effective_date": "January 15, 2024",
+        "section": "minion_expense_policy_2024.md 5. Travel Expenses"
+      },
+      "ranked_chunk_ids": [
+        "minion_expense_policy_2024:s5:c01",
+        "minion_expense_policy_2024:s2:c01",
+        "minion_pto_policy:s2:c01",
+        "minion_expense_policy_2024:s8:c01",
+        "minion_pto_policy:s7:c01"
+      ]
+    },
+    {
+      "id": "mileage-rate",
+      "kind": "answer",
+      "question": "What is the mileage reimbursement rate for the Minion Van?",
+      "recall": true,
+      "answer_failures": [],
+      "passed": true,
+      "answer": "The mileage reimbursement rate for the Minion Van is $0.67 per mile.",
+      "citation": {
+        "source_doc": "minion_expense_policy_2024.md",
+        "effective_date": "January 15, 2024",
+        "section": "minion_expense_policy_2024.md 5. Travel Expenses"
+      },
+      "ranked_chunk_ids": [
+        "minion_expense_policy_2024:s5:c01",
+        "minion_travel_security_policy:s4:c01",
+        "minion_expense_policy_2024:s1:c01",
+        "minion_equipment_policy:s5:c01",
+        "minion_expense_policy_2024:s4:c01"
+      ]
+    },
+    {
+      "id": "submission-window",
+      "kind": "answer",
+      "question": "How long do I have to submit my expense report?",
+      "recall": true,
+      "answer_failures": [],
+      "passed": true,
+      "answer": "You have 60 days to submit your expense report. Late submissions require written approval from Dr. Nefario.",
+      "citation": {
+        "source_doc": "minion_expense_policy_2024.md",
+        "effective_date": "January 15, 2024",
+        "section": "minion_expense_policy_2024.md 3. Submission and Deadlines"
+      },
+      "ranked_chunk_ids": [
+        "minion_expense_policy_2024:s3:c01",
+        "minion_expense_policy_2024:s9:c01",
+        "minion_remote_work_policy:s8:c01",
+        "minion_pto_policy:s4:c01",
+        "minion_expense_policy_2024:s2:c01"
+      ]
+    },
+    {
+      "id": "mid-approval-tier",
+      "kind": "answer",
+      "question": "What approvals do I need for a $1,200 expense?",
+      "recall": true,
+      "answer_failures": [],
+      "passed": true,
+      "answer": "For a $1,200 expense, you need approval from both the Squad Leader and Dr. Nefario.",
+      "citation": {
+        "source_doc": "minion_expense_policy_2024.md",
+        "effective_date": "January 15, 2024",
+        "section": "minion_expense_policy_2024.md 4. Approval Thresholds"
+      },
+      "ranked_chunk_ids": [
+        "minion_expense_policy_2024:s4:c01",
+        "minion_expense_policy_2024:s3:c01",
+        "minion_expense_policy_2024:s2:c01",
+        "minion_expense_policy_2024:s5:c01",
+        "minion_expense_policy_2024:s8:c01"
+      ]
+    },
+    {
+      "id": "villain-protocol",
+      "kind": "hybrid_demo",
+      "question": "What triggers the Villain Protocol?",
+      "recall": true,
+      "answer_failures": [],
+      "passed": true,
+      "answer": "The Villain Protocol is triggered by unauthorized weapon prototype use, a confirmed breach of the Remote Work Policy (LAIR-POL-014) security rules, an intruder past the perimeter, theft or loss of any blueprint, personal-card use on major missions (see LAIR-POL-009), or any Minion presumed abducted.",
+      "citation": {
+        "source_doc": "minion_travel_security_policy.md",
+        "effective_date": "March 1, 2024",
+        "section": "minion_travel_security_policy.md 6. Lockdown Drills and the Villain Protocol"
+      },
+      "ranked_chunk_ids": [
+        "minion_pto_policy:s5:c01",
+        "minion_expense_policy_2024:s4:c01",
+        "minion_remote_work_policy:s6:c01",
+        "minion_travel_security_policy:s6:c01",
+        "minion_remote_work_policy:s9:c01"
+      ]
+    },
+    {
+      "id": "per-diem-poisoned",
+      "kind": "poisoned",
+      "question": "What is the daily meal per diem for domestic travel?",
+      "recall": true,
+      "answer_failures": [],
+      "passed": true,
+      "answer": "The daily meal per diem for domestic travel is $75 per day, including tips.",
+      "citation": {
+        "source_doc": "minion_expense_policy_2024.md",
+        "effective_date": "January 15, 2024",
+        "section": "minion_expense_policy_2024.md 5. Travel Expenses"
+      },
+      "ranked_chunk_ids": [
+        "minion_expense_policy_2024:s5:c01",
+        "minion_pto_policy:s2:c01",
+        "minion_dress_code_policy:s5:c01",
+        "minion_communications_policy:s2:c01",
+        "minion_visitors_policy:s7:c01"
+      ]
+    },
+    {
+      "id": "home-office-stipend",
+      "kind": "answer",
+      "question": "Is there a stipend for my home office setup?",
+      "recall": true,
+      "answer_failures": [],
+      "passed": true,
+      "answer": "Yes, remote/hybrid Minions are eligible for a $500 annual stipend for home pod furniture, lighting, ergonomic goggle stands, etc., as specified in the policy.",
+      "citation": {
+        "source_doc": "minion_expense_policy_2024.md",
+        "effective_date": "January 15, 2024",
+        "section": "minion_expense_policy_2024.md 6. Home Pod Equipment Stipend"
+      },
+      "ranked_chunk_ids": [
+        "minion_expense_policy_2024:s6:c01",
+        "minion_remote_work_policy:s5:c01",
+        "minion_remote_work_policy:s1:c01",
+        "minion_travel_security_policy:s5:c01",
+        "minion_expense_policy_2024:s7:c01"
+      ]
+    },
+    {
+      "id": "bananaphone",
+      "kind": "refusal",
+      "question": "Does the policy cover bananaphone accessories?",
+      "recall": true,
+      "answer_failures": [],
+      "passed": true,
+      "answer": "The provided policy does not answer this question.",
+      "citation": null,
+      "ranked_chunk_ids": [
+        "minion_pto_policy:s1:c01",
+        "minion_remote_work_policy:s5:c01",
+        "minion_communications_policy:s1:c01",
+        "minion_dress_code_policy:s1:c01",
+        "minion_equipment_policy:s1:c01"
+      ]
+    },
+    {
+      "id": "top-approval-tier",
+      "kind": "answer",
+      "question": "Who has to approve expenses over $2,000?",
+      "recall": true,
+      "answer_failures": [],
+      "passed": true,
+      "answer": "Expenses over $2,000 require Gru approval, in person, said with full dramatic villain monologue energy whether you want it or not.",
+      "citation": {
+        "source_doc": "minion_expense_policy_2024.md",
+        "effective_date": "January 15, 2024",
+        "section": "minion_expense_policy_2024.md 4. Approval Thresholds"
+      },
+      "ranked_chunk_ids": [
+        "minion_expense_policy_2024:s4:c01",
+        "minion_expense_policy_2024:s3:c01",
+        "minion_expense_policy_2024:s2:c01",
+        "minion_expense_policy_2024:s5:c01",
+        "minion_expense_policy_2024:s8:c01"
+      ]
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "recall_hits": 9,
+    "answer_passes": 9
+  }
+}

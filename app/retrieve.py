@@ -1,40 +1,117 @@
-# Internal and Confidential — Not for External Distribution.
-"""Retrieve policy chunks nearest to an embedded employee question."""
+# Internal and Confidential - Not for External Distribution.
+"""Hybrid policy retrieval: vector and keyword lanes fused by reciprocal rank."""
+
+from typing import Literal
 
 from app.db import DatabaseAdapter
 from app.embeddings import embed_texts
 
+Mode = Literal["hybrid", "vector"]
 
-def search(question: str, adapter: DatabaseAdapter) -> list[dict]:
-    """Find the three policy chunks nearest to a question by cosine distance.
+_VECTOR_SQL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+WHERE superseded_by IS NULL
+ORDER BY distance
+LIMIT 20
+"""
+
+_KEYWORD_SQL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+WHERE superseded_by IS NULL AND tsv @@ websearch_to_tsquery('english', %s)
+ORDER BY ts_rank(tsv, websearch_to_tsquery('english', %s)) DESC
+LIMIT 20
+"""
+
+_VECTOR_SQL_ALL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+ORDER BY distance
+LIMIT 20
+"""
+
+_KEYWORD_SQL_ALL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+WHERE tsv @@ websearch_to_tsquery('english', %s)
+ORDER BY ts_rank(tsv, websearch_to_tsquery('english', %s)) DESC
+LIMIT 20
+"""
+
+
+def _candidate(row) -> dict:
+    return {
+        "chunk_id": row[0],
+        "source_doc": row[1],
+        "section": row[2],
+        "section_title": row[3],
+        "effective_date": row[4],
+        "text": row[5],
+        "distance": float(row[6]),
+    }
+
+
+def fuse(vector_rows: list[dict], keyword_rows: list[dict], k: int = 60) -> list[tuple]:
+    ranks: dict[str, dict] = {}
+    for lane, rows in (("vector_rank", vector_rows), ("keyword_rank", keyword_rows)):
+        for rank, row in enumerate(rows, start=1):
+            ranks.setdefault(row["chunk_id"], {})[lane] = rank
+    scored = [
+        (
+            chunk_id,
+            1.0 / (k + lane.get("vector_rank", float("inf")))
+            + 1.0 / (k + lane.get("keyword_rank", float("inf"))),
+            lane.get("vector_rank", float("inf")),
+            lane.get("keyword_rank", float("inf")),
+        )
+        for chunk_id, lane in ranks.items()
+    ]
+    scored.sort(key=lambda entry: (-entry[1], entry[2], entry[3]))
+    return [(chunk_id, score) for chunk_id, score, _, _ in scored]
+
+
+def search(
+    question: str,
+    adapter: DatabaseAdapter,
+    mode: Mode = "hybrid",
+    include_superseded: bool = False,
+) -> list[dict]:
+    """Fuse the vector and keyword lanes for an embedded employee question.
 
     Args:
-        question: Employee question to embed and compare with stored chunks.
+        question: Employee question to embed and match against stored chunks.
         adapter: Provider of a managed vector-capable SQL connection.
+        mode: ``hybrid`` runs both lanes; ``vector`` runs cosine search only.
+        include_superseded: Keep chunks whose document is marked superseded.
+            The lineage filter stays on by default so stale policy versions
+            never reach the prompt.
 
     Returns:
-        Up to three chunk dictionaries ordered by ascending cosine distance.
+        Up to twenty chunk dictionaries ordered by fused reciprocal rank.
     """
     query_vector = embed_texts([question])[0]
+    vector_sql = _VECTOR_SQL_ALL if include_superseded else _VECTOR_SQL
+    keyword_sql = _KEYWORD_SQL_ALL if include_superseded else _KEYWORD_SQL
     with adapter.connect() as conn:
-        rows = conn.execute(
-            """
-            SELECT document, version, section, section_title, text,
-                   embedding <=> %s::vector AS distance
-            FROM policy_chunks
-            ORDER BY embedding <=> %s::vector ASC
-            LIMIT 3
-            """,
-            (query_vector, query_vector),
-        ).fetchall()
+        vector_rows = [
+            _candidate(row) for row in conn.execute(vector_sql, (query_vector,)).fetchall()
+        ]
+        keyword_rows = (
+            []
+            if mode == "vector"
+            else [
+                _candidate(row)
+                for row in conn.execute(keyword_sql, (query_vector, question, question)).fetchall()
+            ]
+        )
+    by_chunk_id = {row["chunk_id"]: row for row in [*vector_rows, *keyword_rows]}
+    fused = fuse(vector_rows, keyword_rows)[:20]
     return [
-        {
-            "document": row[0],
-            "version": row[1],
-            "section": row[2],
-            "section_title": row[3],
-            "text": row[4],
-            "distance": float(row[5]),
-        }
-        for row in rows
+        {**by_chunk_id[chunk_id], "rrf_score": float(score)}
+        for chunk_id, score in fused
     ]

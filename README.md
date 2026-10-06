@@ -1,8 +1,11 @@
 # Mini RAG
 
 A command-line RAG assistant for the Version 2.0 employee expense policy.
-Postgres with pgvector stores policy chunks; MiniLM creates embeddings; Qwen 3
-generates grounded answers through Ollama.
+Postgres with pgvector stores policy chunks; Alibaba-NLP/gte-modernbert-base creates
+embeddings; Qwen 3 generates grounded answers through Ollama. Each ask
+retrieves policy sections through hybrid vector and keyword search fused with
+reciprocal rank fusion, then reranks the fused candidates with a cross-encoder
+before generation.
 
 ## Setup
 
@@ -47,10 +50,33 @@ Ask one question:
 python -m app ask "How much can I spend on food each day?"
 ```
 
-Run all six required questions and write `tests/output.json`:
+Open the ask-trace page (the question runs the same path, and the diagram shows each stage):
+
+```bash
+python -m app serve
+```
+
+Then open http://127.0.0.1:8765.
+
+Both ask and eval accept `--include-superseded`, an opt-in lineage bypass
+that admits the superseded 2021 duplicate into both retrieval lanes. It
+exists to reproduce the planted per-diem defect on demand (see
+docs/part6-diagnosis.md); bypassed asks are never cached.
+
+Run the fixed ten-golden exam, print the per-golden table, and write
+`eval/record.json`:
 
 ```bash
 python -m app eval
 ```
 
-Choose a different output path with `python -m app eval --output <path>`.
+A/B the retriever by disabling the keyword lane (`vector` runs vector-only,
+which is the Part 3 comparison arm):
+
+```bash
+python -m app eval --retriever vector --output eval/record-vector.json
+```
+
+The exam exits nonzero when any golden fails recall or its answer checks.
+The goldens live in `eval/goldens.json`; the harness bypasses the question
+cache so its numbers always measure the pipeline.
