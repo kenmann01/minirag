@@ -64,7 +64,7 @@ jobs:
           path: ~/.cache/huggingface
           key: hf-Alibaba-NLP-gte-modernbert-base-cross-encoder-ms-marco-MiniLM-L-6-v2
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
       - name: Download models when the cache missed
         if: steps.hf-cache.outputs.cache-hit != 'true'
         run: |
@@ -120,7 +120,7 @@ jobs:
           path: ~/.ollama
           key: ollama-qwen3-8b
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
       - name: Download models when the cache missed
         if: steps.hf-cache.outputs.cache-hit != 'true'
         run: |
