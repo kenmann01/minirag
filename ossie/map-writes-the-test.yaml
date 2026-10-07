@@ -1,6 +1,10 @@
 # Apache Ossie 0.1.1 semantic model for the map and the corpus contract.
 # vendor_name is restricted by the schema, so minirag and graphify live in the
-# COMMON extension payload.
+# COMMON extension payload. Every source below is a public-schema table that
+# `python -m app ossie validate` can prove exists in the live database:
+# policy_chunks and sections come from ingest, graph_nodes and graph_edges
+# from `ossie materialize`, and runs, task_results, tool_calls, gate_metrics
+# from the score and gate writers.
 
 version: "0.1.1"
 
@@ -26,7 +30,7 @@ semantic_model:
       - name: retrieved_chunks
         source: minirag.public.policy_chunks
         primary_key: [chunk_id]
-        description: Child windows returned by the retrieve-only bridge. The text is the parent section.
+        description: Child windows stored by ingest. The text column is the child window; parent_text is the whole section.
         ai_context:
           instructions: Cite chunk_id when a domain answer depends on this row.
         fields:
@@ -57,27 +61,33 @@ semantic_model:
               dialects:
                 - dialect: ANSI_SQL
                   expression: effective_date
-          - name: text
+          - name: superseded_by
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: superseded_by
+          - name: parent_text
             expression:
               dialects:
                 - dialect: ANSI_SQL
                   expression: parent_text
-            description: Parent section body returned instead of the child window.
-          - name: distance
+            description: Whole parent section body returned for generation.
+          - name: text
             expression:
               dialects:
                 - dialect: ANSI_SQL
-                  expression: distance
-          - name: rrf_score
-            expression:
-              dialects:
-                - dialect: ANSI_SQL
-                  expression: rrf_score
+                  expression: text
+            description: Child window used for retrieval.
       - name: sections
         source: minirag.public.sections
-        primary_key: [section]
-        description: Numbered section headings produced by the PDF converter.
+        primary_key: [source_doc, section]
+        description: One row per numbered parent section, written by ingest alongside the chunks.
         fields:
+          - name: source_doc
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: source_doc
           - name: section
             expression:
               dialects:
@@ -88,10 +98,25 @@ semantic_model:
               dialects:
                 - dialect: ANSI_SQL
                   expression: section_title
+          - name: parent_text
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: parent_text
+          - name: effective_date
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: effective_date
+          - name: superseded_by
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: superseded_by
       - name: graph_nodes
-        source: graphify.graph.nodes
+        source: minirag.public.graph_nodes
         primary_key: [node_id]
-        description: Files, classes, and functions from the repository map.
+        description: Files, classes, and functions from the repository map, written by ossie materialize.
         fields:
           - name: node_id
             expression:
@@ -109,7 +134,7 @@ semantic_model:
                 - dialect: ANSI_SQL
                   expression: source_file
       - name: graph_edges
-        source: graphify.graph.edges
+        source: minirag.public.graph_edges
         primary_key: [source_id, target_id, relation]
         description: Imports, calls, and uses. Tier 1 checks use EXTRACTED edges only.
         fields:
@@ -133,12 +158,157 @@ semantic_model:
               dialects:
                 - dialect: ANSI_SQL
                   expression: confidence
+      - name: runs
+        source: minirag.public.runs
+        primary_key: [run_id, context]
+        description: One row per scored context arm, written by the score run.
+        fields:
+          - name: run_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: run_id
+          - name: context
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: context
+          - name: created_at
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: created_at
+          - name: tasks_total
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: tasks_total
+          - name: tasks_passed
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: tasks_passed
+          - name: passed_tier1
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: passed_tier1
+          - name: passed_tier2
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: passed_tier2
+          - name: tool_calls
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: tool_calls
+          - name: cost_usd
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: cost_usd
+      - name: task_results
+        source: minirag.public.task_results
+        primary_key: [run_id, context, task_id]
+        description: One row per scored task case with its tier, pass flag, and origin.
+        fields:
+          - name: run_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: run_id
+          - name: context
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: context
+          - name: task_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: task_id
+          - name: tier
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: tier
+          - name: passed
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: passed
+          - name: origin
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: origin
+          - name: created_at
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: created_at
+      - name: tool_calls
+        source: minirag.public.tool_calls
+        primary_key: [run_id, context, task_id]
+        description: Per task tool-call counts, reconciled with the runs row.
+        fields:
+          - name: run_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: run_id
+          - name: context
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: context
+          - name: task_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: task_id
+          - name: tool_calls
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: tool_calls
+          - name: created_at
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: created_at
+      - name: gate_metrics
+        source: minirag.public.gate_metrics
+        primary_key: [run_id]
+        description: One row per gate check over a scored run. Written by the gate metrics writer.
+        fields:
+          - name: run_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: run_id
+          - name: gate
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: gate
+          - name: passed
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: passed
+          - name: created_at
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: created_at
     relationships:
       - name: chunk_section
         from: retrieved_chunks
         to: sections
-        from_columns: [section]
-        to_columns: [section]
+        from_columns: [source_doc, section]
+        to_columns: [source_doc, section]
         ai_context:
           instructions: A retrieved chunk belongs to the numbered section it cites.
       - name: edge_source

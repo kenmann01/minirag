@@ -21,7 +21,8 @@ class Edge:
     target_file: str
 
 
-def _node_file(node: dict | None) -> str:
+def node_file(node: dict | None) -> str:
+    """Return the first file path key present on a graph node."""
     if not node:
         return ""
     for key in ("source_file", "file", "path", "file_path"):
@@ -57,8 +58,8 @@ def load_graph(path: Path) -> tuple[list[dict], list[Edge]]:
                 target=target,
                 relation=relation,
                 confidence=confidence,
-                source_file=str(raw.get("source_file") or _node_file(by_id.get(source))),
-                target_file=str(raw.get("target_file") or _node_file(by_id.get(target))),
+                source_file=str(raw.get("source_file") or node_file(by_id.get(source))),
+                target_file=str(raw.get("target_file") or node_file(by_id.get(target))),
             )
         )
     return nodes, edges
@@ -120,7 +121,7 @@ def module_mermaid(nodes: list[dict], edges: list[Edge], source_file: str, cap: 
     key = module_key(source_file)
     members = []
     for node in nodes:
-        if module_key(_node_file(node)) == key:
+        if module_key(node_file(node)) == key:
             members.append(node)
     members = members[:cap]
     ids = {str(node.get("id")) for node in members}

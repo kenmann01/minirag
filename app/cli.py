@@ -87,6 +87,18 @@ def main(
     live_parser = sub.add_parser("live", help="Watch each score call while it runs")
     live_parser.add_argument("--host", default="127.0.0.1")
     live_parser.add_argument("--port", type=int, default=8767)
+    ossie_parser = sub.add_parser(
+        "ossie", help="Materialize the graph and validate the OSSIE map"
+    )
+    ossie_sub = ossie_parser.add_subparsers(dest="ossie_command", required=True)
+    materialize_parser = ossie_sub.add_parser(
+        "materialize", help="Load a graphify graph into graph_nodes and graph_edges"
+    )
+    materialize_parser.add_argument("--graph", type=Path, required=True)
+    validate_parser = ossie_sub.add_parser(
+        "validate", help="Check the OSSIE map against its schema and the live database"
+    )
+    validate_parser.add_argument("--map", type=Path, help="Path to the OSSIE map YAML")
     args = parser.parse_args(argv)
     if args.command == "serve":
         from app.serve import serve
@@ -130,6 +142,21 @@ def main(
         record = run_gate(args.repo, args.output)
         print(json.dumps(record, indent=2))
         return 0 if record["node_count"] else 1
+    if args.command == "ossie":
+        from app.ossie import DEFAULT_MAP, materialize, validate
+
+        if args.ossie_command == "materialize":
+            try:
+                rows = materialize(adapter, args.graph)
+            except (OSError, ValueError) as exc:
+                print(str(exc), file=sys.stderr)
+                return 1
+            print(f"materialized {rows} graph rows", file=sys.stderr)
+            return 0
+        code, message = validate(adapter, args.map or DEFAULT_MAP)
+        if message:
+            print(message, file=sys.stderr)
+        return code
     if args.command == "live":
         from app.live import serve_live
 
