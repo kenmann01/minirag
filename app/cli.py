@@ -72,6 +72,11 @@ def main(
     score_parser.add_argument("--repo", type=Path, required=True)
     score_parser.add_argument("--graph", type=Path, required=True)
     score_parser.add_argument("--output", type=Path, required=True)
+    score_parser.add_argument(
+        "--no-metrics",
+        action="store_true",
+        help="Skip writing the run metrics into Postgres",
+    )
     compare_parser = sub.add_parser("compare", help="Show the three-run comparison")
     compare_parser.add_argument("report_dir", type=Path)
     compare_parser.add_argument("--host", default="127.0.0.1")
@@ -154,6 +159,7 @@ def main(
                 output_dir=args.output,
                 model=language_model,
                 retrieve=bridge,
+                database_adapter=None if args.no_metrics else adapter,
             )
         except TaskGenerationError as exc:
             print(str(exc), file=sys.stderr)

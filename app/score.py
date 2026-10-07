@@ -3,6 +3,7 @@
 
 import contextvars
 import json
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,7 +15,9 @@ from pydantic_evals.reporting.analyses import TableResult
 
 from app.agent import RunOutput, build_agent, ollama_base_url, run_agent
 from app.config import Settings, get_settings
+from app.db import DatabaseAdapter
 from app.generate import LanguageModel
+from app.metrics import MetricsSink
 from app.tasks import Task, TaskGenerationError, generate_tasks, map_excerpt
 
 JUDGE_RUBRIC = (
@@ -296,6 +299,34 @@ def _dump_output(output) -> dict:
     return {"answer": str(output), "tool_calls": 0, "prompt_tokens": 0, "completion_tokens": 0}
 
 
+def _case_rows(report) -> list[dict]:
+    """Pull one row per case out of an experiment report."""
+    rows = []
+    for case in report.cases:
+        rows.append(
+            {
+                "task_id": case.name,
+                "tier": int(case.metadata["tier"]),
+                "passed": bool(case.assertions)
+                and all(item.value for item in case.assertions.values()),
+                "origin": case.metadata.get("origin"),
+                "tool_calls": int(getattr(case.output, "tool_calls", 0) or 0),
+            }
+        )
+    for failure in report.failures:
+        metadata = failure.metadata or {}
+        rows.append(
+            {
+                "task_id": failure.name,
+                "tier": int(metadata.get("tier") or 0),
+                "passed": False,
+                "origin": metadata.get("origin"),
+                "tool_calls": 0,
+            }
+        )
+    return rows
+
+
 def write_report(report, path: Path) -> dict:
     """Write one experiment, including the scoreboard row the comparison page reads."""
     scoreboard = (report.experiment_metadata or {}).get("scoreboard")
@@ -332,6 +363,7 @@ def run_score(
     tier2_judge: Evaluator | None = None,
     prices: Prices | None = None,
     on_event: Callable[[dict], None] | None = None,
+    database_adapter: DatabaseAdapter | None = None,
 ) -> list[dict]:
     """Generate one task list and run it bare, with the map, and with the rules.
 
@@ -345,6 +377,8 @@ def run_score(
         tier2_judge: Optional stand-in for ``LLMJudge``. The citation check still runs.
         prices: Accounting rates. Defaults to configuration.
         on_event: Optional listener. Each graph, retrieve, agent, and grade call is passed through.
+        database_adapter: Optional database adapter. When given, run metrics are
+            written to Postgres under one shared run identity.
 
     Returns:
         The three scoreboard rows in run order.
@@ -364,6 +398,7 @@ def run_score(
             tier2_judge=tier2_judge,
             prices=prices,
             on_event=on_event,
+            database_adapter=database_adapter,
         )
     finally:
         _EMIT.reset(emit_token)
@@ -380,6 +415,7 @@ def _run_score(
     tier2_judge: Evaluator | None,
     prices: Prices | None,
     on_event: Callable[[dict], None] | None,
+    database_adapter: DatabaseAdapter | None,
 ) -> list[dict]:
     """Generate one task list and run it bare, with the map, and with the rules."""
     global _PRICES
@@ -412,6 +448,8 @@ def _run_score(
     if tier2_judge is None:
         prepare_local_judge(get_settings())
     dataset = build_dataset(tasks, tier2_judge)
+    sink = MetricsSink(database_adapter) if database_adapter is not None else None
+    run_key = uuid.uuid4()
     rows = []
     for run_id, context in CONTEXTS:
         station = "rules" if context == "map_rules" else context
@@ -473,7 +511,12 @@ def _run_score(
             )
         finally:
             _RUN.reset(run_token)
-        rows.append(write_report(report, output_dir / f"{context}.json"))
+        row = write_report(report, output_dir / f"{context}.json")
+        if sink is not None:
+            sink.record_context(
+                run_id=run_key, context=context, scoreboard=row, cases=_case_rows(report)
+            )
+        rows.append(row)
     if on_event is not None:
         on_event(
             {
