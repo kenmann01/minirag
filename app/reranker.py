@@ -1,3 +1,6 @@
+# Internal and Confidential - Not for External Distribution.
+"""Rerank retrieved chunks with a cross-encoder before generation."""
+
 from typing import Protocol
 
 from app.embeddings import _quiet_model_loading
@@ -8,11 +11,18 @@ _model = None
 
 
 class Reranker(Protocol):
-    def rank(self, question: str, chunks: list[dict]) -> list[dict]: ...
+    """Anything that can order candidate chunks best-first for a question."""
+
+    def rank(self, question: str, chunks: list[dict]) -> list[dict]:
+        """Return the candidate chunks reordered best-first for the question."""
+        ...
 
 
 class CrossEncoderReranker:
+    """Cross-encoder reranker that keeps the best chunk per section, best first."""
+
     def rank(self, question: str, chunks: list[dict], top_n: int = 5) -> list[dict]:
+        """Score each chunk against the question and return up to top_n sections."""
         if not chunks:
             return []
         scores = self._predict([(question, chunk["text"]) for chunk in chunks])

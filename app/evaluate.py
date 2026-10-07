@@ -19,6 +19,8 @@ Kind = Literal["answer", "hybrid_demo", "poisoned", "refusal"]
 
 
 class Golden(BaseModel):
+    """One fixed exam case: question, expected sections, and fact checks."""
+
     id: str
     question: str
     expected: list[str]
@@ -28,10 +30,12 @@ class Golden(BaseModel):
 
 
 def load_goldens(path: Path = GOLDENS_PATH) -> list[Golden]:
+    """Load and validate every golden case from the exam JSON file."""
     return [Golden.model_validate(case) for case in json.loads(path.read_text(encoding="utf-8"))]
 
 
 def section_prefix_hit(chunk_id: str, expected_sections: list[str]) -> bool:
+    """True when a chunk id belongs to one of the expected sections."""
     return any(
         chunk_id.startswith(f"{expected_section}:")
         for expected_section in expected_sections
@@ -39,12 +43,14 @@ def section_prefix_hit(chunk_id: str, expected_sections: list[str]) -> bool:
 
 
 def recall_pass(ranked_chunk_ids: list[str], golden: Golden) -> bool:
+    """True when any ranked chunk lands in an expected section, or none are expected."""
     if not golden.expected:
         return True
     return any(section_prefix_hit(chunk_id, golden.expected) for chunk_id in ranked_chunk_ids)
 
 
 def answer_failures(response: AskResponse, golden: Golden) -> list[str]:
+    """List an answer's required-fact and forbidden-fact violations, or refusal mismatches."""
     if golden.kind == "refusal":
         if response.answer != REFUSAL:
             return [f"expected the exact refusal, got: {response.answer!r}"]
@@ -119,6 +125,7 @@ def run_exam(
 
 
 def format_table(record: dict) -> str:
+    """Render an exam record as a summary line plus one row per golden case."""
     summary = record["summary"]
     lines = [
         f"retriever={record['retriever']}  goldens={summary['total']}  "

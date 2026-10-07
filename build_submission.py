@@ -50,6 +50,7 @@ STATUS_ORDER = {"PROVIDED": 0, "LIVE": 1, "RENDERED": 2, "STALE": 3, "MISSING": 
 
 
 def probe_db() -> bool:
+    """Check that Postgres accepts a connection and answers SELECT 1."""
     out, _, code = run_venv(
         "from app.config import get_settings\n"
         "import psycopg\n"
@@ -64,6 +65,7 @@ def probe_db() -> bool:
 
 
 def probe_ollama() -> bool:
+    """Check that the configured Ollama host answers its /api/tags endpoint."""
     out, _, code = run_venv(
         "import urllib.request\n"
         "from app.config import get_settings\n"
@@ -76,6 +78,7 @@ def probe_ollama() -> bool:
 
 
 def probe_gh() -> list[dict]:
+    """Return the last eight CI workflow runs, or an empty list when gh fails."""
     try:
         out = subprocess.run(
             ["gh", "run", "list", "--workflow", "ci", "--limit", "8",
@@ -88,6 +91,7 @@ def probe_gh() -> list[dict]:
 
 
 def run_capture(args: list[str] | str, timeout: int = 900) -> tuple[str, str, int]:
+    """Run a command in the repo root and return stdout, stderr, and exit code."""
     shell = isinstance(args, str)
     proc = subprocess.run(
         args, cwd=ROOT, capture_output=True, text=True,
@@ -97,6 +101,7 @@ def run_capture(args: list[str] | str, timeout: int = 900) -> tuple[str, str, in
 
 
 def run_venv(code: str, timeout: int = 600) -> tuple[str, str, int]:
+    """Execute Python source inside the project venv and capture its output."""
     return run_capture([PY, "-c", code], timeout=timeout)
 
 
@@ -105,6 +110,7 @@ def run_venv(code: str, timeout: int = 600) -> tuple[str, str, int]:
 
 
 def provided_assets() -> dict[int, Path]:
+    """Map each NN-prefixed image in submission_assets/ to its deliverable number."""
     found: dict[int, Path] = {}
     if not ASSETS.exists():
         return found
@@ -147,10 +153,12 @@ print("distance:", round(float(best[1]), 4))
 
 
 def live_minimal_loop() -> tuple[str, str, int]:
+    """Run the minimal embed, store, retrieve proof script inside the venv."""
     return run_venv(MINIMAL_LOOP_SRC, timeout=300)
 
 
 def live_ask(question: str, extra: str = "") -> tuple[str, str, int]:
+    """Capture one real python -m app ask run for the given question."""
     return run_capture(
         [PY, "-m", "app", "ask", question] + ([extra] if extra else []),
         timeout=600,
@@ -158,10 +166,12 @@ def live_ask(question: str, extra: str = "") -> tuple[str, str, int]:
 
 
 def live_eval(args: list[str]) -> tuple[str, str, int]:
+    """Capture one real python -m app eval run with the given arguments."""
     return run_capture([PY, "-m", "app", "eval"] + args, timeout=900)
 
 
 def live_trace(question: str) -> tuple[str, str, int]:
+    """Run trace_ask in the venv with canned generation and real retrieval stages."""
     code = f"""
 import json
 from app.pgadapter import PgAdapter
@@ -184,10 +194,12 @@ print(json.dumps(result, indent=2))
 
 
 def read(rel: str) -> str:
+    """Read a repo file relative to the project root as UTF-8 text."""
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
 def policy_headers() -> list[tuple[str, str]]:
+    """Extract the ingest-parsed header block of every Policy markdown file."""
     out = []
     for path in sorted((ROOT / "Policy").glob("*.md")):
         text = path.read_text(encoding="utf-8")
@@ -203,6 +215,7 @@ def policy_headers() -> list[tuple[str, str]]:
 
 
 def eval_record(rel: str) -> dict | None:
+    """Load a committed eval JSON record, or None when unreadable."""
     try:
         return json.loads((ROOT / rel).read_text(encoding="utf-8"))
     except Exception:
@@ -210,6 +223,7 @@ def eval_record(rel: str) -> dict | None:
 
 
 def golden_count() -> int:
+    """Count the cases in eval/goldens.json, or 0 when it cannot be read."""
     try:
         return len(json.loads(read("eval/goldens.json")))
     except Exception:
@@ -217,6 +231,7 @@ def golden_count() -> int:
 
 
 def ci_green_run(runs: list[dict]) -> dict | None:
+    """Return the first CI run whose conclusion is success, or None."""
     for run in runs:
         if run.get("conclusion") == "success":
             return run
@@ -228,10 +243,12 @@ def ci_green_run(runs: list[dict]) -> dict | None:
 
 
 def esc(text: str) -> str:
+    """Escape text for safe inclusion in an HTML page."""
     return html_mod.escape(text)
 
 
 def terminal_block(title: str, body: str, status: str) -> str:
+    """Render a captured command run as a terminal box with a status chip."""
     return (
         f'<div class="terminal"><div class="term-head">'
         f'<span class="chip {status.lower()}">{status}</span>'
@@ -241,6 +258,7 @@ def terminal_block(title: str, body: str, status: str) -> str:
 
 
 def code_block(rel: str) -> str:
+    """Render a committed repo file as a numbered code listing box."""
     lines = read(rel).splitlines()
     numbered = "\n".join(f"{i:>4}  {line}" for i, line in enumerate(lines, 1))
     return (
@@ -252,6 +270,7 @@ def code_block(rel: str) -> str:
 
 
 def provided_image(n: int, path: Path, caption: str) -> str:
+    """Embed one provided screenshot under its deliverable caption."""
     relpath = path.relative_to(OUTDIR).as_posix()
     return (
         f'<div class="shot"><div class="term-head">'
@@ -262,6 +281,7 @@ def provided_image(n: int, path: Path, caption: str) -> str:
 
 
 def missing_box(command: str, why: str) -> str:
+    """Render the red MISSING box naming the command to run and the reason."""
     return (
         f'<div class="missing"><strong>MISSING evidence, run to capture:</strong>'
         f"<pre>{esc(command)}</pre><p>{esc(why)}</p></div>"
@@ -269,10 +289,12 @@ def missing_box(command: str, why: str) -> str:
 
 
 def copy_button_src() -> str:
+    """Intentionally empty placeholder kept so the page structure stays stable."""
     return ""  # (unused, kept for structure)
 
 
 def build_html(status: list[dict], sections: list[str]) -> str:
+    """Wrap the sections in the full page with cover, CSS, and the status table."""
     now = datetime.now().strftime("%B %d, %Y %H:%M")
     toc_rows = "".join(
         f'<tr><td class="n">{item["n"]}</td><td>{esc(item["title"])}</td>'
@@ -360,6 +382,7 @@ tr { break-inside: avoid; }
 
 
 def section_01(prov: dict[int, Path], status: list[dict]) -> str:
+    """Build Deliverable 1: policy sources and the planted duplicate-ID defect."""
     n, title = 1, "Source documents with the planted data quality issue"
     body = [f'<div class="section"><h2>Deliverable 1: {esc(title)}</h2>']
     st = "RENDERED"
@@ -401,6 +424,7 @@ def section_01(prov: dict[int, Path], status: list[dict]) -> str:
 
 
 def section_02(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
+    """Build Deliverable 2: the minimal embed-store-retrieve proof, live when up."""
     n, title = 2, "Minimal embed-store-retrieve loop (day-one proof)"
     body = [f'<div class="section"><h2>Deliverable 2: {esc(title)}</h2>']
     if n in prov:
@@ -434,6 +458,7 @@ def section_02(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
 
 
 def section_03(prov: dict[int, Path], status: list[dict]) -> str:
+    """Build Deliverable 3: the chunking, embedding, and ingest code listings."""
     n, title = 3, "Chunking, embedding, and vector store code"
     body = [f'<div class="section"><h2>Deliverable 3: {esc(title)}</h2>']
     if n in prov:
@@ -451,6 +476,7 @@ def section_03(prov: dict[int, Path], status: list[dict]) -> str:
 
 
 def section_04(prov: dict[int, Path], status: list[dict], db_ok: bool, ollama_ok: bool) -> tuple[str, str | None]:
+    """Build Deliverable 4: one live end-to-end ask, returning its parsed JSON."""
     n, title = 4, "Basic RAG pipeline end to end"
     body = [f'<div class="section"><h2>Deliverable 4: {esc(title)}</h2>']
     ask_json = None
@@ -478,6 +504,7 @@ def section_04(prov: dict[int, Path], status: list[dict], db_ok: bool, ollama_ok
 
 
 def section_05(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
+    """Build Deliverable 5: the retrieval code and the hybrid-vs-vector A/B."""
     n, title = 5, "Hybrid retrieval code and where it beats vector-only"
     body = [f'<div class="section"><h2>Deliverable 5: {esc(title)}</h2>']
     if n in prov:
@@ -531,6 +558,7 @@ def section_05(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
 
 
 def section_06(prov: dict[int, Path], status: list[dict]) -> str:
+    """Build Deliverable 6: the cross-encoder reranking code listing."""
     n, title = 6, "Reranking code"
     body = [f'<div class="section"><h2>Deliverable 6: {esc(title)}</h2>']
     if n in prov:
@@ -547,6 +575,7 @@ def section_06(prov: dict[int, Path], status: list[dict]) -> str:
 
 
 def section_07(prov: dict[int, Path], status: list[dict]) -> str:
+    """Build Deliverable 7: the golden exam set and harness code listings."""
     n, title = 7, "Evaluation test set and harness code"
     body = [f'<div class="section"><h2>Deliverable 7: {esc(title)}</h2>']
     if n in prov:
@@ -564,6 +593,7 @@ def section_07(prov: dict[int, Path], status: list[dict]) -> str:
 
 
 def section_08(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
+    """Build Deliverable 8: the harness table output, live or marked stale."""
     n, title = 8, "Evaluation harness terminal output with recall and accuracy"
     body = [f'<div class="section"><h2>Deliverable 8: {esc(title)}</h2>']
     if n in prov:
@@ -606,6 +636,7 @@ def section_08(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
 
 
 def section_09(prov: dict[int, Path], status: list[dict], db_ok: bool, ollama_ok: bool) -> str:
+    """Build Deliverable 9: asks with and without superseded files, plus the diagnosis."""
     n, title = 9, "Planted-issue question, flawed answer, and written diagnosis"
     body = [f'<div class="section"><h2>Deliverable 9: {esc(title)}</h2>']
     if n in prov:
@@ -635,6 +666,7 @@ def section_09(prov: dict[int, Path], status: list[dict], db_ok: bool, ollama_ok
 
 
 def section_10(prov: dict[int, Path], status: list[dict], ask_json: dict | None) -> str:
+    """Build Deliverable 10: the citation and chunk-attribution evidence."""
     n, title = 10, "Source attribution output"
     body = [f'<div class="section"><h2>Deliverable 10: {esc(title)}</h2>']
     if n in prov:
@@ -671,6 +703,7 @@ def section_10(prov: dict[int, Path], status: list[dict], ask_json: dict | None)
 
 
 def section_11(prov: dict[int, Path], status: list[dict], runs: list[dict]) -> str:
+    """Build Deliverable 11: the passing CI run table from gh run list."""
     n, title = 11, "Passing pipeline run (CI)"
     body = [f'<div class="section"><h2>Deliverable 11: {esc(title)}</h2>']
     if n in prov:
@@ -701,6 +734,7 @@ def section_11(prov: dict[int, Path], status: list[dict], runs: list[dict]) -> s
 
 
 def appendix_trace(prov: dict[int, Path], db_ok: bool) -> str:
+    """Build the pipeline-trace appendix from a live trace_ask capture."""
     body = ['<div class="section"><h2>Appendix: pipeline trace (ask-trace viewer)</h2>']
     body.append(
         "<p>Beyond the rubric: <code>python -m app serve</code> opens "
@@ -753,6 +787,7 @@ def appendix_trace(prov: dict[int, Path], db_ok: bool) -> str:
 
 
 def main() -> int:
+    """Probe the environment, assemble every section, and write the HTML and PDF."""
     no_pdf = "--no-pdf" in sys.argv
     OUTDIR.mkdir(exist_ok=True)
     prov = provided_assets()

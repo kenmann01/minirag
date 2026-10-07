@@ -26,6 +26,7 @@ class LanguageModel(Protocol):
 
 
 def section_label(chunk: dict) -> str:
+    """Format a chunk's document, section, and title into the label the model cites."""
     return f"{chunk['source_doc']} {chunk['section']}. {chunk['section_title']}"
 
 

@@ -145,6 +145,7 @@ class GraphFact(Evaluator):
     """Script check: the answer names the expected symbol and file."""
 
     def evaluate(self, ctx) -> EvaluationReason:
+        """Pass when the answer names the expected symbol and source file."""
         expected = ctx.metadata["expected"]
         answer = (ctx.output.answer or "").lower()
         symbol = str(expected["target"]).split(":")[-1].split(".")[-1].lower()
@@ -172,6 +173,7 @@ class RuleCitation(Evaluator):
     """Fail unless the judge cites one of this case's origin chunk ids."""
 
     def evaluate(self, ctx) -> EvaluationReason:
+        """Pass when the judge's verdict is true and its citation is an allowed id."""
         allowed = list(ctx.metadata["origin"]["chunk_ids"])
         verdict = judge_rule(str(ctx.inputs["prompt"]), ctx.output.answer, allowed)
         _JUDGE_TOKENS["prompt"] += int(verdict.get("prompt_tokens") or 0)
@@ -198,6 +200,7 @@ class ScoreboardReport(ReportEvaluator):
     """Sum passes, tool calls, and cost for one experiment."""
 
     def evaluate(self, ctx) -> TableResult:
+        """Aggregate the report into one scoreboard row on the experiment."""
         meta = ctx.experiment_metadata or {}
         prices = _PRICES or Prices(0.15, 0.60, 0.001)
         passed_by_tier = {"1": {"passed": 0, "total": 0}, "2": {"passed": 0, "total": 0}}

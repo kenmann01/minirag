@@ -1,3 +1,6 @@
+# Internal and Confidential - Not for External Distribution.
+"""Cache whole ask responses in Postgres, keyed by question and configuration."""
+
 import hashlib
 
 from app.config import get_settings
@@ -14,10 +17,12 @@ CREATE TABLE IF NOT EXISTS question_cache (
 
 
 def normalize_question(question: str) -> str:
+    """Collapse whitespace and lowercase a question so formatting cannot split keys."""
     return " ".join(question.split()).lower()
 
 
 def cache_key(question: str) -> str:
+    """Hash the question plus embedder, prompt, and generator identity into a key."""
     settings = get_settings()
     material = "\0".join(
         [
@@ -31,6 +36,7 @@ def cache_key(question: str) -> str:
 
 
 def lookup(question: str, adapter: DatabaseAdapter) -> AskResponse | None:
+    """Return the cached AskResponse for a question, or None on a miss."""
     with adapter.connect() as conn:
         exists = conn.execute(
             """
@@ -51,6 +57,7 @@ def lookup(question: str, adapter: DatabaseAdapter) -> AskResponse | None:
 
 
 def store(question: str, response: AskResponse, adapter: DatabaseAdapter) -> None:
+    """Persist a response under the question's key, upserting any older entry."""
     with adapter.connect() as conn:
         conn.execute(_CREATE_TABLE)
         conn.execute(

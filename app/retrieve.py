@@ -57,6 +57,7 @@ def _candidate(row) -> dict:
 
 
 def fuse(vector_rows: list[dict], keyword_rows: list[dict], k: int = 60) -> list[tuple]:
+    """Fuse both lanes with reciprocal rank fusion, returning chunk ids best-first."""
     ranks: dict[str, dict] = {}
     for lane, rows in (("vector_rank", vector_rows), ("keyword_rank", keyword_rows)):
         for rank, row in enumerate(rows, start=1):
