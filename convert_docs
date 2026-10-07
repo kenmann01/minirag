@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+# Internal and Confidential - Not for External Distribution.
+"""Launcher so `python convert_docs` matches the talk command."""
+
+import sys
+
+from convert_docs import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

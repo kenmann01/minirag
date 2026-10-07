@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The map writes the test</title>
+<style>
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: #fafafa;
+    color: #202124;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px 48px;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { color: #5f6368; margin: 0 0 20px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #dadce0; }
+  th { font-size: 13px; color: #5f6368; font-weight: 600; }
+  .bars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
+  .card { background: #fff; border: 1px solid #dadce0; border-radius: 10px; padding: 14px; }
+  .card h2 { font-size: 14px; margin: 0 0 12px; }
+  .bar-row { display: grid; grid-template-columns: 88px 1fr 48px; gap: 8px; align-items: center; margin: 8px 0; font-size: 13px; }
+  .track { background: #e8eaed; border-radius: 4px; height: 12px; }
+  .fill { background: #1a73e8; height: 12px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>The map writes the test</h1>
+<p class="subtitle">Same task list. Only the context changes.</p>
+<table id="board">
+  <thead>
+    <tr>
+      <th>Run</th>
+      <th>Context</th>
+      <th>Tasks passed</th>
+      <th>Tier 1</th>
+      <th>Tier 2</th>
+      <th>Tool calls</th>
+      <th>Cost per run</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<div class="bars" id="bars"></div>
+<script>
+const rows = __DATA__;
+const labels = {bare: "bare agent", map: "agent plus the map", map_rules: "agent plus map plus rules"};
+const maxPassed = Math.max(...rows.map(row => row.tasks_total), 1);
+const maxTools = Math.max(...rows.map(row => row.tool_calls), 1);
+const maxCost = Math.max(...rows.map(row => row.cost_usd), 0.000001);
+const body = document.querySelector("#board tbody");
+const bars = document.querySelector("#bars");
+for (const row of rows) {
+  const tier1 = row.passed_by_tier["1"];
+  const tier2 = row.passed_by_tier["2"];
+  const tr = document.createElement("tr");
+  tr.innerHTML = [
+    row.run_id,
+    labels[row.context] || row.context,
+    row.tasks_passed + " of " + row.tasks_total,
+    tier1.passed + " of " + tier1.total,
+    tier2.passed + " of " + tier2.total,
+    String(row.tool_calls),
+    "$" + Number(row.cost_usd).toFixed(4)
+  ].map(value => "<td>" + value + "</td>").join("");
+  body.appendChild(tr);
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = "<h2>" + row.run_id + "</h2>" +
+    bar("Passed", row.tasks_passed, maxPassed) +
+    bar("Tool calls", row.tool_calls, maxTools) +
+    bar("Cost", row.cost_usd, maxCost);
+  bars.appendChild(card);
+}
+function bar(label, value, max) {
+  const width = Math.max(0, Math.round((Number(value) / max) * 100));
+  const shown = label === "Cost" ? "$" + Number(value).toFixed(4) : String(value);
+  return '<div class="bar-row"><span>' + label + '</span><div class="track"><div class="fill" style="width:' + width + '%"></div></div><span>' + shown + '</span></div>';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+# Apache Ossie 0.1.1 semantic model for the map and the corpus contract.
+# vendor_name is restricted by the schema, so minirag and graphify live in the
+# COMMON extension payload.
+
+version: "0.1.1"
+
+semantic_model:
+  - name: map_writes_the_test
+    description: >
+      Plug-and-play contract for a repository map and a swappable industry corpus.
+      The agent reads the map before it explores, and grounds domain answers in
+      retrieved chunk ids.
+    ai_context:
+      instructions: >
+        Read the map before exploring the repository. Use graph nodes and edges
+        for structural questions. Ground domain answers in retrieved chunk ids
+        from the corpus, and cite those ids. Swap the corpus by replacing the
+        folder and re-ingesting. Do not present a whole-repository diagram.
+      synonyms:
+        - "the map"
+        - "the corpus"
+      examples:
+        - "Which file does this loan method call?"
+        - "Which retrieved rule limits this practice?"
+    datasets:
+      - name: retrieved_chunks
+        source: minirag.public.policy_chunks
+        primary_key: [chunk_id]
+        description: Child windows returned by the retrieve-only bridge. The text is the parent section.
+        ai_context:
+          instructions: Cite chunk_id when a domain answer depends on this row.
+        fields:
+          - name: chunk_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: chunk_id
+            description: Stable child-window identity.
+          - name: source_doc
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: source_doc
+          - name: section
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: section
+            description: Numbered section within the document.
+          - name: section_title
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: section_title
+          - name: effective_date
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: effective_date
+          - name: text
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: parent_text
+            description: Parent section body returned instead of the child window.
+          - name: distance
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: distance
+          - name: rrf_score
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: rrf_score
+      - name: sections
+        source: minirag.public.sections
+        primary_key: [section]
+        description: Numbered section headings produced by the PDF converter.
+        fields:
+          - name: section
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: section
+          - name: section_title
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: section_title
+      - name: graph_nodes
+        source: graphify.graph.nodes
+        primary_key: [node_id]
+        description: Files, classes, and functions from the repository map.
+        fields:
+          - name: node_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: node_id
+          - name: label
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: label
+          - name: source_file
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: source_file
+      - name: graph_edges
+        source: graphify.graph.edges
+        primary_key: [source_id, target_id, relation]
+        description: Imports, calls, and uses. Tier 1 checks use EXTRACTED edges only.
+        fields:
+          - name: source_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: source_id
+          - name: target_id
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: target_id
+          - name: relation
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: relation
+          - name: confidence
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: confidence
+    relationships:
+      - name: chunk_section
+        from: retrieved_chunks
+        to: sections
+        from_columns: [section]
+        to_columns: [section]
+        ai_context:
+          instructions: A retrieved chunk belongs to the numbered section it cites.
+      - name: edge_source
+        from: graph_edges
+        to: graph_nodes
+        from_columns: [source_id]
+        to_columns: [node_id]
+      - name: edge_target
+        from: graph_edges
+        to: graph_nodes
+        from_columns: [target_id]
+        to_columns: [node_id]
+    custom_extensions:
+      - vendor_name: COMMON
+        data: '{"minirag":{"corpus_dir":"Policy","embedding_model":"Alibaba-NLP/gte-modernbert-base","heading":"## N. Title"},"graphify":{"graph":"graph.json","mermaid":"module-level"}}'

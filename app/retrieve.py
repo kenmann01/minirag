@@ -14,7 +14,7 @@ SELECT chunk_id, source_doc, section, section_title, effective_date,
 FROM policy_chunks
 WHERE superseded_by IS NULL
 ORDER BY distance
-LIMIT 20
+LIMIT %s
 """
 
 _KEYWORD_SQL = """
@@ -23,7 +23,7 @@ SELECT chunk_id, source_doc, section, section_title, effective_date,
 FROM policy_chunks
 WHERE superseded_by IS NULL AND tsv @@ websearch_to_tsquery('english', %s)
 ORDER BY ts_rank(tsv, websearch_to_tsquery('english', %s)) DESC
-LIMIT 20
+LIMIT %s
 """
 
 _VECTOR_SQL_ALL = """
@@ -31,7 +31,7 @@ SELECT chunk_id, source_doc, section, section_title, effective_date,
        parent_text, embedding <=> %s::vector AS distance
 FROM policy_chunks
 ORDER BY distance
-LIMIT 20
+LIMIT %s
 """
 
 _KEYWORD_SQL_ALL = """
@@ -40,7 +40,7 @@ SELECT chunk_id, source_doc, section, section_title, effective_date,
 FROM policy_chunks
 WHERE tsv @@ websearch_to_tsquery('english', %s)
 ORDER BY ts_rank(tsv, websearch_to_tsquery('english', %s)) DESC
-LIMIT 20
+LIMIT %s
 """
 
 
@@ -80,6 +80,7 @@ def search(
     adapter: DatabaseAdapter,
     mode: Mode = "hybrid",
     include_superseded: bool = False,
+    top_k: int = 20,
 ) -> list[dict]:
     """Fuse the vector and keyword lanes for an embedded employee question.
 
@@ -90,27 +91,33 @@ def search(
         include_superseded: Keep chunks whose document is marked superseded.
             The lineage filter stays on by default so stale policy versions
             never reach the prompt.
+        top_k: Maximum fused chunks to return. Ask and eval keep the default of 20.
 
     Returns:
-        Up to twenty chunk dictionaries ordered by fused reciprocal rank.
+        Up to ``top_k`` chunk dictionaries ordered by fused reciprocal rank.
     """
+    if top_k < 1:
+        raise ValueError("top_k must be at least 1")
     query_vector = embed_texts([question])[0]
     vector_sql = _VECTOR_SQL_ALL if include_superseded else _VECTOR_SQL
     keyword_sql = _KEYWORD_SQL_ALL if include_superseded else _KEYWORD_SQL
     with adapter.connect() as conn:
         vector_rows = [
-            _candidate(row) for row in conn.execute(vector_sql, (query_vector,)).fetchall()
+            _candidate(row)
+            for row in conn.execute(vector_sql, (query_vector, top_k)).fetchall()
         ]
         keyword_rows = (
             []
             if mode == "vector"
             else [
                 _candidate(row)
-                for row in conn.execute(keyword_sql, (query_vector, question, question)).fetchall()
+                for row in conn.execute(
+                    keyword_sql, (query_vector, question, question, top_k)
+                ).fetchall()
             ]
         )
     by_chunk_id = {row["chunk_id"]: row for row in [*vector_rows, *keyword_rows]}
-    fused = fuse(vector_rows, keyword_rows)[:20]
+    fused = fuse(vector_rows, keyword_rows)[:top_k]
     return [
         {**by_chunk_id[chunk_id], "rrf_score": float(score)}
         for chunk_id, score in fused

@@ -1,6 +1,7 @@
 # Internal and Confidential - Not for External Distribution.
 """Ingest policy sections and their embeddings into the vector store."""
 
+import os
 from pathlib import Path
 
 from app.chunking import split
@@ -8,6 +9,10 @@ from app.db import DatabaseAdapter
 from app.embeddings import embed_texts
 
 POLICY_DIR = Path(__file__).resolve().parents[1] / "Policy"
+
+
+class EmptyCorpusError(RuntimeError):
+    """The corpus produced no chunks, so the stored index was left unchanged."""
 
 _CREATE_TABLE = """
 CREATE TABLE policy_chunks (
@@ -72,25 +77,46 @@ def _ensure_schema(conn) -> None:
     conn.execute(_CREATE_TSV_INDEX)
 
 
-def _chunks() -> list[dict]:
+def corpus_path(corpus_dir: Path | None = None) -> Path:
+    """Resolve the markdown folder. An explicit path wins, then ``CORPUS_DIR``."""
+    if corpus_dir is not None:
+        return corpus_dir
+    configured = os.environ.get("CORPUS_DIR", "").strip()
+    if configured:
+        return Path(configured)
+    return POLICY_DIR
+
+
+def _chunks(directory: Path) -> list[dict]:
     chunks: list[dict] = []
-    for path in sorted(POLICY_DIR.glob("*.md")):
+    if not directory.is_dir():
+        return chunks
+    for path in sorted(directory.glob("*.md")):
         chunks.extend(split(path.read_text(encoding="utf-8"), path.name))
     return chunks
 
 
-def run(adapter: DatabaseAdapter) -> int:
+def run(adapter: DatabaseAdapter, corpus_dir: Path | None = None) -> int:
     """Replace stored policy chunks with every embedded policy document.
 
     Args:
         adapter: Provider of a managed vector-capable SQL connection.
+        corpus_dir: Markdown folder to ingest. Defaults to ``CORPUS_DIR`` or ``Policy``.
+
+    Returns:
+        The number of chunks ingested.
+
+    Raises:
+        EmptyCorpusError: The folder yielded no chunks. Nothing is deleted.
 
     Side Effects:
-        Reads every ``Policy/*.md`` file, creates the vector extension and
-        table when needed, upserts current chunks, deletes stale chunks,
-        and returns the number of chunks ingested.
+        Creates the vector extension and table when needed, upserts current
+        chunks, and deletes stale chunks.
     """
-    chunks = _chunks()
+    directory = corpus_path(corpus_dir)
+    chunks = _chunks(directory)
+    if not chunks:
+        raise EmptyCorpusError(f"no chunks in {directory}")
     vectors = embed_texts([chunk["text"] for chunk in chunks])
     with adapter.connect() as conn:
         _ensure_schema(conn)

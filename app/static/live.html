@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call trace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #121410;
+      --ink: #f3f0e6;
+      --muted: #9a9588;
+      --line: #34392e;
+      --lamp: #d6ff4a;
+      --fail: #ff6b4a;
+      --plate: #1c2118;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      background:
+        linear-gradient(180deg, rgba(214, 255, 74, 0.05), transparent 22%),
+        var(--bg);
+    }
+    header, main { width: min(1180px, calc(100% - 28px)); margin: 0 auto; }
+    header { padding: 22px 0 8px; }
+    .kicker { margin: 0; letter-spacing: 0.2em; text-transform: uppercase; font-size: 11px; color: var(--lamp); }
+    h1 {
+      margin: 6px 0 8px;
+      font-family: "Instrument Serif", Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(36px, 5vw, 58px);
+      letter-spacing: -0.03em;
+      line-height: 0.92;
+    }
+    header p { margin: 0; color: var(--muted); max-width: 68ch; line-height: 1.45; }
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 14px; }
+    label { display: grid; gap: 4px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    input {
+      font: 400 13px "IBM Plex Mono", monospace;
+      color: var(--ink);
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 0;
+      width: 240px;
+    }
+    input:focus { outline: none; border-bottom-color: var(--lamp); }
+    button {
+      font: 500 12px "IBM Plex Mono", monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid var(--lamp);
+      background: var(--lamp);
+      color: #14180c;
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    button.ghost, button.node { background: transparent; color: var(--ink); border-color: var(--line); border-radius: 2px; }
+    button:disabled { opacity: 0.4; cursor: wait; }
+    .stage {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 28px;
+      padding: 22px 0 48px;
+      align-items: start;
+    }
+    .diagram { display: grid; gap: 0; }
+    .node {
+      text-align: left;
+      padding: 12px 12px 12px 14px;
+      background: var(--plate);
+      border: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .node small { color: var(--muted); font-size: 11px; }
+    .node strong { font-family: "Instrument Serif", Georgia, serif; font-size: 22px; font-weight: 400; }
+    .node.on { border-color: var(--lamp); box-shadow: inset 3px 0 0 var(--lamp); }
+    .node .count { color: var(--muted); font-size: 11px; }
+    .node.pass .count { color: var(--lamp); }
+    .node.fail .count { color: var(--fail); }
+    .join { height: 16px; margin-left: 22px; border-left: 1px solid var(--line); }
+    .arms { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .inspector { min-width: 0; border-top: 1px solid var(--line); padding-top: 14px; }
+    .stepper { display: flex; gap: 10px; align-items: center; }
+    .stepper span { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; }
+    h2 {
+      margin: 14px 0 8px;
+      font-family: "Instrument Serif", Georgia, serif;
+      font-weight: 400;
+      font-size: 34px;
+      letter-spacing: -0.03em;
+    }
+    #calls { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 4px; }
+    #calls button {
+      width: 100%;
+      text-align: left;
+      text-transform: none;
+      letter-spacing: 0;
+      border-radius: 2px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    #calls button.on { border-color: var(--lamp); color: var(--lamp); }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    article { background: var(--plate); border: 1px solid var(--line); padding: 12px 14px 16px; min-width: 0; }
+    article h3 {
+      margin: 0 0 8px;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 400 13.5px/1.5 "IBM Plex Mono", monospace;
+      color: var(--ink);
+    }
+    #returned { color: var(--lamp); }
+    .fail-text { color: var(--fail) !important; }
+    @media (max-width: 860px) {
+      .stage, .pair { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="kicker">Score trace</p>
+    <h1>Click a step.</h1>
+    <p>The diagram is the order the harness runs. Select a box, then a call inside it. Ran is what that call received. Returned is what it sent back.</p>
+    <div class="controls">
+      <button id="example" type="button">Load the example</button>
+      <label>Graph<input id="graph" type="text" placeholder="graph.json"></label>
+      <label>Repository<input id="repo" type="text" placeholder="/tmp/fineract"></label>
+      <button id="run" class="ghost" type="button">Run live</button>
+    </div>
+  </header>
+  <main class="stage">
+    <div class="diagram" id="diagram"></div>
+    <section class="inspector">
+      <div class="stepper">
+        <button id="prev" class="ghost" type="button">Previous</button>
+        <span id="place">No trace yet</span>
+        <button id="next" class="ghost" type="button">Next</button>
+      </div>
+      <h2 id="step-name">Load a trace.</h2>
+      <ol id="calls"></ol>
+      <div class="pair">
+        <article>
+          <h3>Ran</h3>
+          <pre id="ran"></pre>
+        </article>
+        <article>
+          <h3>Returned</h3>
+          <pre id="returned"></pre>
+        </article>
+      </div>
+    </section>
+  </main>
+  <script>
+    const boxes = [
+      ["graph", "01", "Code map"],
+      ["retrieve", "02", "RAG"],
+      ["tasks", "03", "Task list"],
+      ["bare", "04", "Bare"],
+      ["map", "05", "+ Map"],
+      ["rules", "06", "+ Rules"],
+      ["board", "07", "Board"],
+    ];
+    const diagram = document.querySelector("#diagram");
+    boxes.forEach(([id, index, label], position) => {
+      if (position) {
+        const join = document.createElement("div");
+        join.className = "join";
+        diagram.append(join);
+      }
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "node";
+      button.dataset.station = id;
+      button.innerHTML = `<small>${index}</small><strong>${label}</strong><span class="count"></span>`;
+      button.addEventListener("click", () => selectStation(id));
+      diagram.append(button);
+    });
+
+    const place = document.querySelector("#place");
+    const stepName = document.querySelector("#step-name");
+    const calls = document.querySelector("#calls");
+    const ran = document.querySelector("#ran");
+    const returned = document.querySelector("#returned");
+    let events = [];
+    let cursor = 0;
+
+    document.querySelector("#example").addEventListener("click", loadExample);
+    document.querySelector("#run").addEventListener("click", runLive);
+    document.querySelector("#prev").addEventListener("click", () => select(cursor - 1));
+    document.querySelector("#next").addEventListener("click", () => select(cursor + 1));
+
+    function visible(list) {
+      return list.filter((event) => event.call !== "done");
+    }
+
+    function selectStation(station) {
+      const index = events.findIndex((event) => event.station === station && event.call !== "done");
+      if (index >= 0) select(index);
+    }
+
+    function select(index) {
+      const shown = visible(events);
+      if (!shown.length) return;
+      cursor = Math.max(0, Math.min(index, shown.length - 1));
+      const event = shown[cursor];
+      document.querySelectorAll(".node").forEach((node) => {
+        node.classList.toggle("on", node.dataset.station === event.station);
+      });
+      const label = boxes.find(([id]) => id === event.station)[2];
+      stepName.textContent = `${label} · ${event.title || event.call}`;
+      place.textContent = `${cursor + 1} of ${shown.length}`;
+      const group = shown.filter((item) => item.station === event.station);
+      calls.replaceChildren();
+      group.forEach((item) => {
+        const li = document.createElement("li");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = item === event ? "ghost on" : "ghost";
+        const mark = item.passed == null ? "" : item.passed ? "pass" : "fail";
+        button.innerHTML = `<span>${item.call}${item.task ? " · " + item.task : ""}</span><span>${mark}</span>`;
+        button.addEventListener("click", () => select(shown.indexOf(item)));
+        li.append(button);
+        calls.append(li);
+      });
+      ran.textContent = event.ran || event.detail || "";
+      returned.textContent = event.returned || (event.passed == null ? "" : event.passed ? "pass" : "fail");
+      returned.className = event.passed === false ? "fail-text" : "";
+      paintCounts(shown);
+    }
+
+    function paintCounts(shown) {
+      for (const [id] of boxes) {
+        const group = shown.filter((event) => event.station === id);
+        const node = document.querySelector(`[data-station="${id}"]`);
+        const count = node.querySelector(".count");
+        const grades = group.filter((event) => event.passed != null);
+        const failed = grades.some((event) => event.passed === false);
+        const passed = grades.length && grades.every((event) => event.passed);
+        node.classList.toggle("fail", failed);
+        node.classList.toggle("pass", passed && !failed);
+        count.textContent = group.length ? String(group.length) : "";
+      }
+    }
+
+    async function loadExample() {
+      const response = await fetch("/demo");
+      events = visible(await response.json());
+      select(0);
+    }
+
+    async function runLive() {
+      events = [];
+      selectStation("graph");
+      const response = await fetch("/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          graph: document.querySelector("#graph").value,
+          repo: document.querySelector("#repo").value,
+        }),
+      });
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        buffer += decoder.decode(chunk.value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop();
+        for (const part of parts) {
+          const line = part.split("\n").find((item) => item.startsWith("data: "));
+          if (!line) continue;
+          const event = JSON.parse(line.slice(6));
+          if (event.call === "done") continue;
+          events.push(event);
+          select(events.length - 1);
+        }
+      }
+    }
+
+    loadExample();
+  </script>
+</body>
+</html>

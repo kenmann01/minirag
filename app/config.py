@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     embedding_model: str = "Alibaba-NLP/gte-modernbert-base"
     ollama_model: str = "qwen3:8b"
     ollama_host: str = "http://host.docker.internal:11434"
+    corpus_dir: str = ""
+    input_usd_per_million: float = 0.15
+    output_usd_per_million: float = 0.60
+    tool_usd: float = 0.001
 
 
 def get_settings() -> Settings:

@@ -121,7 +121,7 @@ def _lanes(
     keyword_sql = _KEYWORD_SQL_ALL if include_superseded else _KEYWORD_SQL
     with adapter.connect() as conn:
         vector_rows = [
-            _candidate(row) for row in conn.execute(vector_sql, (query_vector,)).fetchall()
+            _candidate(row) for row in conn.execute(vector_sql, (query_vector, 20)).fetchall()
         ]
         keyword_query = conn.execute(
             "SELECT websearch_to_tsquery('english', %s)::text",
@@ -129,6 +129,6 @@ def _lanes(
         ).fetchone()[0]
         keyword_rows = [
             _candidate(row)
-            for row in conn.execute(keyword_sql, (query_vector, question, question)).fetchall()
+            for row in conn.execute(keyword_sql, (query_vector, question, question, 20)).fetchall()
         ]
     return vector_rows, keyword_rows, keyword_query or ""

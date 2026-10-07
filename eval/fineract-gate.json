@@ -1,0 +1,18 @@
+{
+  "scope": "full",
+  "wall_time_seconds": 21.697,
+  "node_count": 61983,
+  "edge_count": 303539,
+  "largest_mermaid": {
+    "name": "service",
+    "nodes": 24,
+    "module_nodes": 9255,
+    "rendered": false
+  },
+  "errors": [
+    "module mermaid diagrams are capped at 24 nodes",
+    "mermaid renderer mmdc is not installed"
+  ],
+  "loans_covered": true,
+  "graph_path": "/tmp/minirag-gate/full/graphify-out/graph.json"
+}
