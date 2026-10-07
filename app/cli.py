@@ -138,8 +138,10 @@ def main(
         return 0
     if args.command == "gate":
         from app.gate import run_gate
+        from app.metrics import MetricsSink
 
         record = run_gate(args.repo, args.output)
+        MetricsSink(adapter).record_gate(record)
         print(json.dumps(record, indent=2))
         return 0 if record["node_count"] else 1
     if args.command == "ossie":

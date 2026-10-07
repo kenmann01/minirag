@@ -15,6 +15,16 @@ from tests.test_tasks import write_graph
 ROOT = Path(__file__).resolve().parents[1]
 NODE_COUNT = 10
 EDGE_COUNT = 6
+GATE_RECORD = {
+    "scope": "full",
+    "wall_time_seconds": 0.0,
+    "node_count": 0,
+    "edge_count": 0,
+    "largest_mermaid": {"name": None, "nodes": 0, "rendered": False},
+    "errors": [],
+    "loans_covered": False,
+    "graph_path": None,
+}
 
 
 def test_materialize_loads_the_fixture_graph_and_reruns_without_duplicates(tmp_path):
@@ -117,7 +127,7 @@ def test_ingest_self_heals_a_partial_sections_table():
 
 
 def _ensure_metrics_tables(adapter):
-    """Touch the three metrics tables through their public writer."""
+    """Touch the four metrics tables through their public writers."""
     MetricsSink(adapter).record_context(
         run_id=uuid.uuid4(),
         context="bare",
@@ -130,6 +140,7 @@ def _ensure_metrics_tables(adapter):
         },
         cases=[],
     )
+    MetricsSink(adapter).record_gate(dict(GATE_RECORD))
 
 
 @pytest.fixture(autouse=True)
@@ -142,18 +153,6 @@ def materialized_graph(tmp_path):
         conn.execute("DROP TABLE IF EXISTS graph_edges")
         conn.execute("DROP TABLE IF EXISTS graph_nodes")
     assert main(["ossie", "materialize", "--graph", str(graph)], database_adapter=adapter) == 0
-    with adapter.connect() as conn:
-        # Stand-in until ticket #33 lands the real gate_metrics writer.
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS gate_metrics (
-                run_id UUID PRIMARY KEY,
-                gate JSONB NOT NULL,
-                passed BOOLEAN NOT NULL,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-            )
-            """
-        )
     return adapter
 
 

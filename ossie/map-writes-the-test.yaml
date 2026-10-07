@@ -281,7 +281,10 @@ semantic_model:
       - name: gate_metrics
         source: minirag.public.gate_metrics
         primary_key: [run_id]
-        description: One row per gate check over a scored run. Written by the gate metrics writer.
+        description: >
+          One row per repository gate run with the five scale numbers and the
+          full gate document. Re-runs append rows, so history accumulates.
+          Written by the gate metrics writer.
         fields:
           - name: run_id
             expression:
@@ -293,11 +296,33 @@ semantic_model:
               dialects:
                 - dialect: ANSI_SQL
                   expression: gate
+            description: >
+              The full gate document: scope, largest mermaid info, errors,
+              loans coverage, and graph path.
+          - name: wall_time_seconds
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: wall_time_seconds
+            description: Seconds spent mapping the repository.
+          - name: node_count
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: node_count
+            description: Nodes in the extracted repository graph.
+          - name: edge_count
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: edge_count
+            description: Edges in the extracted repository graph.
           - name: passed
             expression:
               dialects:
                 - dialect: ANSI_SQL
                   expression: passed
+            description: True when the run produced a graph, the gate exit-zero signal.
           - name: created_at
             expression:
               dialects:

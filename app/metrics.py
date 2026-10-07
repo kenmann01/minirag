@@ -1,5 +1,7 @@
 # Internal and Confidential - Not for External Distribution.
-"""Persist scored-run metrics into Postgres through the database adapter."""
+"""Persist scored-run and gate metrics into Postgres through the adapter."""
+
+import uuid
 
 from psycopg.types.json import Json
 
@@ -44,6 +46,18 @@ CREATE TABLE IF NOT EXISTS tool_calls (
 )
 """
 
+_CREATE_GATE_METRICS = """
+CREATE TABLE IF NOT EXISTS gate_metrics (
+    run_id UUID NOT NULL PRIMARY KEY,
+    gate JSONB NOT NULL,
+    wall_time_seconds DOUBLE PRECISION NOT NULL,
+    node_count BIGINT NOT NULL,
+    edge_count BIGINT NOT NULL,
+    passed BOOLEAN NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+)
+"""
+
 _INSERT_RUN = """
 INSERT INTO runs (
     run_id, context, tasks_total, tasks_passed,
@@ -66,6 +80,16 @@ INSERT INTO tool_calls (run_id, context, task_id, tool_calls)
 VALUES (%(run_id)s, %(context)s, %(task_id)s, %(tool_calls)s)
 """
 
+_INSERT_GATE_METRIC = """
+INSERT INTO gate_metrics (
+    run_id, gate, wall_time_seconds, node_count, edge_count, passed
+)
+VALUES (
+    %(run_id)s, %(gate)s, %(wall_time_seconds)s, %(node_count)s,
+    %(edge_count)s, %(passed)s
+)
+"""
+
 _BACKFILLABLE_COLUMNS = {
     "runs": (
         ("created_at", "TIMESTAMPTZ NOT NULL DEFAULT now()"),
@@ -84,6 +108,14 @@ _BACKFILLABLE_COLUMNS = {
     ),
     "tool_calls": (
         ("tool_calls", "INT NOT NULL DEFAULT 0"),
+        ("created_at", "TIMESTAMPTZ NOT NULL DEFAULT now()"),
+    ),
+    "gate_metrics": (
+        ("gate", "JSONB"),
+        ("wall_time_seconds", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
+        ("node_count", "BIGINT NOT NULL DEFAULT 0"),
+        ("edge_count", "BIGINT NOT NULL DEFAULT 0"),
+        ("passed", "BOOLEAN NOT NULL DEFAULT FALSE"),
         ("created_at", "TIMESTAMPTZ NOT NULL DEFAULT now()"),
     ),
 }
@@ -108,12 +140,13 @@ def _ensure_schema(conn) -> None:
     conn.execute(_CREATE_RUNS)
     conn.execute(_CREATE_TASK_RESULTS)
     conn.execute(_CREATE_TOOL_CALLS)
-    for table in ("runs", "task_results", "tool_calls"):
+    conn.execute(_CREATE_GATE_METRICS)
+    for table in ("runs", "task_results", "tool_calls", "gate_metrics"):
         _ensure_columns(conn, table)
 
 
 class MetricsSink:
-    """Write one scored run's metrics, one context arm at a time."""
+    """Write scored-run and gate metrics, one row per run or context arm."""
 
     def __init__(self, adapter: DatabaseAdapter):
         self._adapter = adapter
@@ -167,3 +200,34 @@ class MetricsSink:
                         "tool_calls": case["tool_calls"],
                     },
                 )
+
+    def record_gate(self, gate: dict) -> uuid.UUID:
+        """Store one gate run's numbers as a new history row.
+
+        Args:
+            gate: The gate document written to the gate JSON output.
+
+        Returns:
+            The fresh run identity stored as the new row's primary key.
+
+        Side Effects:
+            Appends exactly one gate_metrics row per call. Older rows are
+            never mutated, so re-running the gate accumulates history.
+        """
+        run_id = uuid.uuid4()
+        with self._adapter.connect() as conn:
+            if not self._ensured:
+                _ensure_schema(conn)
+                self._ensured = True
+            conn.execute(
+                _INSERT_GATE_METRIC,
+                {
+                    "run_id": run_id,
+                    "gate": Json(gate),
+                    "wall_time_seconds": gate["wall_time_seconds"],
+                    "node_count": gate["node_count"],
+                    "edge_count": gate["edge_count"],
+                    "passed": gate["node_count"] > 0,
+                },
+            )
+        return run_id
