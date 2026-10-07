@@ -299,8 +299,9 @@ def _dump_output(output) -> dict:
     return {"answer": str(output), "tool_calls": 0, "prompt_tokens": 0, "completion_tokens": 0}
 
 
-def _case_rows(report) -> list[dict]:
+def _case_rows(report, grounding: "dict[str, float | None] | None" = None) -> list[dict]:
     """Pull one row per case out of an experiment report."""
+    distances = grounding or {}
     rows = []
     for case in report.cases:
         rows.append(
@@ -310,6 +311,7 @@ def _case_rows(report) -> list[dict]:
                 "passed": bool(case.assertions)
                 and all(item.value for item in case.assertions.values()),
                 "origin": case.metadata.get("origin"),
+                "grounding_distance": distances.get(case.name),
                 "tool_calls": int(getattr(case.output, "tool_calls", 0) or 0),
             }
         )
@@ -321,6 +323,7 @@ def _case_rows(report) -> list[dict]:
                 "tier": int(metadata.get("tier") or 0),
                 "passed": False,
                 "origin": metadata.get("origin"),
+                "grounding_distance": distances.get(failure.name),
                 "tool_calls": 0,
             }
         )
@@ -449,6 +452,7 @@ def _run_score(
         prepare_local_judge(get_settings())
     dataset = build_dataset(tasks, tier2_judge)
     sink = MetricsSink(database_adapter) if database_adapter is not None else None
+    grounding = {task.id: task.grounding_distance for task in tasks}
     run_key = uuid.uuid4()
     rows = []
     for run_id, context in CONTEXTS:
@@ -514,7 +518,7 @@ def _run_score(
         row = write_report(report, output_dir / f"{context}.json")
         if sink is not None:
             sink.record_context(
-                run_id=run_key, context=context, scoreboard=row, cases=_case_rows(report)
+                run_id=run_key, context=context, scoreboard=row, cases=_case_rows(report, grounding)
             )
         rows.append(row)
     if on_event is not None:

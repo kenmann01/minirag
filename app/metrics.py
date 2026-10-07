@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS task_results (
     tier INT NOT NULL,
     passed BOOLEAN NOT NULL,
     origin JSONB,
+    grounding_distance DOUBLE PRECISION,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (run_id, context, task_id)
 )
@@ -71,8 +72,8 @@ VALUES (
 
 
 _INSERT_TASK_RESULT = """
-INSERT INTO task_results (run_id, context, task_id, tier, passed, origin)
-VALUES (%(run_id)s, %(context)s, %(task_id)s, %(tier)s, %(passed)s, %(origin)s)
+INSERT INTO task_results (run_id, context, task_id, tier, passed, origin, grounding_distance)
+VALUES (%(run_id)s, %(context)s, %(task_id)s, %(tier)s, %(passed)s, %(origin)s, %(grounding_distance)s)
 """
 
 _INSERT_TOOL_CALL = """
@@ -104,6 +105,7 @@ _BACKFILLABLE_COLUMNS = {
         ("tier", "INT NOT NULL DEFAULT 0"),
         ("passed", "BOOLEAN NOT NULL DEFAULT FALSE"),
         ("origin", "JSONB"),
+        ("grounding_distance", "DOUBLE PRECISION"),
         ("created_at", "TIMESTAMPTZ NOT NULL DEFAULT now()"),
     ),
     "tool_calls": (
@@ -189,6 +191,7 @@ class MetricsSink:
                         "tier": case["tier"],
                         "passed": case["passed"],
                         "origin": Json(origin) if origin is not None else None,
+                        "grounding_distance": case.get("grounding_distance"),
                     },
                 )
                 conn.execute(

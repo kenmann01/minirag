@@ -191,6 +191,28 @@ def test_score_cli_writes_a_task_results_row_per_case(tmp_path, monkeypatch):
         assert stored_passes == board["scoreboard"]["tasks_passed"]
 
 
+def test_score_cli_stores_grounding_distance_per_tier(tmp_path, monkeypatch):
+    score_through_cli(tmp_path, monkeypatch)
+    adapter = PgAdapter()
+    with adapter.connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT task_id, tier, grounding_distance, origin
+            FROM task_results
+            ORDER BY context, task_id
+            """
+        ).fetchall()
+    tier1 = [row for row in rows if row[1] == 1]
+    tier2 = [row for row in rows if row[1] == 2]
+    assert tier1 and tier2
+    assert all(row[2] is None for row in tier1)
+    for task_id, _tier, distance, origin in tier2:
+        cited = origin["chunks"]
+        expected = sum(chunk["distance"] for chunk in cited) / len(cited)
+        assert isinstance(distance, float)
+        assert distance == pytest.approx(expected)
+
+
 def test_score_cli_reconciles_tool_call_rows_with_the_scoreboard(tmp_path, monkeypatch):
     score_through_cli(tmp_path, monkeypatch)
     adapter = PgAdapter()

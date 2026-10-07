@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: minirag-postgres
+    uid: minirag-pg
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: minirag
+    isDefault: true
+    editable: false
+    jsonData:
+      database: minirag
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: minirag

@@ -21,6 +21,7 @@ class Task(BaseModel):
     prompt: str
     expected: dict
     origin: dict
+    grounding_distance: float | None = None
 
 
 class TaskGenerationError(RuntimeError):
@@ -203,6 +204,12 @@ def generate_tasks(
                 f"tier 2 task {index + 1} cites chunks outside the bridge log"
             )
         kept = [chunk for chunk in retrieved[index] if chunk["chunk_id"] in cited]
+        distances = [chunk.get("distance") for chunk in kept]
+        grounding = (
+            sum(distances) / len(distances)
+            if distances and all(isinstance(distance, (int, float)) for distance in distances)
+            else None
+        )
         payload = _edge_payload(edge)
         tasks.append(
             Task(
@@ -210,6 +217,7 @@ def generate_tasks(
                 tier=2,
                 prompt=prompt,
                 expected={"chunk_ids": list(cited)},
+                grounding_distance=grounding,
                 origin={
                     "chunk_ids": list(cited),
                     "chunks": kept,
