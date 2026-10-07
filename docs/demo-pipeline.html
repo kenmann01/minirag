@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The map writes the test</title>
+<style>
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: #fafafa;
+    color: #202124;
+    max-width: 1150px;
+    margin: 0 auto;
+    padding: 32px 24px 48px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: #5f6368;
+    margin: 0 0 20px;
+  }
+  .diagram {
+    background: #ffffff;
+    border: 1px solid #dadce0;
+    border-radius: 10px;
+    padding: 20px 12px;
+    overflow-x: auto;
+  }
+  .legend {
+    border: 1px solid #dadce0;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 14px 18px;
+    margin-top: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .legend h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  .gate {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #5f6368;
+    line-height: 1.6;
+  }
+  .gate strong { color: #202124; }
+</style>
+</head>
+<body>
+
+<h1>The map writes the test</h1>
+<p class="subtitle">Demo pipeline v2 for the company talk. One repo, one corpus, three scored runs, one live board.</p>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TD
+    subgraph M["1. THE MAP. Runs once per repo"]
+        REPO[("Demo repo<br>Apache Fineract<br>gate passed at full scope")]
+        SKILL["The skill<br>repo mapper"]
+        MERM["Mermaid diagrams<br>for humans"]
+        MAP[("THE MAP<br>graphify graph, nodes + edges")]
+        REPO --> SKILL
+        SKILL -->|"engineer view"| MERM
+        SKILL -->|"agent view"| MAP
+    end
+
+    subgraph C["2. THE CORPUS. minirag, runs once per industry"]
+        BANK[("Banking corpus<br>public regulation PDFs")]
+        AVIA[("Aviation corpus<br>one FAA handbook")]
+        CVT["Converter<br>PDF to markdown with ## N. headings"]
+        ING["minirag ingest<br>chunk, embed, full-text index"]
+        PG[("Postgres + pgvector<br>Docker")]
+        BRIDGE["The bridge<br>retrieve-only JSON: chunks, ids, sources"]
+        BANK --> CVT
+        AVIA -.->|"live swap during the talk"| CVT
+        CVT --> ING
+        ING --> PG
+        PG --> BRIDGE
+    end
+
+    subgraph E["3. THE TEST. The map writes the evals"]
+        GEN["Eval generator, LLM"]
+        T1["TIER 1<br>graph-fact checks<br>checked by script, deterministic"]
+        T2["TIER 2<br>domain questions<br>judged by model, labeled"]
+        MAP --> GEN
+        BRIDGE --> GEN
+        GEN --> T1
+        GEN --> T2
+    end
+
+    subgraph R["4. THE RUNS. Same task list, three levels of context"]
+        direction LR
+        A1["RUN 1<br>bare agent"]
+        A2["RUN 2<br>agent + the map"]
+        A3["RUN 3<br>agent + the map<br>+ retrieved chunks"]
+        A1 -->|"add context"| A2
+        A2 -->|"add context"| A3
+    end
+
+    T1 --> R
+    T2 --> R
+    MAP --> A2
+    MAP --> A3
+    BRIDGE --> A3
+
+    subgraph S["5. THE SCOREBOARD. Pydantic harness"]
+        CHK["Tier 1 check<br>script, pass or fail"]
+        JUD["Tier 2 judge<br>model, cites the rule"]
+        BOARD["SCOREBOARD<br>score, tool calls, cost per run"]
+        CHK --> BOARD
+        JUD --> BOARD
+    end
+
+    R --> CHK
+    R --> JUD
+
+    subgraph V["6. THE BOARD. Observability and contract, to build"]
+        METRICS["Metrics sink<br>writes runs, task results,<br>tool calls, cost"]
+        GRAF["Grafana board<br>the live scoreboard"]
+        OSSIE["OSSIE contract<br>schema + declared tables,<br>validated on stage"]
+    end
+
+    BOARD --> METRICS
+    METRICS -->|"human view"| GRAF
+    OSSIE -.->|"validates the tables"| METRICS
+
+    classDef hero fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px
+    classDef exists fill:#e8f0fe,stroke:#1a73e8,stroke-width:1.5px
+    classDef todo fill:#fff7ed,stroke:#b45309,stroke-width:2px,stroke-dasharray:6 4
+    class MAP,BOARD hero
+    class CVT,BRIDGE,GEN exists
+    class METRICS,GRAF,OSSIE todo
+</pre>
+</div>
+
+<div class="legend">
+  <h2>How to read it</h2>
+  <ol>
+    <li>Blue boxes exist today: the map, the scoreboard, the converter, the bridge, the eval generator.</li>
+    <li>Dashed amber boxes are this phase's build: the metrics sink, the Grafana board, the OSSIE materialization.</li>
+    <li>Solid arrows are data flow. The one dashed corpus edge is the live swap: change the corpus folder, re-ingest, the evals change flavor on screen.</li>
+    <li>All three runs share one task list. Only the context changes. That isolation keeps the scoreboard fair.</li>
+  </ol>
+</div>
+
+<p class="gate">
+  <strong>Gate result (recorded):</strong> full Apache Fineract mapped in 21.7s,
+  61,983 nodes, 303,539 edges, loans module covered. Module mermaid diagrams cap
+  at 24 nodes; the demo rig needs mmdc installed and the graph persisted.
+</p>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+</script>
+
+</body>
+</html>
