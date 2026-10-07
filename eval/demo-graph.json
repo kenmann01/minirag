@@ -1,0 +1,115 @@
+{
+  "nodes": [
+    {
+      "id": "Loan",
+      "label": "Loan",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+    },
+    {
+      "id": "approve",
+      "label": "approve",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+    },
+    {
+      "id": "disburse",
+      "label": "disburse",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+    },
+    {
+      "id": "LoanApplication",
+      "label": "LoanApplication",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java"
+    },
+    {
+      "id": "submit",
+      "label": "submit",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java"
+    },
+    {
+      "id": "LoanSchedule",
+      "label": "LoanSchedule",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
+    },
+    {
+      "id": "recalc",
+      "label": "recalc",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
+    },
+    {
+      "id": "Client",
+      "label": "Client",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java"
+    },
+    {
+      "id": "identify",
+      "label": "identify",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java"
+    }
+  ],
+  "links": [
+    {
+      "source": "Loan",
+      "target": "approve",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java",
+      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+    },
+    {
+      "source": "Loan",
+      "target": "disburse",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java",
+      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+    },
+    {
+      "source": "LoanApplication",
+      "target": "submit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java",
+      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java"
+    },
+    {
+      "source": "LoanSchedule",
+      "target": "recalc",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java",
+      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
+    },
+    {
+      "source": "Client",
+      "target": "identify",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java",
+      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java"
+    },
+    {
+      "source": "LoanApplication",
+      "target": "LoanSchedule",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java",
+      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
+    },
+    {
+      "source": "Loan",
+      "target": "Client",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java",
+      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java"
+    },
+    {
+      "source": "Loan",
+      "target": "RepaymentSchedule",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java",
+      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/RepaymentSchedule.java"
+    }
+  ]
+}

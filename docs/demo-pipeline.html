@@ -121,7 +121,7 @@ flowchart TD
     R --> CHK
     R --> JUD
 
-    subgraph V["6. THE BOARD. Observability and contract, to build"]
+    subgraph V["6. THE BOARD. Observability and contract, live today"]
         METRICS["Metrics sink<br>writes runs, task results,<br>tool calls, cost"]
         GRAF["Grafana board<br>the live scoreboard"]
         OSSIE["OSSIE contract<br>schema + declared tables,<br>validated on stage"]
@@ -133,18 +133,17 @@ flowchart TD
 
     classDef hero fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px
     classDef exists fill:#e8f0fe,stroke:#1a73e8,stroke-width:1.5px
-    classDef todo fill:#fff7ed,stroke:#b45309,stroke-width:2px,stroke-dasharray:6 4
     class MAP,BOARD hero
     class CVT,BRIDGE,GEN exists
-    class METRICS,GRAF,OSSIE todo
+    class METRICS,GRAF,OSSIE exists
 </pre>
 </div>
 
 <div class="legend">
   <h2>How to read it</h2>
   <ol>
-    <li>Blue boxes exist today: the map, the scoreboard, the converter, the bridge, the eval generator.</li>
-    <li>Dashed amber boxes are this phase's build: the metrics sink, the Grafana board, the OSSIE materialization.</li>
+    <li>Blue boxes exist today: every box in this diagram. The map, the converter, the bridge, the eval generator, the scoreboard, and, seeded on the demo rig, the metrics sink, the Grafana board, and the OSSIE contract.</li>
+    <li>Nothing in the pipeline is a placeholder. The sink writes Postgres, the board renders it live, and the OSSIE contract validates against the live database.</li>
     <li>Solid arrows are data flow. The one dashed corpus edge is the live swap: change the corpus folder, re-ingest, the evals change flavor on screen.</li>
     <li>All three runs share one task list. Only the context changes. That isolation keeps the scoreboard fair.</li>
   </ol>

@@ -196,7 +196,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT created_at AS time, context AS arm, tool_calls FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at DESC",
+          "rawSql": "SELECT created_at AS time, context AS arm, tool_calls FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at",
           "refId": "A",
           "sql": {
             "columns": [
@@ -223,7 +223,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT created_at AS time, context AS arm, tool_calls AS tool_calls_history FROM runs WHERE run_id <> (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at DESC",
+          "rawSql": "SELECT created_at AS time, context AS arm, tool_calls AS tool_calls_history FROM runs WHERE run_id <> (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at",
           "refId": "B",
           "sql": {
             "columns": [
@@ -331,7 +331,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT created_at AS time, context AS arm, cost_usd FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at DESC",
+          "rawSql": "SELECT created_at AS time, context AS arm, cost_usd FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at",
           "refId": "A",
           "sql": {
             "columns": [
@@ -358,7 +358,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT created_at AS time, context AS arm, cost_usd AS cost_usd_history FROM runs WHERE run_id <> (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at DESC",
+          "rawSql": "SELECT created_at AS time, context AS arm, cost_usd AS cost_usd_history FROM runs WHERE run_id <> (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at",
           "refId": "B",
           "sql": {
             "columns": [
@@ -728,9 +728,7 @@
         "multi": false,
         "name": "datasource",
         "options": [],
-        "query": {
-          "type": "postgres"
-        },
+        "query": "grafana-postgresql-datasource",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

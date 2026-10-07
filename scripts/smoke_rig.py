@@ -33,7 +33,7 @@ FAMILIES = (
         "SELECT created_at AS time, context AS arm, tool_calls "
         "FROM runs "
         "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) "
-        "ORDER BY created_at DESC",
+        "ORDER BY created_at",
     ),
     (
         "c",
@@ -41,7 +41,7 @@ FAMILIES = (
         "SELECT created_at AS time, context AS arm, cost_usd "
         "FROM runs "
         "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) "
-        "ORDER BY created_at DESC",
+        "ORDER BY created_at",
     ),
     (
         "d",

@@ -4,9 +4,9 @@ Product Requirements Document. Domain onboarding for agents.
 
 - **Project:** Domain Onboarding Pipeline
 - **Owner:** Associate FDE, Forward Deployed Engineering
-- **Status:** v0.2, statuses reconciled with code
+- **Status:** v0.2.1, demo rig accepted
 - **Date:** 7 October 2026
-- **Internal working document, v0.2**
+- **Internal working document, v0.2.1**
 
 ---
 
@@ -34,7 +34,7 @@ Product Requirements Document. Domain onboarding for agents.
 
 This document specifies a measured demo of agent domain onboarding, called The Map Writes the Test. The system maps a repository into a knowledge graph, derives an evaluation task list from that graph, retrieves industry rules from a corpus, and scores the same agent three times: bare, with the map, and with the map plus retrieved rules. The scoreboard reports tasks passed, tool calls, and cost per run.
 
-v0.1 called this document pre-implementation. That label is retired. The gate has run and passed at full repository scope (Appendix B), and the components v0.1 listed as unbuilt or partial (the converter, the bridge, the evaluation generator, the three-run harness) are built and merged on feat/eval-harness. Every status in section 6 has been reconciled against the code. What remains unbuilt this phase is the observability layer: a metrics sink with a Grafana board (FR-12), and the OSSIE contract materialized and validated live (FR-11 and FR-13). Every claim in this document is labeled with its true status.
+v0.1 called this document pre-implementation. That label is retired. The gate has run and passed at full repository scope (Appendix B), and the components v0.1 listed as unbuilt or partial (the converter, the bridge, the evaluation generator, the three-run harness) are built and merged on feat/eval-harness. Every status in section 6 has been reconciled against the code. As of v0.2.1 the observability layer is built and seeded on the demo rig: the metrics sink with a Grafana board (FR-12), and the OSSIE contract materialized and validated live (FR-11 and FR-13). Every claim in this document is labeled with its true status.
 
 ### What changed in v0.2
 
@@ -47,6 +47,12 @@ v0.1 called this document pre-implementation. That label is retired. The gate ha
 - Section 4.1 added: the demo arc, seven beats plus a new beat 8 for the board and the contract.
 - Risks updated with the actual gate findings (the mermaid node cap, mmdc missing) and a new Grafana risk.
 - Open questions: the repository, the banking slice, and the FAA handbook are decided. The judge provider defaults to local Ollama. The live-versus-recording question stays open.
+
+### What changed in v0.2.1
+
+- FR-11, FR-12, and FR-13 flipped UNBUILT to EXISTS: the demo rig accepted a cold start, one synthetic seed, and a live `ossie validate` in one sitting. Evidence per row in Table 2; the full recipe and the measured cold start (28 seconds from wiped volumes to a green smoke run) are in docs/demo-rig.md.
+- W7 and W8 flipped UNBUILT to EXISTS with the same evidence. The demo-critical builds are done; rehearsal (W6) is what remains.
+- The Grafana board needed two fixes found by the cold start, both committed with this ticket: the datasource variable query must name the Grafana 11 plugin id (grafana-postgresql-datasource), and the time-series panels must sort ascending by time or the postgres plugin refuses the long-to-wide conversion. docs/demo-rig.md and scripts/smoke_rig.py carry the corrected queries.
 
 ## 2. Background and problem
 
@@ -99,7 +105,7 @@ The talk runs as seven beats, carried over from the demo plan, plus one new beat
 
 The system has two input lanes and one measurement spine. The map lane reads a repository through the mapping skill and emits two representations of the same knowledge: mermaid diagrams for humans and a graphify graph for agents. The corpus lane converts public industry documents into heading-structured markdown, ingests them through minirag into Postgres with pgvector, and serves retrieval through a bridge command. The measurement spine consumes both lanes: an evaluation generator derives a two-tier task list, the harness runs the agent on that list three times with increasing context, and the scoreboard records the outcome. The measurement spine now ends in an observability board (Grafana) fed by a metrics sink, and the OSSIE contract describes the tables the board reads.
 
-Figure 1 (docs/demo-pipeline.html) shows the end-to-end data flow: the map lane and the corpus lane feed one scoreboard. Blue boxes in the figure exist today: the map, the scoreboard, and now the converter, the bridge, and the evaluation generator. Dashed amber boxes are this phase's build: the metrics sink, the Grafana board, and the OSSIE contract. Dotted arrows mark two things: the live swap performed during the talk (banking corpus to aviation corpus) and the OSSIE contract validating the sink's tables.
+Figure 1 (docs/demo-pipeline.html) shows the end-to-end data flow: the map lane and the corpus lane feed one scoreboard. Every blue box in the figure exists today: the map, the scoreboard, the converter, the bridge, the evaluation generator, and, since v0.2.1, the metrics sink, the Grafana board, and the OSSIE contract. Dotted arrows mark two things: the live swap performed during the talk (banking corpus to aviation corpus) and the OSSIE contract validating the sink's tables.
 
 ## 6. Functional requirements
 
@@ -117,9 +123,9 @@ Table 2. Functional requirements with true status
 | FR-8 | Fix determinism: temperature 0, seed 77, pinned embedding model, deterministic rank fusion. | Must | EXISTS |
 | FR-9 | Keep the judge provider-agnostic across at least two providers. | Should | EXISTS |
 | FR-10 | If full-repo mapping fails the gate, map a single module, the loans module, as fallback scope. | Should | NOT TRIGGERED |
-| FR-11 | Package the skill and corpus contract as an OSSIE-format unit, validated live. | Must (promoted from Could) | UNBUILT |
-| FR-12 | Stand up a Grafana board over a metrics sink. The sink writes runs, task_results, tool_calls, and gate_metrics tables; the board shows scoreboard by tier, tool calls, cost per run, retrieval distances, and gate stats. | Must | UNBUILT |
-| FR-13 | Materialize the OSSIE tables (graph_nodes and graph_edges from graph.json, sections from ingest) so the YAML contract is true, and ship the validate command. | Must | UNBUILT |
+| FR-11 | Package the skill and corpus contract as an OSSIE-format unit, validated live. | Must (promoted from Could) | EXISTS |
+| FR-12 | Stand up a Grafana board over a metrics sink. The sink writes runs, task_results, tool_calls, and gate_metrics tables; the board shows scoreboard by tier, tool calls, cost per run, retrieval distances, and gate stats. | Must | EXISTS |
+| FR-13 | Materialize the OSSIE tables (graph_nodes and graph_edges from graph.json, sections from ingest) so the YAML contract is true, and ship the validate command. | Must | EXISTS |
 
 Notes on the reconciled statuses:
 
@@ -132,7 +138,9 @@ Notes on the reconciled statuses:
 - FR-8: temperature 0, seed 77 at agent.py:67, score.py:86/93/117, and ollama.py:36. RRF fusion with k=60 is deterministic.
 - FR-9: the judge is the pydantic-evals LLMJudge pinned to local Ollama (set_default_judge_model, score.py:74-94). Swapping the provider is configuration, not code.
 - FR-10: the gate passed at full-repo scope, so the loans-module fallback never engaged. Kept documented as the fallback.
-- FR-11: exit evidence is an ossie/map-writes-the-test.yaml that declares only tables that exist (graph_nodes, graph_edges, sections materialized in Postgres), plus a live `python -m app ossie validate` that passes on stage.
+- FR-11: exit evidence is an ossie/map-writes-the-test.yaml that declares only tables that exist (graph_nodes, graph_edges, sections materialized in Postgres), plus a live `python -m app ossie validate` that passes on stage. Proven on 7 October 2026: validate exits 0 against the cold-started rig (docs/demo-rig.md).
+- FR-12: the board is provisioned as code (grafana/dashboards/map-writes-the-test.json plus grafana/provisioning) and scripts/smoke_rig.py passes green on the cold-started rig; the seeded board renders every panel family (docs/demo-rig.md).
+- FR-13: graph_nodes and graph_edges are materialized from eval/demo-graph.json, sections come from ingest, and gate_metrics holds the real gate row; `python -m app ossie validate` proves every declared column live (docs/demo-rig.md).
 
 Status meanings: EXISTS means built and in use today. UNBUILT means designed here, not implemented. NOT TRIGGERED means the condition never fired this phase and the item stays documented as the fallback. The v0.1 labels PARTLY EXISTS, PENDING, and FUTURE are retired: FR-6 completed, FR-10 resolved by the gate result, FR-11 promoted to Must. Table 5 uses the same meanings, plus DONE for the completed gate.
 
@@ -193,7 +201,7 @@ Table 3. Retrieved chunk record (as produced by minirag search today)
 
 The task item and the scoreboard row are owned by the harness and now have concrete instances: the generator emits task lists, and the harness writes scoreboard JSONs per run (tasks, bare, map, map_rules) to the output directory at runtime. None is committed to the repo; recorded runs happen on the demo rig. Their shape is fixed by section 7.5.
 
-Two more schemas join the model this phase, both UNBUILT. The metrics sink writes four tables: runs, task_results, tool_calls, and gate_metrics. The OSSIE contract (ossie/map-writes-the-test.yaml) declares the tables the board reads: graph_nodes and graph_edges materialized from graph.json, and sections materialized from ingest. FR-13 covers the materialization.
+The metrics sink writes four tables: runs, task_results, tool_calls, and gate_metrics. The OSSIE contract (ossie/map-writes-the-test.yaml) declares the tables the board reads: graph_nodes and graph_edges materialized from graph.json, and sections materialized from ingest. FR-13 covers the materialization, which is done and live-validated since v0.2.1.
 
 ## 9. Non-functional requirements
 
@@ -224,10 +232,10 @@ Table 5. Build plan, gate first
 | W4 | Evaluation generation. | Two-tier task list derived from map and corpus in app/tasks.py. Tier 1 all deterministic (graph.py:71-90). Chunk-id grounding enforced (tasks.py:198-204). | EXISTS |
 | W5 | The three scored runs. | Harness and three-run protocol built (app/score.py, bare / map / map_rules), scoreboard JSON writer and compare page in place. Recorded live numbers happen on the demo rig. | EXISTS |
 | W6 | The talk. | Slides, rehearsal, Docker start checklist, live swap rehearsal. | UNBUILT |
-| W7 | Metrics sink plus Grafana board. | Sink writes runs, task_results, tool_calls, gate_metrics. Board panels per FR-12: scoreboard by tier, tool calls, cost per run, retrieval distances, gate stats. | UNBUILT |
-| W8 | OSSIE materialization and live validation. | graph_nodes, graph_edges, and sections materialized; `python -m app ossie validate` passes live on stage. | UNBUILT |
+| W7 | Metrics sink plus Grafana board. | Sink writes runs, task_results, tool_calls, gate_metrics. Board panels per FR-12: scoreboard by tier, tool calls, cost per run, retrieval distances, gate stats. Seeded and rendered on the cold-started rig; start checklist, seed recipe, and expected PASS lines in docs/demo-rig.md, preflight in scripts/smoke_rig.py. | EXISTS |
+| W8 | OSSIE materialization and live validation. | graph_nodes, graph_edges, and sections materialized; `python -m app ossie validate` passes live on stage (exit 0 on the cold-started rig, 7 October 2026). Fixture graph at eval/demo-graph.json; recipe in docs/demo-rig.md. | EXISTS |
 
-W0 no longer blocks anything: the gate passed at full scope, so W4 and W5 proceeded and are built. W7 and W8 are the critical path for the demo rig: the board and the live contract validation are the only demo-critical builds left.
+W0 no longer blocks anything: the gate passed at full scope, so W4 and W5 proceeded and are built. W7 and W8 were the critical path for the demo rig; both are done as of v0.2.1, so the demo-critical work left is rehearsal (W6).
 
 ## 11. Risks and mitigations
 
