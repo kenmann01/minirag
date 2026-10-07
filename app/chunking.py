@@ -31,7 +31,11 @@ def _sentence_spans(body: str) -> list[tuple[int, int]]:
         start = match.end()
     if start < len(body):
         spans.append((start, len(body)))
-    return [(span_start, span_end) for span_start, span_end in spans if body[span_start:span_end].strip()]
+    return [
+        (span_start, span_end)
+        for span_start, span_end in spans
+        if body[span_start:span_end].strip()
+    ]
 
 
 def _span_length(body: str, spans: list[tuple[int, int]], start: int, end: int) -> int:

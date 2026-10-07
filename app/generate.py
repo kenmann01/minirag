@@ -47,8 +47,7 @@ def generate(question: str, chunks: list[dict], model: LanguageModel) -> AskResp
         return AskResponse(answer=REFUSAL, citation=None, retrieved_chunks=[])
     sections = {section_label(chunk): chunk for chunk in chunks}
     excerpts = "\n\n".join(
-        f"Section: {section}\nExcerpt:\n{chunk['text']}"
-        for section, chunk in sections.items()
+        f"Section: {section}\nExcerpt:\n{chunk['text']}" for section, chunk in sections.items()
     )
     prompt = (
         PROMPT_PATH.read_text(encoding="utf-8")

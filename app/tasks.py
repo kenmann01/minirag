@@ -116,9 +116,7 @@ def generate_tasks(
     nodes, edges = load_graph(graph_path)
     chosen = candidate_edges(edges, TASK_COUNT)
     if len(chosen) < TASK_COUNT:
-        raise TaskGenerationError(
-            f"need {TASK_COUNT} EXTRACTED edges, found {len(chosen)}"
-        )
+        raise TaskGenerationError(f"need {TASK_COUNT} EXTRACTED edges, found {len(chosen)}")
     if on_event is not None:
         on_event(
             {
@@ -172,7 +170,9 @@ def generate_tasks(
                 "detail": f"{TASK_COUNT} code questions and {TASK_COUNT} rule questions",
                 "ran": "Phrase questions from the extracted edges and the retrieved chunks.",
                 "returned": "\n".join(
-                    str(item.get("prompt", "")) for item in [*tier1[:TASK_COUNT], *tier2[:TASK_COUNT]] if isinstance(item, dict)
+                    str(item.get("prompt", ""))
+                    for item in [*tier1[:TASK_COUNT], *tier2[:TASK_COUNT]]
+                    if isinstance(item, dict)
                 ),
             }
         )

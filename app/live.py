@@ -210,7 +210,13 @@ def demo_events() -> list[dict]:
             ],
             "passed": None,
         },
-        {"call": "done", "station": "board", "title": "Trace finished", "detail": "Replay or run a live score.", "passed": None},
+        {
+            "call": "done",
+            "station": "board",
+            "title": "Trace finished",
+            "detail": "Replay or run a live score.",
+            "passed": None,
+        },
     ]
 
 
@@ -249,9 +255,23 @@ def iter_live(
                 }
             )
         except TaskGenerationError as exc:
-            events.put({"call": "error", "station": "board", "title": "The task list stopped", "detail": str(exc)})
+            events.put(
+                {
+                    "call": "error",
+                    "station": "board",
+                    "title": "The task list stopped",
+                    "detail": str(exc),
+                }
+            )
         except Exception as exc:
-            events.put({"call": "error", "station": "board", "title": "The run stopped", "detail": str(exc)})
+            events.put(
+                {
+                    "call": "error",
+                    "station": "board",
+                    "title": "The run stopped",
+                    "detail": str(exc),
+                }
+            )
         finally:
             events.put(None)
 

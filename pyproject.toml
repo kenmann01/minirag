@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minirag"
+description = "Mini RAG"
+readme = "README.md"
+requires-python = ">=3.12"
+dynamic = ["version"]
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.setuptools.dynamic]
+version = { attr = "app.__version__" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I"]
+
+[tool.ruff.lint.pycodestyle]
+# The formatter keeps code at 100 columns, but string literals (LLM prompts,
+# embedded SQL, HTML templates) cannot be split without changing them. Let E501
+# tolerate those; the widest literal today is 191 columns.
+max-line-length = 200
+
+[tool.ruff.lint.per-file-ignores]
+# Placeholder: tighten only if the suite needs it.
+
+[tool.black]
+line-length = 100
+
+# mypy is advisory only: it never gates CI, the suite, or a release.
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true

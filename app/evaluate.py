@@ -37,8 +37,7 @@ def load_goldens(path: Path = GOLDENS_PATH) -> list[Golden]:
 def section_prefix_hit(chunk_id: str, expected_sections: list[str]) -> bool:
     """True when a chunk id belongs to one of the expected sections."""
     return any(
-        chunk_id.startswith(f"{expected_section}:")
-        for expected_section in expected_sections
+        chunk_id.startswith(f"{expected_section}:") for expected_section in expected_sections
     )
 
 
@@ -103,9 +102,7 @@ def run_exam(
                 "answer_failures": failures,
                 "passed": recall and not failures,
                 "answer": response.answer,
-                "citation": (
-                    response.citation.model_dump() if response.citation else None
-                ),
+                "citation": (response.citation.model_dump() if response.citation else None),
                 "ranked_chunk_ids": ranked_chunk_ids,
             }
         )
@@ -117,9 +114,7 @@ def run_exam(
             "total": len(results),
             "passed": sum(result["passed"] for result in results),
             "recall_hits": sum(result["recall"] for result in results),
-            "answer_passes": sum(
-                not result["answer_failures"] for result in results
-            ),
+            "answer_passes": sum(not result["answer_failures"] for result in results),
         },
     }
 

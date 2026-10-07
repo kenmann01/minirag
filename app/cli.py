@@ -46,9 +46,7 @@ def main(
         action="store_true",
         help="Bypass the lineage filter to reproduce the planted defect; never cached",
     )
-    eval_parser = sub.add_parser(
-        "eval", help="Run the golden exam and write the harness record"
-    )
+    eval_parser = sub.add_parser("eval", help="Run the golden exam and write the harness record")
     eval_parser.add_argument("--output", type=Path, default=Path("eval/record.json"))
     eval_parser.add_argument(
         "--retriever",
@@ -87,9 +85,7 @@ def main(
     live_parser = sub.add_parser("live", help="Watch each score call while it runs")
     live_parser.add_argument("--host", default="127.0.0.1")
     live_parser.add_argument("--port", type=int, default=8767)
-    ossie_parser = sub.add_parser(
-        "ossie", help="Materialize the graph and validate the OSSIE map"
-    )
+    ossie_parser = sub.add_parser("ossie", help="Materialize the graph and validate the OSSIE map")
     ossie_sub = ossie_parser.add_subparsers(dest="ossie_command", required=True)
     materialize_parser = ossie_sub.add_parser(
         "materialize", help="Load a graphify graph into graph_nodes and graph_edges"

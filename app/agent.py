@@ -88,7 +88,15 @@ def build_agent(repo: Path, settings: Settings, on_tool=None):
         except PermissionError:
             found = "path is outside the repository"
         if on_tool is not None:
-            on_tool({"call": "tool", "title": "list_dir", "detail": path, "ran": path, "returned": found})
+            on_tool(
+                {
+                    "call": "tool",
+                    "title": "list_dir",
+                    "detail": path,
+                    "ran": path,
+                    "returned": found,
+                }
+            )
         return found
 
     @agent.tool_plain
@@ -103,7 +111,15 @@ def build_agent(repo: Path, settings: Settings, on_tool=None):
         except PermissionError:
             found = "path is outside the repository"
         if on_tool is not None:
-            on_tool({"call": "tool", "title": "read_file", "detail": path, "ran": path, "returned": found})
+            on_tool(
+                {
+                    "call": "tool",
+                    "title": "read_file",
+                    "detail": path,
+                    "ran": path,
+                    "returned": found,
+                }
+            )
         return found
 
     return agent
@@ -117,7 +133,9 @@ def run_agent(agent, prompt: str) -> RunOutput:
     try:
         result = agent.run_sync(
             prompt,
-            usage_limits=UsageLimits(tool_calls_limit=TOOL_TURN_CAP, request_limit=TOOL_TURN_CAP + 1),
+            usage_limits=UsageLimits(
+                tool_calls_limit=TOOL_TURN_CAP, request_limit=TOOL_TURN_CAP + 1
+            ),
         )
     except UsageLimitExceeded:
         return RunOutput(answer="", tool_calls=TOOL_TURN_CAP, prompt_tokens=0, completion_tokens=0)

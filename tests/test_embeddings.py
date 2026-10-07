@@ -23,9 +23,7 @@ class _RecordingTransformer:
     def encode(self, texts, normalize_embeddings=True):
         assert normalize_embeddings is True
         self.batches.append(list(texts))
-        return [
-            _Vector([float(len(text)), float(len(self.name))]) for text in texts
-        ]
+        return [_Vector([float(len(text)), float(len(self.name))]) for text in texts]
 
 
 def _isolate(monkeypatch):

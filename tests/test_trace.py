@@ -5,11 +5,11 @@ import json
 import pytest
 
 from app.generate import section_label
-from app.validate import REFUSAL
 from app.ingest import run
 from app.pgadapter import PgAdapter
 from app.retrieve import search
 from app.trace import trace_ask
+from app.validate import REFUSAL
 from tests.test_rag import FakeLanguageModel, OrderingReranker
 
 
@@ -56,10 +56,7 @@ def test_an_uncached_question_returns_the_answer_and_every_stage():
         "store",
     ]
     assert result["trace"][1]["status"] == "miss"
-    assert any(
-        chunk["chunk_id"] == top["chunk_id"]
-        for chunk in result["trace"][4]["chunks"]
-    )
+    assert any(chunk["chunk_id"] == top["chunk_id"] for chunk in result["trace"][4]["chunks"])
     passed = result["trace"][6]["chunks"]
     assert passed[0]["chunk_id"] == top["chunk_id"]
     assert result["trace"][6]["answer"] == "Domestic travel meals are $75 per day."
@@ -104,7 +101,9 @@ def test_each_stage_lists_the_chunks_and_scores_from_that_lane():
     top = search(question, adapter)[0]
     label = section_label(top)
     model = FakeLanguageModel(
-        json.dumps({"answer": "Unauthorized weapon prototypes trigger Villain Protocol.", "section": label})
+        json.dumps(
+            {"answer": "Unauthorized weapon prototypes trigger Villain Protocol.", "section": label}
+        )
     )
 
     result = trace_ask(
@@ -123,7 +122,9 @@ def test_each_stage_lists_the_chunks_and_scores_from_that_lane():
     assert stored["section"]
     assert stored["effective_date"] == "January 15, 2024"
     assert stored["superseded"] is False
-    assert all(isinstance(chunk["distance"], float) for chunk in stages["question_embedding"]["chunks"])
+    assert all(
+        isinstance(chunk["distance"], float) for chunk in stages["question_embedding"]["chunks"]
+    )
     assert stages["keyword_search"]["chunks"]
     assert all(isinstance(chunk["rrf_score"], float) for chunk in stages["rrf"]["chunks"])
     assert [chunk["chunk_id"] for chunk in stages["cross_encoder"]["chunks"]] == [
@@ -246,7 +247,12 @@ def test_including_superseded_policy_skips_the_cache_and_admits_the_stale_sectio
         question,
         database_adapter=adapter,
         language_model=FakeLanguageModel(
-            json.dumps({"answer": "Domestic travel meals are $75 per day.", "section": section_label(stale)})
+            json.dumps(
+                {
+                    "answer": "Domestic travel meals are $75 per day.",
+                    "section": section_label(stale),
+                }
+            )
         ),
         reranker=OrderingReranker([]),
     )

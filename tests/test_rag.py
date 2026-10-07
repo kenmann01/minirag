@@ -72,8 +72,7 @@ def test_ingest_stores_2024_purpose_as_a_768_child():
     adapter = PgAdapter()
     with adapter.connect() as conn:
         conn.execute("DROP TABLE IF EXISTS policy_chunks")
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE policy_chunks (
                 chunk_id TEXT PRIMARY KEY,
                 document TEXT NOT NULL,
@@ -83,8 +82,7 @@ def test_ingest_stores_2024_purpose_as_a_768_child():
                 text TEXT NOT NULL,
                 embedding vector(384) NOT NULL
             )
-            """
-        )
+            """)
     run(adapter)
     with adapter.connect() as conn:
         row = conn.execute(
@@ -117,10 +115,7 @@ def test_ingest_stores_every_policy_in_the_folder():
     adapter = PgAdapter()
     run(adapter)
     with adapter.connect() as conn:
-        sources = {
-            row[0]
-            for row in conn.execute("SELECT DISTINCT source_doc FROM policy_chunks")
-        }
+        sources = {row[0] for row in conn.execute("SELECT DISTINCT source_doc FROM policy_chunks")}
     assert sources == {
         "minion_expense_policy_2021.md",
         "minion_expense_policy_2024.md",
@@ -165,22 +160,18 @@ def test_the_adapter_bootstraps_the_vector_extension_on_a_fresh_database():
     adapter = PgAdapter()
     with adapter.connect() as conn:
         conn.execute("DROP TABLE IF EXISTS policy_chunks")
-        owned = conn.execute(
-            """
+        owned = conn.execute("""
             SELECT pg_get_userbyid(extowner) = current_user
             FROM pg_extension
             WHERE extname = 'vector'
-            """
-        ).fetchone()
+            """).fetchone()
         if owned is None or owned[0]:
             conn.execute("DROP EXTENSION IF EXISTS vector CASCADE")
 
     run(adapter)
 
     with adapter.connect() as conn:
-        extension = conn.execute(
-            "SELECT 1 FROM pg_extension WHERE extname = 'vector'"
-        ).fetchone()
+        extension = conn.execute("SELECT 1 FROM pg_extension WHERE extname = 'vector'").fetchone()
         count = conn.execute("SELECT COUNT(*) FROM policy_chunks").fetchone()[0]
     assert extension is not None
     assert count > 0
@@ -215,9 +206,9 @@ def test_the_villain_protocol_question_surfaces_the_travel_security_trigger_sect
             """,
             (question, trigger_chunk_id),
         ).fetchone()[0]
-    assert keyword_rank is not None and keyword_rank > 0, (
-        "the trigger section must match the keyword lane's query"
-    )
+    assert (
+        keyword_rank is not None and keyword_rank > 0
+    ), "the trigger section must match the keyword lane's query"
 
 
 def test_ingest_keeps_a_prose_effective_date():
@@ -278,20 +269,16 @@ def test_ingest_creates_the_stored_tsvector_column_and_gin_index():
     adapter = PgAdapter()
     run(adapter)
     with adapter.connect() as conn:
-        tsv = conn.execute(
-            """
+        tsv = conn.execute("""
             SELECT 1
             FROM information_schema.columns
             WHERE table_name = 'policy_chunks' AND column_name = 'tsv'
-            """
-        ).fetchone()
-        gin = conn.execute(
-            """
+            """).fetchone()
+        gin = conn.execute("""
             SELECT 1
             FROM pg_indexes
             WHERE tablename = 'policy_chunks' AND indexname = 'policy_chunks_tsv_gin'
-            """
-        ).fetchone()
+            """).fetchone()
     assert tsv is not None
     assert gin is not None
 
@@ -300,8 +287,7 @@ def test_ingest_recreates_a_table_missing_the_tsvector_column():
     adapter = PgAdapter()
     with adapter.connect() as conn:
         conn.execute("DROP TABLE IF EXISTS policy_chunks")
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE policy_chunks (
                 chunk_id TEXT PRIMARY KEY,
                 source_doc TEXT NOT NULL,
@@ -313,17 +299,14 @@ def test_ingest_recreates_a_table_missing_the_tsvector_column():
                 text TEXT NOT NULL,
                 embedding vector(768) NOT NULL
             )
-            """
-        )
+            """)
     run(adapter)
     with adapter.connect() as conn:
-        tsv = conn.execute(
-            """
+        tsv = conn.execute("""
             SELECT 1
             FROM information_schema.columns
             WHERE table_name = 'policy_chunks' AND column_name = 'tsv'
-            """
-        ).fetchone()
+            """).fetchone()
     assert tsv is not None
 
 
@@ -515,9 +498,7 @@ def test_rank_caps_the_output_at_top_n():
         "d",
         "c",
     ]
-    assert [
-        chunk["chunk_id"] for chunk in reranker.rank("question", chunks, top_n=2)
-    ] == ["g", "f"]
+    assert [chunk["chunk_id"] for chunk in reranker.rank("question", chunks, top_n=2)] == ["g", "f"]
 
 
 def test_rank_of_no_candidates_returns_empty_without_touching_the_model():
@@ -609,13 +590,9 @@ def test_the_lineage_bypass_admits_the_stale_per_diem_section_into_the_vector_la
     default_rows = search(question, adapter)
     bypassed = search(question, adapter, include_superseded=True)
     assert all(
-        not row["chunk_id"].startswith("minion_expense_policy_2021:")
-        for row in default_rows
+        not row["chunk_id"].startswith("minion_expense_policy_2021:") for row in default_rows
     )
-    assert any(
-        row["chunk_id"].startswith("minion_expense_policy_2021:s5:")
-        for row in bypassed
-    )
+    assert any(row["chunk_id"].startswith("minion_expense_policy_2021:s5:") for row in bypassed)
 
 
 def test_the_lineage_bypass_admits_the_stale_section_into_the_keyword_lane():
@@ -625,13 +602,9 @@ def test_the_lineage_bypass_admits_the_stale_section_into_the_keyword_lane():
     default_rows = search(question, adapter)
     bypassed = search(question, adapter, include_superseded=True)
     assert all(
-        not row["chunk_id"].startswith("minion_expense_policy_2021:")
-        for row in default_rows
+        not row["chunk_id"].startswith("minion_expense_policy_2021:") for row in default_rows
     )
-    assert any(
-        row["chunk_id"].startswith("minion_expense_policy_2021:s5:")
-        for row in bypassed
-    )
+    assert any(row["chunk_id"].startswith("minion_expense_policy_2021:s5:") for row in bypassed)
 
 
 def test_ask_with_the_lineage_bypass_reproduces_the_stale_answer_and_never_caches(capsys):
@@ -640,9 +613,7 @@ def test_ask_with_the_lineage_bypass_reproduces_the_stale_answer_and_never_cache
     question = "How much can I spend on food each day?"
     bypassed = search(question, adapter, include_superseded=True)
     stale = next(
-        row
-        for row in bypassed
-        if row["chunk_id"].startswith("minion_expense_policy_2021:s5:")
+        row for row in bypassed if row["chunk_id"].startswith("minion_expense_policy_2021:s5:")
     )
     model = FakeLanguageModel(
         json.dumps(
@@ -755,10 +726,7 @@ def test_employee_can_ask_about_meals_and_receive_grounded_json(capsys):
         "section": label,
     }
     assert len(output["retrieved_chunks"]) == 5
-    assert all(
-        isinstance(chunk["distance"], float)
-        for chunk in output["retrieved_chunks"]
-    )
+    assert all(isinstance(chunk["distance"], float) for chunk in output["retrieved_chunks"])
 
 
 def test_ask_omits_citation_when_model_names_a_different_section(capsys):
@@ -849,9 +817,7 @@ def test_ask_uses_host_mistral_through_ollama(capsys, monkeypatch):
     }
 
 
-ANSWER_QUESTIONS = [
-    golden.question for golden in load_goldens() if golden.kind == "answer"
-]
+ANSWER_QUESTIONS = [golden.question for golden in load_goldens() if golden.kind == "answer"]
 
 
 @pytest.mark.parametrize("question", ANSWER_QUESTIONS)
@@ -860,9 +826,7 @@ def test_ask_cites_the_current_section_the_model_names(question, capsys):
     run(adapter)
     top = search(question, adapter)[0]
     label = section_label(top)
-    model = FakeLanguageModel(
-        json.dumps({"answer": "Cited from the policy.", "section": label})
-    )
+    model = FakeLanguageModel(json.dumps({"answer": "Cited from the policy.", "section": label}))
 
     main(
         ["ask", question],
@@ -912,9 +876,7 @@ def test_generator_receives_all_five_retrieved_policy_excerpts(capsys):
     assert "Cite the section containing the rule" in model.prompts[0]
     assert "every claim in the answer must be supported" in model.prompts[0]
     assert len(output["retrieved_chunks"]) == 5
-    assert all(
-        chunk["text"] in model.prompts[0] for chunk in output["retrieved_chunks"]
-    )
+    assert all(chunk["text"] in model.prompts[0] for chunk in output["retrieved_chunks"])
 
 
 def test_ask_rejects_invalid_model_json_without_printing_partial_output(capsys):
@@ -956,19 +918,14 @@ def test_employee_receives_exact_refusal_without_citation_for_gym_memberships(ca
     assert output["answer"] == "The provided policy does not answer this question."
     assert output["citation"] is None
     assert len(output["retrieved_chunks"]) == 5
-    assert all(
-        isinstance(chunk["distance"], float)
-        for chunk in output["retrieved_chunks"]
-    )
+    assert all(isinstance(chunk["distance"], float) for chunk in output["retrieved_chunks"])
 
 
 def test_gym_question_instructs_model_to_use_the_exact_refusal(capsys):
     adapter = PgAdapter()
     run(adapter)
     refusal = "The provided policy does not answer this question."
-    model = FakeLanguageModel(
-        json.dumps({"answer": refusal, "section": "3. Airfare"})
-    )
+    model = FakeLanguageModel(json.dumps({"answer": refusal, "section": "3. Airfare"}))
 
     main(
         ["ask", "Does the company reimburse gym memberships?"],
@@ -1029,9 +986,19 @@ def test_repeat_ask_returns_the_stored_answer_without_calling_the_model(capsys):
         )
     )
 
-    first = main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    first = main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     first_output = json.loads(capsys.readouterr().out)
-    second = main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    second = main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     second_output = json.loads(capsys.readouterr().out)
 
     assert first == 0
@@ -1057,9 +1024,16 @@ def test_ask_treats_case_and_whitespace_as_the_same_question(capsys):
         )
     )
 
-    main(["ask", padded], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", padded], database_adapter=adapter, language_model=model, reranker=TopFiveReranker()
+    )
     first_output = json.loads(capsys.readouterr().out)
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     second_output = json.loads(capsys.readouterr().out)
 
     assert first_output["answer"] == "Domestic travel meals are $75 per day."
@@ -1081,7 +1055,9 @@ def test_miss_sends_the_typed_question_to_the_model(capsys):
         )
     )
 
-    main(["ask", padded], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", padded], database_adapter=adapter, language_model=model, reranker=TopFiveReranker()
+    )
     capsys.readouterr()
 
     assert padded in model.prompts[0]
@@ -1101,11 +1077,21 @@ def test_repeat_ask_returns_the_stored_answer_after_chunks_are_removed(capsys):
         )
     )
 
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     stored = json.loads(capsys.readouterr().out)
     with adapter.connect() as conn:
         conn.execute("DROP TABLE policy_chunks")
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     replay = json.loads(capsys.readouterr().out)
 
     assert replay == stored
@@ -1121,8 +1107,7 @@ def test_empty_retrieval_refuses_without_calling_the_model_or_storing_a_cache_en
     question = "How much can I spend on food each day?"
     with adapter.connect() as conn:
         conn.execute("DROP TABLE policy_chunks")
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE policy_chunks (
                 chunk_id TEXT PRIMARY KEY,
                 source_doc TEXT NOT NULL,
@@ -1135,8 +1120,7 @@ def test_empty_retrieval_refuses_without_calling_the_model_or_storing_a_cache_en
                 embedding vector(768) NOT NULL,
                 tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', text)) STORED
             )
-            """
-        )
+            """)
     model = FakeLanguageModel(
         json.dumps({"answer": "Meals are $75 per day.", "section": "1. Meals"})
     )
@@ -1160,7 +1144,12 @@ def test_empty_retrieval_refuses_without_calling_the_model_or_storing_a_cache_en
     good_model = FakeLanguageModel(
         json.dumps({"answer": "Meals are $75 per day.", "section": label})
     )
-    main(["ask", question], database_adapter=adapter, language_model=good_model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=good_model,
+        reranker=TopFiveReranker(),
+    )
     replay = json.loads(capsys.readouterr().out)
 
     assert replay["answer"] == "Meals are $75 per day."
@@ -1176,16 +1165,16 @@ def test_a_different_question_does_not_reuse_the_stored_answer(capsys):
     airfare_label = section_label(search(airfare, adapter)[0])
     model = SequenceLanguageModel(
         [
-            json.dumps(
-                {"answer": "Meals are $75 per day.", "section": meals_label}
-            ),
+            json.dumps({"answer": "Meals are $75 per day.", "section": meals_label}),
             json.dumps({"answer": "Economy only.", "section": airfare_label}),
         ]
     )
 
     main(["ask", meals], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
     capsys.readouterr()
-    main(["ask", airfare], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", airfare], database_adapter=adapter, language_model=model, reranker=TopFiveReranker()
+    )
     airfare_output = json.loads(capsys.readouterr().out)
     main(["ask", meals], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
     replay = json.loads(capsys.readouterr().out)
@@ -1207,10 +1196,20 @@ def test_invalid_ask_stores_nothing_and_the_next_valid_ask_calls_the_model(capsy
     )
 
     with pytest.raises(ValidationError):
-        main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+        main(
+            ["ask", question],
+            database_adapter=adapter,
+            language_model=model,
+            reranker=TopFiveReranker(),
+        )
     assert capsys.readouterr().out == ""
 
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     output = json.loads(capsys.readouterr().out)
 
     assert output["answer"] == "Economy only."
@@ -1230,18 +1229,26 @@ def test_ask_misses_when_the_generation_model_changes(capsys, monkeypatch):
     )
 
     monkeypatch.setenv("OLLAMA_MODEL", "qwen3:8b")
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     capsys.readouterr()
     monkeypatch.setenv("OLLAMA_MODEL", "mistral")
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     output = json.loads(capsys.readouterr().out)
 
     assert output["answer"] == "A different model says $75."
 
 
-def test_ask_returns_the_earlier_answer_when_the_generation_model_returns(
-    capsys, monkeypatch
-):
+def test_ask_returns_the_earlier_answer_when_the_generation_model_returns(capsys, monkeypatch):
     adapter = PgAdapter()
     run(adapter)
     question = "How much can I spend on food each day?"
@@ -1254,13 +1261,28 @@ def test_ask_returns_the_earlier_answer_when_the_generation_model_returns(
     )
 
     monkeypatch.setenv("OLLAMA_MODEL", "qwen3:8b")
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     capsys.readouterr()
     monkeypatch.setenv("OLLAMA_MODEL", "mistral")
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     capsys.readouterr()
     monkeypatch.setenv("OLLAMA_MODEL", "qwen3:8b")
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     replay = json.loads(capsys.readouterr().out)
 
     assert replay["answer"] == "Meals are $75 per day."
@@ -1280,20 +1302,26 @@ def test_ask_misses_when_the_embedder_changes(capsys, monkeypatch):
     model = SequenceLanguageModel(
         [
             json.dumps({"answer": "Meals are $75 per day.", "section": label}),
-            json.dumps(
-                {"answer": "A different embedder says $75.", "section": label}
-            ),
+            json.dumps({"answer": "A different embedder says $75.", "section": label}),
         ]
     )
 
     monkeypatch.setenv("EMBEDDING_MODEL", "Alibaba-NLP/gte-modernbert-base")
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     capsys.readouterr()
     monkeypatch.setenv("EMBEDDING_MODEL", "other-embedder")
-    monkeypatch.setattr(
-        "app.retrieve.embed_texts", lambda texts: [vector for _ in texts]
+    monkeypatch.setattr("app.retrieve.embed_texts", lambda texts: [vector for _ in texts])
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
     )
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
     output = json.loads(capsys.readouterr().out)
 
     assert output["answer"] == "A different embedder says $75."
@@ -1311,14 +1339,24 @@ def test_ask_misses_when_the_prompt_version_changes(capsys, monkeypatch):
         ]
     )
 
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     capsys.readouterr()
 
     class PromptV9:
         stem = "prompt_v9"
 
     monkeypatch.setattr("app.cache.PROMPT_PATH", PromptV9())
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     output = json.loads(capsys.readouterr().out)
 
     assert output["answer"] == "Prompt v2 says $75."
@@ -1338,22 +1376,33 @@ def test_each_embedder_keeps_its_own_stored_answer(capsys, monkeypatch):
     model = SequenceLanguageModel(
         [
             json.dumps({"answer": "Meals are $75 per day.", "section": label}),
-            json.dumps(
-                {"answer": "A different embedder says $75.", "section": label}
-            ),
+            json.dumps({"answer": "A different embedder says $75.", "section": label}),
         ]
     )
 
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     capsys.readouterr()
     monkeypatch.setenv("EMBEDDING_MODEL", "other-embedder")
-    monkeypatch.setattr(
-        "app.retrieve.embed_texts", lambda texts: [vector for _ in texts]
+    monkeypatch.setattr("app.retrieve.embed_texts", lambda texts: [vector for _ in texts])
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
     )
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
     capsys.readouterr()
     monkeypatch.setenv("EMBEDDING_MODEL", "Alibaba-NLP/gte-modernbert-base")
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     replay = json.loads(capsys.readouterr().out)
 
     assert replay["answer"] == "Meals are $75 per day."
@@ -1371,18 +1420,32 @@ def test_each_prompt_version_keeps_its_own_stored_answer(capsys, monkeypatch):
         ]
     )
 
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     capsys.readouterr()
 
     class PromptV9:
         stem = "prompt_v9"
 
     monkeypatch.setattr("app.cache.PROMPT_PATH", PromptV9())
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     capsys.readouterr()
     monkeypatch.setattr("app.cache.PROMPT_PATH", PROMPT_PATH)
-    main(["ask", question], database_adapter=adapter, language_model=model, reranker=TopFiveReranker())
+    main(
+        ["ask", question],
+        database_adapter=adapter,
+        language_model=model,
+        reranker=TopFiveReranker(),
+    )
     replay = json.loads(capsys.readouterr().out)
 
     assert replay["answer"] == "Meals are $75 per day."
-

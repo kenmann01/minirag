@@ -84,4 +84,7 @@ def test_prepare_local_judge_pins_ollama(monkeypatch):
     assert judge.model is seen["model"]
     assert judge.rubric == JUDGE_RUBRIC
     assert judge.model_settings["seed"] == 77
-    assert seen["model"]._model_name == "qwen3:8b" or getattr(seen["model"], "model_name", "") == "qwen3:8b"
+    assert (
+        seen["model"]._model_name == "qwen3:8b"
+        or getattr(seen["model"], "model_name", "") == "qwen3:8b"
+    )

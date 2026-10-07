@@ -14,6 +14,7 @@ POLICY_DIR = Path(__file__).resolve().parents[1] / "Policy"
 class EmptyCorpusError(RuntimeError):
     """The corpus produced no chunks, so the stored index was left unchanged."""
 
+
 _CREATE_TABLE = """
 CREATE TABLE policy_chunks (
     chunk_id TEXT PRIMARY KEY,
@@ -101,14 +102,12 @@ def _ensure_schema(conn) -> None:
     dropped and rebuilt; the ingest that follows repopulates it.
     """
     conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    columns = conn.execute(
-        """
+    columns = conn.execute("""
         SELECT column_name
         FROM information_schema.columns
         WHERE table_name = 'policy_chunks'
           AND column_name IN ('parent_text', 'tsv')
-        """
-    ).fetchall()
+        """).fetchall()
     if len(columns) < 2:
         conn.execute("DROP TABLE IF EXISTS policy_chunks")
         conn.execute(_CREATE_TABLE)

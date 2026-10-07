@@ -65,7 +65,14 @@ def test_a_score_emits_each_call_before_it_returns(tmp_path, monkeypatch):
 
 def test_iter_live_yields_calls_until_the_worker_finishes(tmp_path, monkeypatch):
     def fake_run_score(**kwargs):
-        kwargs["on_event"]({"call": "load_graph", "station": "graph", "title": "Read the code map", "detail": "edge"})
+        kwargs["on_event"](
+            {
+                "call": "load_graph",
+                "station": "graph",
+                "title": "Read the code map",
+                "detail": "edge",
+            }
+        )
         return []
 
     monkeypatch.setattr("app.score.run_score", fake_run_score)

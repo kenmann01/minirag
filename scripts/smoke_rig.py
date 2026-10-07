@@ -55,9 +55,7 @@ FAMILIES = (
     (
         "e",
         "gate stats",
-        "SELECT wall_time_seconds "
-        "FROM gate_metrics "
-        "ORDER BY created_at DESC LIMIT 1",
+        "SELECT wall_time_seconds " "FROM gate_metrics " "ORDER BY created_at DESC LIMIT 1",
     ),
 )
 
@@ -108,9 +106,7 @@ def check_panel_queries() -> None:
             try:
                 conn.execute(query).fetchall()
             except psycopg.Error as exc:
-                raise RuntimeError(
-                    f"panel family {letter} ({label}) query failed: {exc}"
-                ) from exc
+                raise RuntimeError(f"panel family {letter} ({label}) query failed: {exc}") from exc
 
 
 def main() -> int:

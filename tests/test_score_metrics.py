@@ -35,7 +35,11 @@ class CorpusPhraser:
         fact_blocks = re.split(r"^Fact \d+$", prompt, flags=re.MULTILINE)[1:]
         first_chunk_per_fact = [
             next(
-                (match.group(1) for line in block.splitlines() if (match := _CHUNK_LINE.match(line))),
+                (
+                    match.group(1)
+                    for line in block.splitlines()
+                    if (match := _CHUNK_LINE.match(line))
+                ),
                 None,
             )
             for block in fact_blocks
@@ -126,14 +130,12 @@ def test_score_cli_writes_one_runs_row_per_context_arm(tmp_path, monkeypatch):
     score_through_cli(tmp_path, monkeypatch)
     adapter = PgAdapter()
     with adapter.connect() as conn:
-        rows = conn.execute(
-            """
+        rows = conn.execute("""
             SELECT run_id, context, tasks_total, tasks_passed,
                    passed_tier1, passed_tier2, tool_calls, cost_usd
             FROM runs
             ORDER BY context
-            """
-        ).fetchall()
+            """).fetchall()
     assert [row[1] for row in rows] == ["bare", "map", "map_rules"]
     assert len({row[0] for row in rows}) == 1
     boards = load_reports(tmp_path)
@@ -156,13 +158,11 @@ def test_score_cli_writes_a_task_results_row_per_case(tmp_path, monkeypatch):
     score_through_cli(tmp_path, monkeypatch)
     adapter = PgAdapter()
     with adapter.connect() as conn:
-        rows = conn.execute(
-            """
+        rows = conn.execute("""
             SELECT run_id, context, task_id, tier, passed, origin, created_at
             FROM task_results
             ORDER BY context, task_id
-            """
-        ).fetchall()
+            """).fetchall()
         run_ids = {row[0] for row in conn.execute("SELECT run_id FROM runs").fetchall()}
     assert len(rows) == 24
     assert {row[0] for row in rows} == run_ids
@@ -195,13 +195,11 @@ def test_score_cli_stores_grounding_distance_per_tier(tmp_path, monkeypatch):
     score_through_cli(tmp_path, monkeypatch)
     adapter = PgAdapter()
     with adapter.connect() as conn:
-        rows = conn.execute(
-            """
+        rows = conn.execute("""
             SELECT task_id, tier, grounding_distance, origin
             FROM task_results
             ORDER BY context, task_id
-            """
-        ).fetchall()
+            """).fetchall()
     tier1 = [row for row in rows if row[1] == 1]
     tier2 = [row for row in rows if row[1] == 2]
     assert tier1 and tier2
@@ -253,15 +251,13 @@ def test_score_cli_no_metrics_writes_no_tables(tmp_path, monkeypatch):
 def test_score_cli_self_heals_a_partial_runs_table(tmp_path, monkeypatch):
     adapter = PgAdapter()
     with adapter.connect() as conn:
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE runs (
                 run_id UUID NOT NULL,
                 context TEXT NOT NULL,
                 PRIMARY KEY (run_id, context)
             )
-            """
-        )
+            """)
     score_through_cli(tmp_path, monkeypatch)
     with adapter.connect() as conn:
         columns = {

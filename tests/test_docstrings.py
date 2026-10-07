@@ -23,9 +23,7 @@ def _python_files():
             yield target
         else:
             yield from sorted(
-                path
-                for path in target.rglob("*.py")
-                if "__pycache__" not in path.parts
+                path for path in target.rglob("*.py") if "__pycache__" not in path.parts
             )
 
 

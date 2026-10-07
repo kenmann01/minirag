@@ -40,13 +40,11 @@ def test_materialize_loads_the_fixture_graph_and_reruns_without_duplicates(tmp_p
         nodes = conn.execute(
             "SELECT node_id, label, source_file FROM graph_nodes ORDER BY node_id"
         ).fetchall()
-        edges = conn.execute(
-            """
+        edges = conn.execute("""
             SELECT source_id, target_id, relation, confidence
             FROM graph_edges
             ORDER BY source_id, target_id, relation
-            """
-        ).fetchall()
+            """).fetchall()
 
     second = main(["ossie", "materialize", "--graph", str(graph)], database_adapter=adapter)
     with adapter.connect() as conn:
@@ -70,33 +68,27 @@ def ingested_corpus():
 def test_ingest_writes_one_sections_row_per_parent_section():
     adapter = PgAdapter()
     with adapter.connect() as conn:
-        sections = conn.execute(
-            """
+        sections = conn.execute("""
             SELECT source_doc, section, section_title, parent_text,
                    effective_date, superseded_by
             FROM sections
             ORDER BY source_doc, section
-            """
-        ).fetchall()
+            """).fetchall()
         chunk_pairs = conn.execute(
             "SELECT DISTINCT source_doc, section FROM policy_chunks"
         ).fetchall()
     assert {(row[0], row[1]) for row in sections} == set(chunk_pairs)
-    superseded = {
-        row[0]: row for row in sections if row[0] == "minion_expense_policy_2021.md"
-    }
+    superseded = {row[0]: row for row in sections if row[0] == "minion_expense_policy_2021.md"}
     assert superseded["minion_expense_policy_2021.md"][4] == "June 1, 2021"
     assert superseded["minion_expense_policy_2021.md"][5] == "minion_expense_policy_2024.md"
     with adapter.connect() as conn:
-        parent = conn.execute(
-            """
+        parent = conn.execute("""
             SELECT s.parent_text, c.parent_text
             FROM sections s
             JOIN policy_chunks c
               ON c.source_doc = s.source_doc AND c.section = s.section
             LIMIT 1
-            """
-        ).fetchone()
+            """).fetchone()
     assert parent[0] == parent[1]
 
 
@@ -104,15 +96,13 @@ def test_ingest_self_heals_a_partial_sections_table():
     adapter = PgAdapter()
     with adapter.connect() as conn:
         conn.execute("DROP TABLE IF EXISTS sections")
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE sections (
                 source_doc TEXT NOT NULL,
                 section TEXT NOT NULL,
                 PRIMARY KEY (source_doc, section)
             )
-            """
-        )
+            """)
     run_ingest(PgAdapter())
     with adapter.connect() as conn:
         columns = {

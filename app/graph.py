@@ -75,15 +75,11 @@ def candidate_edges(edges: list[Edge], limit: int = 4) -> list[Edge]:
     The order is source, target, relation. A human does not choose the facts.
     """
     extracted = [
-        edge
-        for edge in edges
-        if edge.confidence == "EXTRACTED" and edge.relation.lower() in _CALLS
+        edge for edge in edges if edge.confidence == "EXTRACTED" and edge.relation.lower() in _CALLS
     ]
 
     def mentions_loan(edge: Edge) -> bool:
-        blob = " ".join(
-            (edge.source, edge.target, edge.source_file, edge.target_file)
-        ).lower()
+        blob = " ".join((edge.source, edge.target, edge.source_file, edge.target_file)).lower()
         return "loan" in blob
 
     primary = sorted((edge for edge in extracted if mentions_loan(edge)), key=_sort_key)

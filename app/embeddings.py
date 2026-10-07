@@ -56,11 +56,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     """
     global _model, _loaded_name
     model_name = get_settings().embedding_model
-    missing = [
-        text
-        for text in dict.fromkeys(texts)
-        if (model_name, text) not in _vectors
-    ]
+    missing = [text for text in dict.fromkeys(texts) if (model_name, text) not in _vectors]
     if missing:
         if _model is None or _loaded_name != model_name:
             from sentence_transformers import SentenceTransformer

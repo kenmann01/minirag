@@ -77,18 +77,14 @@ def gate_through_cli(tmp_path) -> Path:
 def test_gate_cli_writes_one_gate_metrics_row_with_the_five_numbers(tmp_path):
     adapter = PgAdapter()
     with adapter.connect() as conn:
-        before_ids = {
-            row[0] for row in conn.execute("SELECT run_id FROM gate_metrics").fetchall()
-        }
+        before_ids = {row[0] for row in conn.execute("SELECT run_id FROM gate_metrics").fetchall()}
     output = gate_through_cli(tmp_path)
     with adapter.connect() as conn:
-        rows = conn.execute(
-            """
+        rows = conn.execute("""
             SELECT run_id, gate, wall_time_seconds, node_count, edge_count,
                    passed, created_at
             FROM gate_metrics
-            """
-        ).fetchall()
+            """).fetchall()
     new_rows = [row for row in rows if row[0] not in before_ids]
     document = json.loads(output.read_text(encoding="utf-8"))
     assert len(new_rows) == 1
@@ -108,22 +104,18 @@ def test_gate_cli_appends_a_second_row_and_leaves_history_untouched(tmp_path):
     adapter = PgAdapter()
     gate_through_cli(tmp_path)
     with adapter.connect() as conn:
-        first = conn.execute(
-            """
+        first = conn.execute("""
             SELECT run_id, gate, wall_time_seconds, node_count, edge_count,
                    passed, created_at
             FROM gate_metrics
-            """
-        ).fetchall()
+            """).fetchall()
     gate_through_cli(tmp_path)
     with adapter.connect() as conn:
-        second = conn.execute(
-            """
+        second = conn.execute("""
             SELECT run_id, gate, wall_time_seconds, node_count, edge_count,
                    passed, created_at
             FROM gate_metrics
-            """
-        ).fetchall()
+            """).fetchall()
     assert len(second) == len(first) + 1
     assert {row[0] for row in second} - {row[0] for row in first}
     assert len({row[0] for row in second}) == len(second)
@@ -133,9 +125,7 @@ def test_gate_cli_appends_a_second_row_and_leaves_history_untouched(tmp_path):
 
 
 def test_gate_cli_keeps_the_committed_json_output_shape(tmp_path):
-    committed = json.loads(
-        (ROOT / "eval" / "fineract-gate.json").read_text(encoding="utf-8")
-    )
+    committed = json.loads((ROOT / "eval" / "fineract-gate.json").read_text(encoding="utf-8"))
     output = gate_through_cli(tmp_path)
     document = json.loads(output.read_text(encoding="utf-8"))
     assert set(document) == set(committed)

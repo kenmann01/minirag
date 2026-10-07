@@ -28,7 +28,6 @@ import json
 import re
 import subprocess
 import sys
-import urllib.request
 from datetime import datetime
 from pathlib import Path
 
@@ -81,9 +80,21 @@ def probe_gh() -> list[dict]:
     """Return the last eight CI workflow runs, or an empty list when gh fails."""
     try:
         out = subprocess.run(
-            ["gh", "run", "list", "--workflow", "ci", "--limit", "8",
-             "--json", "databaseId,displayTitle,conclusion,createdAt,url"],
-            capture_output=True, text=True, timeout=20, shell=True,
+            [
+                "gh",
+                "run",
+                "list",
+                "--workflow",
+                "ci",
+                "--limit",
+                "8",
+                "--json",
+                "databaseId,displayTitle,conclusion,createdAt,url",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            shell=True,
         )
         return json.loads(out.stdout) if out.returncode == 0 else []
     except Exception:
@@ -94,8 +105,12 @@ def run_capture(args: list[str] | str, timeout: int = 900) -> tuple[str, str, in
     """Run a command in the repo root and return stdout, stderr, and exit code."""
     shell = isinstance(args, str)
     proc = subprocess.run(
-        args, cwd=ROOT, capture_output=True, text=True,
-        timeout=timeout, shell=shell,
+        args,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        shell=shell,
     )
     return proc.stdout, proc.stderr, proc.returncode
 
@@ -125,7 +140,7 @@ def provided_assets() -> dict[int, Path]:
 # live captures
 
 
-MINIMAL_LOOP_SRC = '''
+MINIMAL_LOOP_SRC = """
 from app.embeddings import embed_texts
 from app.pgadapter import PgAdapter
 
@@ -149,7 +164,7 @@ with adapter.connect() as conn:
     conn.execute("DROP TABLE minimal_loop")
 print("closest:", best[0])
 print("distance:", round(float(best[1]), 4))
-'''
+"""
 
 
 def live_minimal_loop() -> tuple[str, str, int]:
@@ -184,7 +199,7 @@ print(json.dumps(result, indent=2))
     code = (
         "class _Fake:\n"
         "    def chat(self, prompt):\n"
-        "        return '{\"answer\": \"TRACE MODE: canned generation; the retrieval stages below are real.\", \"section\": \"\"}'\n"
+        '        return \'{"answer": "TRACE MODE: canned generation; the retrieval stages below are real.", "section": ""}\'\n'
     ) + code
     return run_venv(code, timeout=600)
 
@@ -406,7 +421,9 @@ def section_01(prov: dict[int, Path], status: list[dict]) -> str:
         for name, header in policy_headers():
             mark = ' style="background:#fef2f2;"' if name in conflict else ""
             rows += f"<tr><td{mark}>{esc(name)}</td><td{mark}><pre style='margin:0;font-size:6.8pt;line-height:1.2'>{esc(header)}</pre></td></tr>"
-        body.append(f"<table><tr><th>file</th><th>header block (as parsed at ingest)</th></tr>{rows}</table>")
+        body.append(
+            f"<table><tr><th>file</th><th>header block (as parsed at ingest)</th></tr>{rows}</table>"
+        )
         body.append(
             "<h3>The seven conflicting rules (2021 vs 2024)</h3>"
             "<table><tr><th>rule</th><th>2021 (superseded)</th><th>2024 (current)</th></tr>"
@@ -440,19 +457,32 @@ def section_02(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
         ok = code == 0 and "Mileage" in out
         body.append(terminal_block("python minimal_loop.py", text, "LIVE" if ok else "MISSING"))
         if ok:
-            body.append('<p class="note">Retrieved the mileage line, not the lockdown drill line: loop proven.</p>')
+            body.append(
+                '<p class="note">Retrieved the mileage line, not the lockdown drill line: loop proven.</p>'
+            )
             status.append({"n": n, "title": title, "status": "LIVE"})
         else:
-            body.append(missing_box("docker compose up -d && python build_submission.py", "the loop run failed; fix and re-run this builder."))
+            body.append(
+                missing_box(
+                    "docker compose up -d && python build_submission.py",
+                    "the loop run failed; fix and re-run this builder.",
+                )
+            )
             status.append({"n": n, "title": title, "status": "MISSING"})
     else:
-        body.append(missing_box("docker compose up -d && python build_submission.py",
-                                "Postgres is not reachable, so the live loop could not run."))
+        body.append(
+            missing_box(
+                "docker compose up -d && python build_submission.py",
+                "Postgres is not reachable, so the live loop could not run.",
+            )
+        )
         body.append("<h3>The exact script that will produce this evidence</h3>")
-        body.append(f"<div class='codefile'><div class='term-head'>"
-                    f"<span class='chip rendered'>code</span>"
-                    f"<span class='term-title'>minimal_loop.py</span></div>"
-                    f"<pre>{esc(MINIMAL_LOOP_SRC.strip())}</pre></div>")
+        body.append(
+            f"<div class='codefile'><div class='term-head'>"
+            f"<span class='chip rendered'>code</span>"
+            f"<span class='term-title'>minimal_loop.py</span></div>"
+            f"<pre>{esc(MINIMAL_LOOP_SRC.strip())}</pre></div>"
+        )
         status.append({"n": n, "title": title, "status": "MISSING"})
     return "".join(body) + "</div>"
 
@@ -475,7 +505,9 @@ def section_03(prov: dict[int, Path], status: list[dict]) -> str:
     return "".join(body) + "</div>"
 
 
-def section_04(prov: dict[int, Path], status: list[dict], db_ok: bool, ollama_ok: bool) -> tuple[str, str | None]:
+def section_04(
+    prov: dict[int, Path], status: list[dict], db_ok: bool, ollama_ok: bool
+) -> tuple[str, str | None]:
     """Build Deliverable 4: one live end-to-end ask, returning its parsed JSON."""
     n, title = 4, "Basic RAG pipeline end to end"
     body = [f'<div class="section"><h2>Deliverable 4: {esc(title)}</h2>']
@@ -487,7 +519,9 @@ def section_04(prov: dict[int, Path], status: list[dict], db_ok: bool, ollama_ok
     if db_ok and ollama_ok:
         out, err, code = live_ask(q)
         text = (out + ("\n" + err if code else "")).strip()
-        body.append(terminal_block(f"python -m app ask \"{q}\"", text, "LIVE" if code == 0 else "MISSING"))
+        body.append(
+            terminal_block(f'python -m app ask "{q}"', text, "LIVE" if code == 0 else "MISSING")
+        )
         try:
             ask_json = json.loads(out)
         except Exception:
@@ -495,8 +529,12 @@ def section_04(prov: dict[int, Path], status: list[dict], db_ok: bool, ollama_ok
         status.append({"n": n, "title": title, "status": "LIVE" if code == 0 else "MISSING"})
     else:
         need = "Postgres" if not db_ok else "Ollama"
-        body.append(missing_box(f"{need} up, then: python -m app ask \"{q}\"",
-                                f"{need} is not reachable; the real end-to-end answer could not be captured."))
+        body.append(
+            missing_box(
+                f'{need} up, then: python -m app ask "{q}"',
+                f"{need} is not reachable; the real end-to-end answer could not be captured.",
+            )
+        )
         body.append("<h3>The ask path this command exercises (cli.py)</h3>")
         body.append(code_block("app/cli.py"))
         status.append({"n": n, "title": title, "status": "MISSING"})
@@ -512,15 +550,17 @@ def section_05(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
         return "".join(body) + provided_image(n, prov[n], title) + "</div>"
     body.append(code_block("app/retrieve.py"))
     body.append(
-        "<p>The A/B case is the golden <code>form-zx-4491</code> (\"What does form "
-        "ZX-4491 authorize?\", dress code s11). Its chunk sits at vector rank 26, "
+        '<p>The A/B case is the golden <code>form-zx-4491</code> ("What does form '
+        'ZX-4491 authorize?", dress code s11). Its chunk sits at vector rank 26, '
         "outside the top-20 vector lane, but the keyword lane matches it exactly, "
         "so hybrid retrieves it and vector-only misses it.</p>"
     )
     hybrid = vector = None
     if db_ok:
         out1, err1, c1 = live_eval(["--output", "submission/record-hybrid.json"])
-        out2, err2, c2 = live_eval(["--retriever", "vector", "--output", "submission/record-vector.json"])
+        out2, err2, c2 = live_eval(
+            ["--retriever", "vector", "--output", "submission/record-vector.json"]
+        )
         try:
             hybrid = json.loads((ROOT / "submission/record-hybrid.json").read_text())
             vector = json.loads((ROOT / "submission/record-vector.json").read_text())
@@ -531,9 +571,10 @@ def section_05(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
             for h, v in zip(hybrid["results"], vector["results"]):
                 flip = "PASS" if h["passed"] else "FAIL"
                 vflip = "PASS" if v["passed"] else "MISS"
-                mark = ' style="background:#dcfce7;font-weight:700"' if h["passed"] != v["passed"] else ""
-                rows += (f"<tr><td>{esc(h['id'])}</td><td>{flip}</td><td>{vflip}</td>"
-                         f"<td>{'hybrid wins' if h['passed'] and not v['passed'] else ('vector-only miss' if not v['passed'] else '')}</td></tr>")
+                rows += (
+                    f"<tr><td>{esc(h['id'])}</td><td>{flip}</td><td>{vflip}</td>"
+                    f"<td>{'hybrid wins' if h['passed'] and not v['passed'] else ('vector-only miss' if not v['passed'] else '')}</td></tr>"
+                )
             body.append(
                 f"<h3>Live A/B, same build</h3>"
                 f"<table><tr><th>golden</th><th>hybrid</th><th>vector-only</th><th></th></tr>{rows}</table>"
@@ -543,16 +584,23 @@ def section_05(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
             )
             st = "LIVE"
         else:
-            body.append(terminal_block("python -m app eval (hybrid + vector A/B)", (err1 or err2).strip(), "MISSING"))
+            body.append(
+                terminal_block(
+                    "python -m app eval (hybrid + vector A/B)", (err1 or err2).strip(), "MISSING"
+                )
+            )
             st = "MISSING"
         status.append({"n": n, "title": title, "status": st})
     else:
-        body.append(missing_box(
-            "python -m app eval --output eval/record-hybrid.json\n"
-            "python -m app eval --retriever vector --output eval/record-vector.json",
-            "Postgres is not reachable: no live A/B. The committed "
-            "eval/record-vector.json still totals 9 goldens, so it predates the "
-            "form-zx-4491 case and must be regenerated to show the flip."))
+        body.append(
+            missing_box(
+                "python -m app eval --output eval/record-hybrid.json\n"
+                "python -m app eval --retriever vector --output eval/record-vector.json",
+                "Postgres is not reachable: no live A/B. The committed "
+                "eval/record-vector.json still totals 9 goldens, so it predates the "
+                "form-zx-4491 case and must be regenerated to show the flip.",
+            )
+        )
         status.append({"n": n, "title": title, "status": "MISSING"})
     return "".join(body) + "</div>"
 
@@ -602,21 +650,30 @@ def section_08(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
     if db_ok:
         out, err, code = live_eval(["--output", "eval/record.json"])
         text = (out + ("\n" + err if code else "")).strip()
-        body.append(terminal_block("python -m app eval", text or "(no output)", "LIVE" if code == 0 else "MISSING"))
+        body.append(
+            terminal_block(
+                "python -m app eval", text or "(no output)", "LIVE" if code == 0 else "MISSING"
+            )
+        )
         status.append({"n": n, "title": title, "status": "LIVE" if code == 0 else "MISSING"})
     else:
         record = eval_record("eval/record.json")
         g = golden_count()
         total = record["summary"]["total"] if record else "?"
-        stale = record and total != g
         body.append(
             f'<p class="note"><strong>STALE:</strong> Postgres is not reachable, so this is the '
             f'committed eval/record.json: {record["summary"]["passed"] if record else "?"}/'
-            f'{total} passed, but goldens.json now holds {g} cases. Regenerate with '
+            f"{total} passed, but goldens.json now holds {g} cases. Regenerate with "
             f'<span class="cmd">python -m app eval</span> once the database is up.</p>'
         )
         if record:
-            body.append(terminal_block("committed eval/record.json (recomputed summary)", json.dumps(record["summary"], indent=2), "STALE"))
+            body.append(
+                terminal_block(
+                    "committed eval/record.json (recomputed summary)",
+                    json.dumps(record["summary"], indent=2),
+                    "STALE",
+                )
+            )
         try:
             goldens = json.loads(read("eval/goldens.json"))
             rows = "".join(
@@ -624,13 +681,19 @@ def section_08(prov: dict[int, Path], status: list[dict], db_ok: bool) -> str:
                 f"<td>{esc(g['question'])}</td><td>{esc(', '.join(g['must_contain']) or '-')}</td></tr>"
                 for g in goldens
             )
-            body.append("<h3>What the harness measures: the ten-golden exam</h3>"
-                        "<table><tr><th>id</th><th>kind</th><th>question</th><th>must contain</th></tr>"
-                        f"{rows}</table>")
+            body.append(
+                "<h3>What the harness measures: the ten-golden exam</h3>"
+                "<table><tr><th>id</th><th>kind</th><th>question</th><th>must contain</th></tr>"
+                f"{rows}</table>"
+            )
         except Exception:
             pass
-        body.append(missing_box("docker compose up -d && python -m app eval",
-                                "captures the real 10-case harness table."))
+        body.append(
+            missing_box(
+                "docker compose up -d && python -m app eval",
+                "captures the real 10-case harness table.",
+            )
+        )
         status.append({"n": n, "title": title, "status": "STALE"})
     return "".join(body) + "</div>"
 
@@ -645,23 +708,42 @@ def section_09(prov: dict[int, Path], status: list[dict], db_ok: bool, ollama_ok
     q = "How much can I spend on food each day?"
     if db_ok and ollama_ok:
         out, err, code = live_ask(q)
-        body.append(terminal_block(f"python -m app ask \"{q}\"", (out + ("\n" + err if code else "")).strip(), "LIVE" if code == 0 else "MISSING"))
+        body.append(
+            terminal_block(
+                f'python -m app ask "{q}"',
+                (out + ("\n" + err if code else "")).strip(),
+                "LIVE" if code == 0 else "MISSING",
+            )
+        )
         out2, err2, code2 = live_ask(q, "--include-superseded")
-        body.append(terminal_block(
-            f"python -m app ask \"{q}\" --include-superseded",
-            (out2 + ("\n" + err2 if code2 else "")).strip(),
-            "LIVE" if code2 == 0 else "MISSING"))
-        body.append('<p class="note">The filtered ask returns $75 citing 2024; the bypassed ask '
-                    're-admits the stale 2021 duplicate so the $60 answer can be reproduced on demand. '
-                    'Bypassed asks are never cached.</p>')
-        status.append({"n": n, "title": title, "status": "LIVE" if code == 0 and code2 == 0 else "MISSING"})
+        body.append(
+            terminal_block(
+                f'python -m app ask "{q}" --include-superseded',
+                (out2 + ("\n" + err2 if code2 else "")).strip(),
+                "LIVE" if code2 == 0 else "MISSING",
+            )
+        )
+        body.append(
+            '<p class="note">The filtered ask returns $75 citing 2024; the bypassed ask '
+            "re-admits the stale 2021 duplicate so the $60 answer can be reproduced on demand. "
+            "Bypassed asks are never cached.</p>"
+        )
+        status.append(
+            {"n": n, "title": title, "status": "LIVE" if code == 0 and code2 == 0 else "MISSING"}
+        )
     else:
-        body.append(missing_box(
-            f"python -m app ask \"{q}\"\npython -m app ask \"{q}\" --include-superseded",
-            "Postgres/Ollama not reachable: no live pair. The written diagnosis below is committed."))
+        body.append(
+            missing_box(
+                f'python -m app ask "{q}"\npython -m app ask "{q}" --include-superseded',
+                "Postgres/Ollama not reachable: no live pair. The written diagnosis below is committed.",
+            )
+        )
         status.append({"n": n, "title": title, "status": "MISSING"})
-    body.append("<h3>Written diagnosis (docs/part6-diagnosis.md)</h3><pre style='background:#f8fafc;border:1px solid #d1d5db;border-radius:5px;padding:9px 11px;font-size:8.2pt;white-space:pre-wrap'>"
-                + esc(read("docs/part6-diagnosis.md")) + "</pre>")
+    body.append(
+        "<h3>Written diagnosis (docs/part6-diagnosis.md)</h3><pre style='background:#f8fafc;border:1px solid #d1d5db;border-radius:5px;padding:9px 11px;font-size:8.2pt;white-space:pre-wrap'>"
+        + esc(read("docs/part6-diagnosis.md"))
+        + "</pre>"
+    )
     return "".join(body) + "</div>"
 
 
@@ -673,10 +755,17 @@ def section_10(prov: dict[int, Path], status: list[dict], ask_json: dict | None)
         status.append({"n": n, "title": title, "status": "PROVIDED"})
         return "".join(body) + provided_image(n, prov[n], title) + "</div>"
     if ask_json and ask_json.get("citation"):
-        body.append(terminal_block("citation from the Deliverable 4 ask",
-                                   json.dumps(ask_json["citation"], indent=2), "LIVE"))
-        body.append("<p>Every answer carries document, effective date, and section; the full "
-                    "retrieved chunk list rides along in the same response.</p>")
+        body.append(
+            terminal_block(
+                "citation from the Deliverable 4 ask",
+                json.dumps(ask_json["citation"], indent=2),
+                "LIVE",
+            )
+        )
+        body.append(
+            "<p>Every answer carries document, effective date, and section; the full "
+            "retrieved chunk list rides along in the same response.</p>"
+        )
         status.append({"n": n, "title": title, "status": "LIVE"})
     else:
         record = eval_record("eval/record.json")
@@ -687,17 +776,30 @@ def section_10(prov: dict[int, Path], status: list[dict], ask_json: dict | None)
                     cite = r["citation"]
                     break
         if cite:
-            body.append(terminal_block("citation from the committed eval/record.json",
-                                       json.dumps(cite, indent=2), "RENDERED"))
+            body.append(
+                terminal_block(
+                    "citation from the committed eval/record.json",
+                    json.dumps(cite, indent=2),
+                    "RENDERED",
+                )
+            )
             first = next((r for r in record["results"] if r.get("citation")), None)
             if first:
-                body.append(terminal_block(
-                    "retrieved chunk ids behind that citation (attribution evidence)",
-                    "\n".join(first["ranked_chunk_ids"]), "RENDERED"))
+                body.append(
+                    terminal_block(
+                        "retrieved chunk ids behind that citation (attribution evidence)",
+                        "\n".join(first["ranked_chunk_ids"]),
+                        "RENDERED",
+                    )
+                )
             status.append({"n": n, "title": title, "status": "RENDERED"})
         else:
-            body.append(missing_box("python -m app ask \"How much can I spend on food each day?\"",
-                                    "no citation artifact available."))
+            body.append(
+                missing_box(
+                    'python -m app ask "How much can I spend on food each day?"',
+                    "no citation artifact available.",
+                )
+            )
             status.append({"n": n, "title": title, "status": "MISSING"})
     return "".join(body) + "</div>"
 
@@ -727,8 +829,12 @@ def section_11(prov: dict[int, Path], status: list[dict], runs: list[dict]) -> s
         )
         status.append({"n": n, "title": title, "status": "LIVE"})
     else:
-        body.append(missing_box("gh run list --workflow ci\ngh run view <run-id> --web",
-                                "no green run found via gh; push a commit or run the workflow manually."))
+        body.append(
+            missing_box(
+                "gh run list --workflow ci\ngh run view <run-id> --web",
+                "no green run found via gh; push a commit or run the workflow manually.",
+            )
+        )
         status.append({"n": n, "title": title, "status": "MISSING"})
     return "".join(body) + "</div>"
 
@@ -759,22 +865,35 @@ def appendix_trace(prov: dict[int, Path], db_ok: bool) -> str:
                     }
                     for t in data.get("trace", [])
                 ]
-                rows = "".join(f"<tr><td>{esc(s['stage'])}</td><td>{esc(str(s['detail']))}</td></tr>" for s in stages)
-                body.append(f"<p>Live trace for <em>What triggers the Villain Protocol?</em> "
-                            f"(canned generation, real retrieval stages, cache bypassed "
-                            f"neither: this went through the real path):</p>"
-                            f"<table><tr><th>stage</th><th>detail</th></tr>{rows}</table>")
-                body.append("<p class='note'>Full stage-by-stage chunk lists are in "
-                            "submission/trace-villain-protocol.json; the HTML viewer renders "
-                            "these interactively. Screenshot it for extra credit.</p>")
-                (ROOT / "submission" / "trace-villain-protocol.json").write_text(out, encoding="utf-8")
+                rows = "".join(
+                    f"<tr><td>{esc(s['stage'])}</td><td>{esc(str(s['detail']))}</td></tr>"
+                    for s in stages
+                )
+                body.append(
+                    f"<p>Live trace for <em>What triggers the Villain Protocol?</em> "
+                    f"(canned generation, real retrieval stages, cache bypassed "
+                    f"neither: this went through the real path):</p>"
+                    f"<table><tr><th>stage</th><th>detail</th></tr>{rows}</table>"
+                )
+                body.append(
+                    "<p class='note'>Full stage-by-stage chunk lists are in "
+                    "submission/trace-villain-protocol.json; the HTML viewer renders "
+                    "these interactively. Screenshot it for extra credit.</p>"
+                )
+                (ROOT / "submission" / "trace-villain-protocol.json").write_text(
+                    out, encoding="utf-8"
+                )
             except Exception:
                 body.append(terminal_block("trace_ask", (err or out).strip(), "MISSING"))
         else:
             body.append(terminal_block("trace_ask", (err or "failed").strip(), "MISSING"))
     else:
-        body.append(missing_box("docker compose up -d && python -m app serve",
-                                "database down: no live trace. Launch the viewer to screenshot it."))
+        body.append(
+            missing_box(
+                "docker compose up -d && python -m app serve",
+                "database down: no live trace. Launch the viewer to screenshot it.",
+            )
+        )
     body.append("<h3>The trace recorder (app/trace.py) and its server (app/serve.py)</h3>")
     body.append(code_block("app/trace.py"))
     body.append(code_block("app/serve.py"))
@@ -796,8 +915,10 @@ def main() -> int:
     db_ok = probe_db()
     ollama_ok = probe_ollama() if db_ok else False
     runs = probe_gh() if not no_pdf or True else []
-    print(f"  postgres: {'UP' if db_ok else 'down'}   ollama: {'UP' if ollama_ok else 'down'}"
-          f"   gh runs: {len(runs)}   provided assets: {sorted(prov)}")
+    print(
+        f"  postgres: {'UP' if db_ok else 'down'}   ollama: {'UP' if ollama_ok else 'down'}"
+        f"   gh runs: {len(runs)}   provided assets: {sorted(prov)}"
+    )
 
     status: list[dict] = []
     sections = [
@@ -807,16 +928,18 @@ def main() -> int:
     ]
     sec4_html, ask_json = section_04(prov, status, db_ok, ollama_ok)
     sections.append(sec4_html)
-    sections.extend([
-        section_05(prov, status, db_ok),
-        section_06(prov, status),
-        section_07(prov, status),
-        section_08(prov, status, db_ok),
-        section_09(prov, status, db_ok, ollama_ok),
-        section_10(prov, status, ask_json),
-        section_11(prov, status, runs),
-        appendix_trace(prov, db_ok),
-    ])
+    sections.extend(
+        [
+            section_05(prov, status, db_ok),
+            section_06(prov, status),
+            section_07(prov, status),
+            section_08(prov, status, db_ok),
+            section_09(prov, status, db_ok, ollama_ok),
+            section_10(prov, status, ask_json),
+            section_11(prov, status, runs),
+            appendix_trace(prov, db_ok),
+        ]
+    )
 
     html = build_html(status, sections)
     html_path = OUTDIR / "minirag-week6-submission.html"
@@ -830,11 +953,17 @@ def main() -> int:
             return 1
         pdf_path = OUTDIR / "minirag-week6-submission.pdf"
         subprocess.run(
-            [str(chrome), "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
-             f"--user-data-dir={OUTDIR / '.chrome-profile'}",
-             f"--print-to-pdf={pdf_path}",
-             html_path.as_uri()],
-            capture_output=True, timeout=180,
+            [
+                str(chrome),
+                "--headless=new",
+                "--disable-gpu",
+                "--no-pdf-header-footer",
+                f"--user-data-dir={OUTDIR / '.chrome-profile'}",
+                f"--print-to-pdf={pdf_path}",
+                html_path.as_uri(),
+            ],
+            capture_output=True,
+            timeout=180,
         )
         print(f"wrote {pdf_path}" if pdf_path.exists() else "PDF FAILED")
 
@@ -842,9 +971,14 @@ def main() -> int:
     for item in sorted(status, key=lambda i: (i["n"], STATUS_ORDER.get(i["status"], 9))):
         print(f"  [{item['status']:>8}] {item['n']:>2}. {item['title']}")
     worst = max((STATUS_ORDER.get(i["status"], 9) for i in status), default=9)
-    print("\nnext step:" if worst >= 3 else "\nready:",
-          "start Postgres (docker compose up -d) and Ollama, then re-run this builder"
-          if worst >= 3 else "all captured evidence is real and current")
+    print(
+        "\nnext step:" if worst >= 3 else "\nready:",
+        (
+            "start Postgres (docker compose up -d) and Ollama, then re-run this builder"
+            if worst >= 3
+            else "all captured evidence is real and current"
+        ),
+    )
     return 0
 
 

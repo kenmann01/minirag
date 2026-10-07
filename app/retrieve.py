@@ -104,8 +104,7 @@ def search(
     keyword_sql = _KEYWORD_SQL_ALL if include_superseded else _KEYWORD_SQL
     with adapter.connect() as conn:
         vector_rows = [
-            _candidate(row)
-            for row in conn.execute(vector_sql, (query_vector, top_k)).fetchall()
+            _candidate(row) for row in conn.execute(vector_sql, (query_vector, top_k)).fetchall()
         ]
         keyword_rows = (
             []
@@ -119,7 +118,4 @@ def search(
         )
     by_chunk_id = {row["chunk_id"]: row for row in [*vector_rows, *keyword_rows]}
     fused = fuse(vector_rows, keyword_rows)[:top_k]
-    return [
-        {**by_chunk_id[chunk_id], "rrf_score": float(score)}
-        for chunk_id, score in fused
-    ]
+    return [{**by_chunk_id[chunk_id], "rrf_score": float(score)} for chunk_id, score in fused]

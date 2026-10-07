@@ -5,7 +5,6 @@ import json
 import pytest
 
 from app.cli import main
-from app.generate import PROMPT_PATH
 from app.embeddings import embed_texts
 from app.evaluate import (
     Golden,
@@ -16,6 +15,7 @@ from app.evaluate import (
     run_exam,
     section_prefix_hit,
 )
+from app.generate import PROMPT_PATH
 from app.ingest import run
 from app.pgadapter import PgAdapter
 from app.reranker import CrossEncoderReranker
@@ -53,23 +53,18 @@ def test_the_poisoned_golden_demands_the_current_number_and_forbids_the_stale_on
 
 def test_the_refusal_golden_targets_an_uncovered_product():
     refusal = next(g for g in load_goldens() if g.kind == "refusal")
-    assert refusal.must_contain == [
-        "The provided policy does not answer this question."
-    ]
+    assert refusal.must_contain == ["The provided policy does not answer this question."]
 
 
 def test_every_expected_section_exists_in_the_ingested_table():
     adapter = PgAdapter()
     run(adapter)
     with adapter.connect() as conn:
-        chunk_ids = {
-            row[0] for row in conn.execute("SELECT chunk_id FROM policy_chunks")
-        }
+        chunk_ids = {row[0] for row in conn.execute("SELECT chunk_id FROM policy_chunks")}
     for golden in load_goldens():
         for expected_section in golden.expected:
             assert any(
-                chunk_id.startswith(f"{expected_section}:")
-                for chunk_id in chunk_ids
+                chunk_id.startswith(f"{expected_section}:") for chunk_id in chunk_ids
             ), expected_section
 
 
@@ -185,9 +180,7 @@ class GoldenCannedModel:
         golden = next(g for g in self.goldens if g.question in asked)
         if golden.kind == "refusal":
             return json.dumps({"answer": REFUSAL, "section": ""})
-        excerpts = prompt.rsplit("\nPolicy excerpts:\n", 1)[-1].split(
-            "\nQuestion:\n", 1
-        )[0]
+        excerpts = prompt.rsplit("\nPolicy excerpts:\n", 1)[-1].split("\nQuestion:\n", 1)[0]
         label = excerpts.split("Section: ", 1)[1].split("\n", 1)[0]
         if golden.id == self.stale_for:
             return json.dumps(
@@ -196,9 +189,7 @@ class GoldenCannedModel:
                     "section": label,
                 }
             )
-        return json.dumps(
-            {"answer": " ".join(golden.must_contain), "section": label}
-        )
+        return json.dumps({"answer": " ".join(golden.must_contain), "section": label})
 
 
 def test_the_canned_model_cites_the_retrieved_section_not_the_few_shot_example():
@@ -247,9 +238,11 @@ def test_the_exam_fails_on_an_induced_regression():
     run(adapter)
     goldens = load_goldens()
     broken = [
-        golden.model_copy(update={"expected": ["minion_visitors_policy:s5"]})
-        if golden.id == "top-approval-tier"
-        else golden
+        (
+            golden.model_copy(update={"expected": ["minion_visitors_policy:s5"]})
+            if golden.id == "top-approval-tier"
+            else golden
+        )
         for golden in goldens
     ]
     record = run_exam(
@@ -293,17 +286,14 @@ def test_form_zx_4491_is_retrieved_by_hybrid_and_missed_by_vector_only():
     hybrid_rows = search(golden.question, adapter)
     vector_rows = search(golden.question, adapter, mode="vector")
     hybrid_ids = [
-        chunk["chunk_id"]
-        for chunk in CrossEncoderReranker().rank(golden.question, hybrid_rows)
+        chunk["chunk_id"] for chunk in CrossEncoderReranker().rank(golden.question, hybrid_rows)
     ]
     assert recall_pass(hybrid_ids, golden)
     assert any(
-        chunk["chunk_id"].startswith("minion_dress_code_policy:s11:")
-        for chunk in hybrid_rows
+        chunk["chunk_id"].startswith("minion_dress_code_policy:s11:") for chunk in hybrid_rows
     )
     assert all(
-        not chunk["chunk_id"].startswith("minion_dress_code_policy:s11:")
-        for chunk in vector_rows
+        not chunk["chunk_id"].startswith("minion_dress_code_policy:s11:") for chunk in vector_rows
     )
 
 
@@ -337,16 +327,10 @@ def test_vector_mode_disables_the_keyword_lane_and_drops_the_exact_term_rescue()
         hybrid_rows = search(question, adapter)
         vector_rows = search(question, adapter, mode="vector")
         ranker = CrossEncoderReranker()
-        hybrid_five = [
-            chunk["chunk_id"] for chunk in ranker.rank(question, hybrid_rows)
-        ]
-        assert any(
-            row["chunk_id"] == "test_zagat_biscuit:s1:c01" for row in hybrid_rows
-        )
+        hybrid_five = [chunk["chunk_id"] for chunk in ranker.rank(question, hybrid_rows)]
+        assert any(row["chunk_id"] == "test_zagat_biscuit:s1:c01" for row in hybrid_rows)
         assert "test_zagat_biscuit:s1:c01" in hybrid_five
-        assert all(
-            row["chunk_id"] != "test_zagat_biscuit:s1:c01" for row in vector_rows
-        )
+        assert all(row["chunk_id"] != "test_zagat_biscuit:s1:c01" for row in vector_rows)
     finally:
         with adapter.connect() as conn:
             conn.execute(
@@ -417,14 +401,8 @@ def test_eval_with_the_lineage_bypass_admits_stale_chunks_into_the_exam(tmp_path
     assert exit_code == 0
     record = json.loads(output_path.read_text())
     assert record["include_superseded"] is True
-    every_id = [
-        chunk_id
-        for result in record["results"]
-        for chunk_id in result["ranked_chunk_ids"]
-    ]
-    assert any(
-        chunk_id.startswith("minion_expense_policy_2021:") for chunk_id in every_id
-    )
+    every_id = [chunk_id for result in record["results"] for chunk_id in result["ranked_chunk_ids"]]
+    assert any(chunk_id.startswith("minion_expense_policy_2021:") for chunk_id in every_id)
 
 
 def test_eval_without_the_bypass_keeps_stale_chunks_out_of_the_exam(tmp_path):
@@ -442,14 +420,8 @@ def test_eval_without_the_bypass_keeps_stale_chunks_out_of_the_exam(tmp_path):
 
     record = json.loads(output_path.read_text())
     assert record["include_superseded"] is False
-    every_id = [
-        chunk_id
-        for result in record["results"]
-        for chunk_id in result["ranked_chunk_ids"]
-    ]
-    assert not any(
-        chunk_id.startswith("minion_expense_policy_2021:") for chunk_id in every_id
-    )
+    every_id = [chunk_id for result in record["results"] for chunk_id in result["ranked_chunk_ids"]]
+    assert not any(chunk_id.startswith("minion_expense_policy_2021:") for chunk_id in every_id)
 
 
 def test_the_record_table_lists_every_failure_detail():

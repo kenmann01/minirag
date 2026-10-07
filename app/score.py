@@ -149,7 +149,9 @@ class GraphFact(Evaluator):
         expected = ctx.metadata["expected"]
         answer = (ctx.output.answer or "").lower()
         symbol = str(expected["target"]).split(":")[-1].split(".")[-1].lower()
-        file_name = Path(expected.get("source_file") or expected.get("target_file") or "").name.lower()
+        file_name = Path(
+            expected.get("source_file") or expected.get("target_file") or ""
+        ).name.lower()
         found_file = not file_name or file_name in answer
         ok = bool(symbol) and symbol in answer and found_file
         reason = f"{symbol} {file_name}".strip()
@@ -234,7 +236,10 @@ class ScoreboardReport(ReportEvaluator):
             "completion_tokens": completion_tokens,
             "cost_usd": cost_usd(prompt_tokens, completion_tokens, tool_calls, prices),
         }
-        ctx.report.experiment_metadata = {**(ctx.report.experiment_metadata or {}), "scoreboard": row}
+        ctx.report.experiment_metadata = {
+            **(ctx.report.experiment_metadata or {}),
+            "scoreboard": row,
+        }
         return TableResult(
             title="scoreboard",
             columns=[
@@ -260,8 +265,7 @@ class ScoreboardReport(ReportEvaluator):
 
 def _rules_text(task: Task) -> str:
     return "\n\n".join(
-        f"{chunk['chunk_id']}\n{chunk.get('text', '')}"
-        for chunk in task.origin.get("chunks") or []
+        f"{chunk['chunk_id']}\n{chunk.get('text', '')}" for chunk in task.origin.get("chunks") or []
     )
 
 
@@ -438,6 +442,7 @@ def _run_score(
         for task in tasks
     }
     if task_fn is None:
+
         def on_tool(event: dict) -> None:
             if on_event is not None:
                 on_event({**event, "station": _RUN.get() or "bare"})

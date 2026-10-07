@@ -11,7 +11,10 @@ def test_summarize_records_the_five_numbers(tmp_path):
         json.dumps(
             {
                 "nodes": [
-                    {"id": "Loan", "source_file": "org/apache/fineract/portfolio/loanaccount/Loan.java"}
+                    {
+                        "id": "Loan",
+                        "source_file": "org/apache/fineract/portfolio/loanaccount/Loan.java",
+                    }
                 ],
                 "links": [
                     {

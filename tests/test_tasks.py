@@ -136,7 +136,9 @@ def test_a_chunk_id_outside_the_bridge_log_is_rejected(tmp_path):
             return json.dumps(
                 {
                     "tier1": [{"prompt": "Which method?"} for _ in range(4)],
-                    "tier2": [{"prompt": "Rule?", "chunk_ids": ["not-retrieved"]} for _ in range(4)],
+                    "tier2": [
+                        {"prompt": "Rule?", "chunk_ids": ["not-retrieved"]} for _ in range(4)
+                    ],
                 }
             )
 

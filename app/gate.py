@@ -9,11 +9,9 @@ import tempfile
 import time
 from pathlib import Path
 
-from app.graph import loans_covered, load_graph, module_key, module_mermaid
+from app.graph import load_graph, loans_covered, module_key, module_mermaid
 
-LOANS_RELATIVE = Path(
-    "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount"
-)
+LOANS_RELATIVE = Path("fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount")
 
 
 def graphify_bin() -> str:
@@ -145,7 +143,9 @@ def render_largest(diagrams: list[tuple[str, str, int]], out_dir: Path) -> tuple
     return {"name": None, "nodes": 0, "rendered": False}, errors
 
 
-def summarize(graph_path: Path, elapsed: float, errors: list[str], mermaid: dict, scope: str) -> dict:
+def summarize(
+    graph_path: Path, elapsed: float, errors: list[str], mermaid: dict, scope: str
+) -> dict:
     """The five gate numbers, plus whether the loans package is in the graph."""
     nodes, edges = load_graph(graph_path)
     return {

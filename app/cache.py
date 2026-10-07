@@ -38,13 +38,11 @@ def cache_key(question: str) -> str:
 def lookup(question: str, adapter: DatabaseAdapter) -> AskResponse | None:
     """Return the cached AskResponse for a question, or None on a miss."""
     with adapter.connect() as conn:
-        exists = conn.execute(
-            """
+        exists = conn.execute("""
             SELECT 1
             FROM information_schema.tables
             WHERE table_schema = 'public' AND table_name = 'question_cache'
-            """
-        ).fetchone()
+            """).fetchone()
         if exists is None:
             return None
         row = conn.execute(
