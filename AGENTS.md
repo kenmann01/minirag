@@ -10,4 +10,4 @@ Canonical role names equal the GitHub label strings: `needs-triage`, `needs-info
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: `docs/prd.md` (domain onboarding) and `docs/decision-log.md` (decision records) in `docs/`. See `docs/agents/domain.md`.

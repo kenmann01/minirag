@@ -94,7 +94,7 @@ drops it). Screenshot both tables. Hybrid passes form-zx-4491. Vector-only
 marks that one golden MISS and exits nonzero. The other goldens still pass.
 
 ```
-python -m app eval --output eval/record-hybrid.json
+python -m app eval --output eval/record.json
 python -m app eval --retriever vector --output eval/record-vector.json
 ```
 
