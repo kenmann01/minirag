@@ -8,3 +8,11 @@ __pycache__/
 submission/
 .coverage
 eval/gate-work/
+
+scratch/
+docker-compose.override.yml
+.vscode/
+myenv/
+app/evidence/
+eval/record*.json
+eval/service-module.svg
