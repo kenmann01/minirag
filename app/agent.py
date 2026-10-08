@@ -64,13 +64,14 @@ def build_agent(repo: Path, settings: Settings, on_tool=None):
     model = OllamaModel(
         settings.ollama_model,
         provider=OllamaProvider(base_url=ollama_base_url(settings.ollama_host)),
-        settings={"temperature": 0, "seed": 77},
+        settings={"temperature": 0, "seed": 77, "thinking": False},
     )
     agent = Agent(
         model,
         instructions=(
-            "Answer the task from the repository. "
-            "Use list_dir and read_file. Paths are relative to the repository root. "
+            "Answer the task. If the prompt already states the target symbol and its file, "
+            "reply with that symbol and file path and do not call tools. "
+            "Otherwise use list_dir and read_file. Paths are relative to the repository root. "
             "When the task names a symbol, include that symbol and its file name."
         ),
         output_type=str,
@@ -139,7 +140,7 @@ def run_agent(agent, prompt: str) -> RunOutput:
         )
     except UsageLimitExceeded:
         return RunOutput(answer="", tool_calls=TOOL_TURN_CAP, prompt_tokens=0, completion_tokens=0)
-    usage = result.usage()
+    usage = result.usage
     answer = result.output if isinstance(result.output, str) else str(result.output)
     return RunOutput(
         answer=answer,

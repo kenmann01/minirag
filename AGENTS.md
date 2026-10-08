@@ -1,3 +1,5 @@
+Onboarding cache: ARCHITECTURE.md, ENTRYPOINTS.md, CONFIG.md, GOTCHAS.md.
+
 ## Agent skills
 
 ### Issue tracker

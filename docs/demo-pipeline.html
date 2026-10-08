@@ -51,33 +51,197 @@
     line-height: 1.6;
   }
   .gate strong { color: #202124; }
+  nav.jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 0 0 22px;
+    font-size: 13px;
+  }
+  nav.jump a { color: #1a73e8; }
+  h2.section {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 40px 0 6px;
+  }
+  .section-lead {
+    font-size: 14px;
+    color: #5f6368;
+    margin: 0 0 12px;
+    line-height: 1.55;
+    max-width: 78ch;
+  }
+  .band {
+    background: #fff;
+    border: 1px solid #dadce0;
+    border-top-width: 3px;
+    border-radius: 10px;
+    padding: 12px 14px 14px;
+    margin-top: 10px;
+  }
+  .band h3 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+  .band .why {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #3c4043;
+    line-height: 1.45;
+  }
+  .lanes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .node {
+    flex: 1 1 210px;
+    background: #f8f9fa;
+    border: 1px solid #e0e3e7;
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .node .file {
+    display: block;
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 650;
+    color: #202124;
+    margin-bottom: 3px;
+  }
+  .node p, .why {
+    margin: 0;
+  }
+  .node p {
+    font-size: 12px;
+    line-height: 1.45;
+    color: #3c4043;
+  }
+  .arrow {
+    align-self: center;
+    color: #80868b;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .join {
+    margin: 8px 0 0;
+    text-align: center;
+    font-size: 12px;
+    color: #5f6368;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .chip {
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 11px;
+    background: #fff;
+    border: 1px solid #dadce0;
+    border-radius: 999px;
+    padding: 3px 8px;
+  }
+  .pairgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 22px;
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: baseline;
+    font-size: 12px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f1f3f4;
+  }
+  .pair code {
+    font-size: 11px;
+  }
+  .pair .arr { color: #80868b; }
+  .docgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .entry { border-top-color: #5f6368; }
+  .map { border-top-color: #1a73e8; }
+  .corpus { border-top-color: #137333; }
+  .ask { border-top-color: #185abc; }
+  .harness { border-top-color: #e37400; }
+  .runs { border-top-color: #7b1fa2; }
+  .score { border-top-color: #c5221f; }
+  .board { border-top-color: #00796b; }
+  .shared { border-top-color: #5f6368; }
+  .tests { border-top-color: #5f6368; }
+  .docs { border-top-color: #5f6368; }
+  .entry h3 { color: #3c4043; }
+  .map h3 { color: #1a73e8; }
+  .corpus h3 { color: #137333; }
+  .ask h3 { color: #185abc; }
+  .harness h3 { color: #e37400; }
+  .runs h3 { color: #7b1fa2; }
+  .score h3 { color: #c5221f; }
+  .board h3 { color: #00796b; }
+  @media (max-width: 860px) {
+    .lanes, .pairgrid, .docgrid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 
 <h1>The map writes the test</h1>
-<p class="subtitle">Demo pipeline v2 for the company talk. One repo, one corpus, three scored runs, one live board.</p>
+<p class="subtitle">Demo pipeline v2 for the company talk. One repo, one corpus, three scored runs, one live board. The file map under the figure places every assignment file on that same architecture.</p>
 
-<div class="diagram">
-<pre class="mermaid">
+<nav class="jump">
+  <a href="#pipeline">Pipeline</a>
+  <a href="#files">Every file</a>
+  <a href="#calls">Python call graph</a>
+  <a href="#feeds">Data, tests, and docs</a>
+</nav>
+
+<div class="diagram" id="pipeline">
+<pre class="mermaid" id="fig-pipeline">
 flowchart TD
     subgraph M["1. THE MAP. Runs once per repo"]
-        REPO[("Demo repo<br>Apache Fineract<br>gate passed at full scope")]
-        SKILL["The skill<br>repo mapper"]
-        MERM["Mermaid diagrams<br>for humans"]
-        MAP[("THE MAP<br>graphify graph, nodes + edges")]
+        REPO[("Demo repo
+Apache Fineract
+gate passed at full scope")]
+        SKILL["The skill
+repo mapper"]
+        MERM["Mermaid diagrams
+for humans"]
+        MAP[("THE MAP
+graphify graph, nodes + edges")]
         REPO --> SKILL
         SKILL -->|"engineer view"| MERM
         SKILL -->|"agent view"| MAP
     end
 
     subgraph C["2. THE CORPUS. minirag, runs once per industry"]
-        BANK[("Banking corpus<br>public regulation PDFs")]
-        AVIA[("Aviation corpus<br>one FAA handbook")]
-        CVT["Converter<br>PDF to markdown with ## N. headings"]
-        ING["minirag ingest<br>chunk, embed, full-text index"]
-        PG[("Postgres + pgvector<br>Docker")]
-        BRIDGE["The bridge<br>retrieve-only JSON: chunks, ids, sources"]
+        BANK[("Banking corpus
+public regulation PDFs")]
+        AVIA[("Aviation corpus
+one FAA handbook")]
+        CVT["Converter
+PDF to markdown with numbered headings"]
+        ING["minirag ingest
+chunk, embed, full-text index"]
+        PG[("Postgres + pgvector
+Docker")]
+        BRIDGE["The bridge
+retrieve-only JSON: chunks, ids, sources"]
         BANK --> CVT
         AVIA -.->|"live swap during the talk"| CVT
         CVT --> ING
@@ -87,8 +251,12 @@ flowchart TD
 
     subgraph E["3. THE TEST. The map writes the evals"]
         GEN["Eval generator, LLM"]
-        T1["TIER 1<br>graph-fact checks<br>checked by script, deterministic"]
-        T2["TIER 2<br>domain questions<br>judged by model, labeled"]
+        T1["TIER 1
+graph-fact checks
+checked by script, deterministic"]
+        T2["TIER 2
+domain questions
+judged by model, labeled"]
         MAP --> GEN
         BRIDGE --> GEN
         GEN --> T1
@@ -97,9 +265,13 @@ flowchart TD
 
     subgraph R["4. THE RUNS. Same task list, three levels of context"]
         direction LR
-        A1["RUN 1<br>bare agent"]
-        A2["RUN 2<br>agent + the map"]
-        A3["RUN 3<br>agent + the map<br>+ retrieved chunks"]
+        A1["RUN 1
+bare agent"]
+        A2["RUN 2
+agent + the map"]
+        A3["RUN 3
+agent + the map
++ retrieved chunks"]
         A1 -->|"add context"| A2
         A2 -->|"add context"| A3
     end
@@ -111,9 +283,12 @@ flowchart TD
     BRIDGE --> A3
 
     subgraph S["5. THE SCOREBOARD. Pydantic harness"]
-        CHK["Tier 1 check<br>script, pass or fail"]
-        JUD["Tier 2 judge<br>model, cites the rule"]
-        BOARD["SCOREBOARD<br>score, tool calls, cost per run"]
+        CHK["Tier 1 check
+script, pass or fail"]
+        JUD["Tier 2 judge
+model, cites the rule"]
+        BOARD["SCOREBOARD
+score, tool calls, cost per run"]
         CHK --> BOARD
         JUD --> BOARD
     end
@@ -122,9 +297,14 @@ flowchart TD
     R --> JUD
 
     subgraph V["6. THE BOARD. Observability and contract, live today"]
-        METRICS["Metrics sink<br>writes runs, task results,<br>tool calls, cost"]
-        GRAF["Grafana board<br>the live scoreboard"]
-        OSSIE["OSSIE contract<br>schema + declared tables,<br>validated on stage"]
+        METRICS["Metrics sink
+writes runs, task results,
+tool calls, cost"]
+        GRAF["Grafana board
+the live scoreboard"]
+        OSSIE["OSSIE contract
+schema + declared tables,
+validated on stage"]
     end
 
     BOARD --> METRICS
@@ -155,9 +335,626 @@ flowchart TD
   at 24 nodes; the demo rig needs mmdc installed and the graph persisted.
 </p>
 
+<h2 class="section" id="files">Every file on that architecture</h2>
+<p class="section-lead">Two input lanes and one measurement spine. <code>app/</code> is the only installable package. <code>app/cli.py</code> is the dispatcher: <code>app/__main__.py</code> only calls it. Solid arrows in the bands are calls or files read. The ask path is a second exam. It grades retrieval, not the jailed agent.</p>
+
+<section class="band entry">
+  <h3>Entry</h3>
+  <p class="why"><code>python -m app</code> enters here. The converter and the submission builder are separate launchers. Smoke checks the rig after compose is up.</p>
+  <div class="flow">
+    <article class="node">
+      <span class="file">app/__init__.py</span>
+      <p>Package version <code>0.3.0</code>. <code>pyproject.toml</code> reads it.</p>
+    </article>
+    <div class="arrow" aria-hidden="true">→</div>
+    <article class="node">
+      <span class="file">app/__main__.py</span>
+      <p>Module entry. Calls <code>app.cli.main</code> and nothing else.</p>
+    </article>
+    <div class="arrow" aria-hidden="true">→</div>
+    <article class="node">
+      <span class="file">app/cli.py</span>
+      <p>Builds ingest, ask, eval, retrieve, score, compare, serve, live, gate, and ossie. Constructs <code>PgAdapter</code>, and <code>OllamaAdapter</code> when a command needs a model.</p>
+    </article>
+  </div>
+  <div class="flow" style="margin-top:8px">
+    <article class="node">
+      <span class="file">convert_docs</span>
+      <p>Extensionless launcher so <code>python convert_docs</code> matches the talk command.</p>
+    </article>
+    <div class="arrow" aria-hidden="true">→</div>
+    <article class="node">
+      <span class="file">convert_docs.py</span>
+      <p>Argument parser. Calls <code>app.convert.convert_dir</code>.</p>
+    </article>
+    <div class="arrow" aria-hidden="true">→</div>
+    <article class="node">
+      <span class="file">app/convert.py</span>
+      <p>PDF to markdown with <code>## N.</code> headings. Refuses silent empty output.</p>
+    </article>
+  </div>
+  <div class="flow" style="margin-top:8px">
+    <article class="node">
+      <span class="file">build_submission.py</span>
+      <p>Week-6 PDF assembler. Probes Postgres through <code>config</code> and <code>pgadapter</code>, and can call <code>embeddings</code>, <code>reranker</code>, and <code>trace</code>.</p>
+    </article>
+    <article class="node">
+      <span class="file">scripts/smoke_rig.py</span>
+      <p>Compose, Grafana health, and the panel SQL. <code>tests/test_rig_files.py</code> locks its query families.</p>
+    </article>
+  </div>
+</section>
+
+<p class="join">cli dispatches into the two lanes below</p>
+
+<div class="lanes">
+  <section class="band map">
+    <h3>1. The map</h3>
+    <p class="why">Inside-the-repo knowledge. Graphify writes the graph. This repo loads it and checks scale.</p>
+    <div class="flow">
+      <article class="node">
+        <span class="file">app/gate.py</span>
+        <p><code>cli gate</code>. Runs the Graphify binary, then <code>graph.py</code> for loans coverage and a 24-node module mermaid. Records <code>eval/fineract-gate.json</code> and a metrics row.</p>
+      </article>
+      <div class="arrow" aria-hidden="true">→</div>
+      <article class="node">
+        <span class="file">app/graph.py</span>
+        <p>Loads a graphify <code>graph.json</code>. No other app imports. <code>tasks.py</code>, <code>gate.py</code>, and <code>ossie.py</code> all call it.</p>
+      </article>
+    </div>
+    <div class="chips">
+      <span class="chip">eval/demo-graph.json</span>
+      <span class="chip">eval/fineract-gate.json</span>
+    </div>
+    <p class="why" style="margin-top:8px">The demo graph is the small fixture. The gate JSON is the recorded full Fineract run.</p>
+  </section>
+
+  <section class="band corpus">
+    <h3>2. The corpus</h3>
+    <p class="why">Outside-the-repo knowledge. Ingest replaces <code>policy_chunks</code>. The bridge is retrieve-only and skips the reranker.</p>
+    <div class="flow">
+      <article class="node">
+        <span class="file">app/ingest.py</span>
+        <p><code>cli ingest</code>. Reads <code>CORPUS_DIR</code> or <code>Policy/</code>. Calls <code>chunking</code> and <code>embeddings</code>, writes through <code>db</code>.</p>
+      </article>
+      <div class="arrow" aria-hidden="true">→</div>
+      <article class="node">
+        <span class="file">app/chunking.py</span>
+        <p>Splits markdown on <code>## N.</code> headings. Leaf module.</p>
+      </article>
+      <div class="arrow" aria-hidden="true">→</div>
+      <article class="node">
+        <span class="file">app/bridge.py</span>
+        <p><code>cli retrieve</code>. Calls <code>retrieve.search</code> and returns chunk JSON. Score receives this function from cli.</p>
+      </article>
+    </div>
+    <p class="why" style="margin-top:8px">This is old, and not part of eval harness. Default exam folder, ten Minion policy files. <code>python -m app eval</code> loads <code>eval/goldens.json</code> and runs each question through the same search the ask path uses. Search reads <code>policy_chunks</code>. Ingest reads the directory, not a hardcoded list.</p>
+    <div class="chips">
+      <span class="chip">Policy/minion_communications_policy.md</span>
+      <span class="chip">Policy/minion_dress_code_policy.md</span>
+      <span class="chip">Policy/minion_equipment_policy.md</span>
+      <span class="chip">Policy/minion_expense_policy_2021.md</span>
+      <span class="chip">Policy/minion_expense_policy_2024.md</span>
+      <span class="chip">Policy/minion_pto_policy.md</span>
+      <span class="chip">Policy/minion_remote_work_policy.md</span>
+      <span class="chip">Policy/minion_training_policy.md</span>
+      <span class="chip">Policy/minion_travel_security_policy.md</span>
+      <span class="chip">Policy/minion_visitors_policy.md</span>
+    </div>
+    <p class="why" style="margin-top:8px">Talk corpora. Already markdown, so ingest reads them when <code>CORPUS_DIR</code> points here. <code>convert.py</code> is what produced them.</p>
+    <div class="chips">
+      <span class="chip">corpora/MANIFEST.md</span>
+      <span class="chip">corpora/banking/reg-z-1026.md</span>
+      <span class="chip">corpora/aviation/faa-h-8083-25-chapter-2.md</span>
+    </div>
+  </section>
+</div>
+
+<p class="join">map labels become retrieval queries · corpus chunks come back through the bridge</p>
+
+<section class="band ask">
+  <h3>Ask path · the other exam</h3>
+  <p class="why"><code>python -m app eval</code> grades the RAG. <code>ask</code> and <code>serve</code> are the same chain. <code>cli.py</code> orchestrates ask. <code>trace.py</code> orchestrates serve. <code>evaluate.py</code> orchestrates the golden exam. Retrieve, rerank, and generate do not call one another.</p>
+  <div class="flow">
+    <article class="node">
+      <span class="file">app/cache.py</span>
+      <p>Ask cache in Postgres. Key includes the question, the embedding model, and the stem of <code>prompt_v3.md</code>.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/retrieve.py</span>
+      <p>Hybrid search. Embeds the query, fuses cosine and <code>tsvector</code> with reciprocal rank fusion.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/reranker.py</span>
+      <p>Cross-encoder <code>ms-marco-MiniLM-L-6-v2</code>. Keeps one chunk per section. The bridge deliberately skips this.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/generate.py</span>
+      <p>Fills <code>prompt_v3.md</code> and asks the <code>LanguageModel</code>. Drops the answer unless <code>validate.py</code> accepts the citation.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/validate.py</span>
+      <p>Citation gate over <code>schemas.py</code>. Refusal string shared with generate and the exam.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/schemas.py</span>
+      <p>Pydantic shapes: citation, model answer, ask response, retrieved chunk. Leaf module.</p>
+    </article>
+  </div>
+  <div class="flow" style="margin-top:8px">
+    <article class="node">
+      <span class="file">app/ollama.py</span>
+      <p><code>POST {OLLAMA_HOST}/api/chat</code>. Used by ask, eval, and task phrasing. The jailed agent does not import this file.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/evaluate.py</span>
+      <p>This is old, and not part of eval harness. <code>cli eval</code> loads <code>eval/goldens.json</code> and runs each Minion question through the same search the ask path uses. Search reads <code>policy_chunks</code>. Writes the record.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/trace.py</span>
+      <p>Same ask chain, plus timings, for the trace page.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/serve.py</span>
+      <p>Port 8765. Reads <code>app/static/index.html</code> and calls <code>trace_ask</code>.</p>
+    </article>
+  </div>
+  <div class="chips">
+    <span class="chip">prompt_v3.md</span>
+    <span class="chip">eval/goldens.json</span>
+    <span class="chip">eval/retrieve.json</span>
+    <span class="chip">app/static/index.html</span>
+  </div>
+  <p class="why" style="margin-top:8px"><code>eval/retrieve.json</code> is a saved retrieve payload from the policy corpus. Nothing imports it at runtime.</p>
+</section>
+
+<p class="join">stage 1 graph and stage 2 bridge meet in the task generator</p>
+
+<section class="band harness">
+  <h3>3. The test · the map writes the evals</h3>
+  <p class="why">One model call phrases eight questions whose facts are already fixed: graph edges for tier 1, retrieved chunks for tier 2.</p>
+  <div class="flow">
+    <article class="node">
+      <span class="file">app/graph.py</span>
+      <p>Supplies candidate edges, node labels, and one module mermaid. The label is the retrieval query.</p>
+    </article>
+    <div class="arrow" aria-hidden="true">→</div>
+    <article class="node">
+      <span class="file">app/tasks.py</span>
+      <p>Joins the map to the bridge. Calls <code>graph.py</code> and the <code>LanguageModel</code> from <code>generate.py</code>. Does not invent facts.</p>
+    </article>
+    <div class="arrow" aria-hidden="true">→</div>
+    <article class="node">
+      <span class="file">app/bridge.py</span>
+      <p>Cli passes <code>bridge.retrieve</code> into <code>score</code>. Tasks never open Postgres themselves.</p>
+    </article>
+  </div>
+</section>
+
+<p class="join">one task list, three contexts, one agent instance</p>
+
+<section class="band runs">
+  <h3>4. The runs</h3>
+  <p class="why">The model stays pinned. Only the prompt context changes: bare, map, map plus rules.</p>
+  <div class="flow">
+    <article class="node">
+      <span class="file">app/score.py</span>
+      <p><code>cli score</code>. Calls <code>tasks.py</code>, then one jailed agent on that list three times, then <code>metrics.py</code>. Writes <code>tasks.json</code>, <code>bare.json</code>, <code>map.json</code>, and <code>map_rules.json</code>.</p>
+    </article>
+    <div class="arrow" aria-hidden="true">→</div>
+    <article class="node">
+      <span class="file">app/agent.py</span>
+      <p>Pydantic-ai agent jailed to the repo. Talks to Ollama at <code>{OLLAMA_HOST}/v1</code> via <code>config.py</code>, not via <code>ollama.py</code>.</p>
+    </article>
+  </div>
+  <p class="why" style="margin-top:8px">Checked-in score outputs. Each directory is one run of that four-file contract. <code>compare</code> reads the three run files.</p>
+  <div class="chips">
+    <span class="chip">scratch/seed-reports/tasks.json</span>
+    <span class="chip">scratch/seed-reports/bare.json</span>
+    <span class="chip">scratch/seed-reports/map.json</span>
+    <span class="chip">scratch/seed-reports/map_rules.json</span>
+    <span class="chip">scratch/live-reports/tasks.json</span>
+    <span class="chip">scratch/live-reports/bare.json</span>
+    <span class="chip">scratch/live-reports/map.json</span>
+    <span class="chip">scratch/live-reports/map_rules.json</span>
+    <span class="chip">scratch/actual-reports/tasks.json</span>
+    <span class="chip">scratch/actual-reports/bare.json</span>
+    <span class="chip">scratch/actual-reports/map.json</span>
+    <span class="chip">scratch/actual-reports/map_rules.json</span>
+  </div>
+</section>
+
+<p class="join">reports for humans · rows for the board</p>
+
+<div class="lanes">
+  <section class="band score">
+    <h3>5. The scoreboard</h3>
+    <p class="why">Same numbers, two pages. Compare is static over a finished directory. Live replays the calls while score runs.</p>
+    <div class="flow">
+      <article class="node">
+        <span class="file">app/compare.py</span>
+        <p>Port 8766. Reads <code>bare.json</code>, <code>map.json</code>, <code>map_rules.json</code> and fills <code>app/static/compare.html</code>.</p>
+      </article>
+      <article class="node">
+        <span class="file">app/live.py</span>
+        <p>Port 8767. Serves <code>app/static/live.html</code> and calls <code>score.run_score</code> on a worker thread.</p>
+      </article>
+    </div>
+    <div class="chips">
+      <span class="chip">app/static/compare.html</span>
+      <span class="chip">app/static/live.html</span>
+    </div>
+  </section>
+
+  <section class="band board">
+    <h3>6. The board</h3>
+    <p class="why">Metrics land in Postgres. Grafana reads them. OSSIE checks that the declared tables match the live database.</p>
+    <div class="flow">
+      <article class="node">
+        <span class="file">app/metrics.py</span>
+        <p>Sink for score runs and the gate record. Creates its tables in Python. Writes through <code>db</code>.</p>
+      </article>
+      <article class="node">
+        <span class="file">app/ossie.py</span>
+        <p><code>cli ossie materialize</code> loads <code>graph.py</code> into <code>graph_nodes</code> and <code>graph_edges</code>. <code>validate</code> checks the YAML map against the schema and the live database.</p>
+      </article>
+    </div>
+    <div class="chips">
+      <span class="chip">ossie/map-writes-the-test.yaml</span>
+      <span class="chip">ossie/osi-schema.json</span>
+      <span class="chip">grafana/dashboards/map-writes-the-test.json</span>
+      <span class="chip">grafana/provisioning/dashboards/dashboards.yaml</span>
+      <span class="chip">grafana/provisioning/datasources/postgres.yaml</span>
+    </div>
+  </section>
+</div>
+
+<section class="band shared">
+  <h3>Shared foundation</h3>
+  <p class="why">Almost every command takes settings and a database port. <code>PgAdapter</code> is the only implementation of that port. Init SQL creates <code>policy_chunks</code> only. Later tables appear from ingest, cache, metrics, and ossie.</p>
+  <div class="flow">
+    <article class="node">
+      <span class="file">app/config.py</span>
+      <p><code>Settings</code> via pydantic-settings. <code>.env</code> then process environment. <code>DATABASE_URL</code> is required.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/db.py</span>
+      <p><code>DatabaseAdapter</code> protocol. No SQL here.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/pgadapter.py</span>
+      <p>Psycopg plus pgvector. Reads <code>config.py</code>. Implements <code>db.py</code>.</p>
+    </article>
+    <article class="node">
+      <span class="file">app/embeddings.py</span>
+      <p>768-d embedder from settings. Used by ingest, retrieve, rerank, and the submission builder.</p>
+    </article>
+  </div>
+  <div class="chips">
+    <span class="chip">sql/001_init.sql</span>
+    <span class="chip">docker-compose.yml</span>
+    <span class="chip">.env.example</span>
+    <span class="chip">.gitignore</span>
+    <span class="chip">pyproject.toml</span>
+    <span class="chip">requirements.txt</span>
+    <span class="chip">requirements-dev.txt</span>
+    <span class="chip">pytest.ini</span>
+    <span class="chip">.github/workflows/ci.yml</span>
+  </div>
+  <p class="why" style="margin-top:8px">Compose starts Postgres and Grafana only. CI lints <code>app/</code>, <code>build_submission.py</code>, <code>scripts/</code>, and <code>tests/</code>, then runs pytest. The <code>llm</code> marker stays off unless the workflow is dispatched. <code>.env</code>, <code>.coverage</code>, and <code>.pytest_cache/</code> are local run products and are not part of the tree above.</p>
+</section>
+
+<h2 class="section" id="calls">How the Python files call each other</h2>
+<p class="section-lead">Import and dispatch edges only. A dotted line is wiring inside <code>cli.py</code>: score does not import the bridge, and the agent does not import <code>ollama.py</code>. It opens <code>{OLLAMA_HOST}/v1</code> from settings. The figure is wider than the page. Scroll sideways inside the frame.</p>
+
+<div class="diagram">
+<pre class="mermaid" id="fig-calls">
+flowchart TB
+  subgraph entry["Entry"]
+    MAIN["app/__main__.py"]
+    CLI["app/cli.py"]
+    LAUNCH["convert_docs"]
+    CONVPY["convert_docs.py"]
+    BUILD["build_submission.py"]
+  end
+
+  subgraph maplane["1. Map"]
+    GATE["app/gate.py"]
+    GRAPH["app/graph.py"]
+  end
+
+  subgraph corpus["2. Corpus"]
+    CONVERT["app/convert.py"]
+    INGEST["app/ingest.py"]
+    CHUNK["app/chunking.py"]
+    BRIDGE["app/bridge.py"]
+  end
+
+  subgraph askpath["Ask path"]
+    CACHE["app/cache.py"]
+    RET["app/retrieve.py"]
+    RERANK["app/reranker.py"]
+    GEN["app/generate.py"]
+    VAL["app/validate.py"]
+    SCH["app/schemas.py"]
+    OLL["app/ollama.py"]
+    TRACE["app/trace.py"]
+    SERVE["app/serve.py"]
+    EVALN["app/evaluate.py"]
+  end
+
+  subgraph spine["3 to 5. Tasks, runs, pages"]
+    TASKS["app/tasks.py"]
+    AGENT["app/agent.py"]
+    SCORE["app/score.py"]
+    LIVE["app/live.py"]
+    COMPARE["app/compare.py"]
+  end
+
+  subgraph obs["6. Board"]
+    METRICS["app/metrics.py"]
+    OSSIE["app/ossie.py"]
+  end
+
+  subgraph found["Foundation"]
+    CFG["app/config.py"]
+    DB["app/db.py"]
+    PG["app/pgadapter.py"]
+    EMB["app/embeddings.py"]
+  end
+
+  MAIN --> CLI
+  LAUNCH --> CONVPY --> CONVERT
+  CLI -->|ingest| INGEST
+  CLI -->|ask| CACHE
+  CLI -->|ask| RET
+  CLI -->|ask| RERANK
+  CLI -->|ask| GEN
+  CLI -->|ask and eval| OLL
+  CLI -->|eval| EVALN
+  CLI -->|retrieve| BRIDGE
+  CLI -->|score| SCORE
+  CLI -->|compare| COMPARE
+  CLI -->|serve| SERVE
+  CLI -->|live| LIVE
+  CLI -->|gate| GATE
+  CLI -->|ossie| OSSIE
+  CLI --> PG
+
+  INGEST --> CHUNK
+  INGEST --> EMB
+  INGEST --> DB
+  BRIDGE --> RET
+  BRIDGE --> CFG
+  RET --> EMB
+  RET --> DB
+  RERANK --> EMB
+  GEN --> VAL --> SCH
+  CACHE --> GEN
+  CACHE --> DB
+  CACHE --> CFG
+  EVALN --> RET
+  EVALN --> RERANK
+  EVALN --> GEN
+  EVALN --> VAL
+  TRACE --> CACHE
+  TRACE --> RET
+  TRACE --> RERANK
+  TRACE --> GEN
+  SERVE --> TRACE
+  SERVE --> PG
+
+  GATE --> GRAPH
+  GATE --> METRICS
+  TASKS --> GRAPH
+  TASKS --> GEN
+  SCORE --> TASKS
+  SCORE --> AGENT
+  SCORE --> METRICS
+  SCORE --> CFG
+  LIVE --> SCORE
+  AGENT --> CFG
+  OSSIE --> GRAPH
+  OSSIE --> DB
+  METRICS --> DB
+  PG -.->|implements| DB
+  PG --> CFG
+  EMB --> CFG
+  OLL --> CFG
+  BUILD --> CFG
+  BUILD --> EMB
+  BUILD --> PG
+  BUILD --> RERANK
+  BUILD --> TRACE
+  CLI -.->|"score receives bridge.retrieve"| BRIDGE
+  AGENT -.->|"OLLAMA_HOST/v1, not ollama.py"| OLL
+
+  classDef cEntry fill:#f1f3f4,stroke:#5f6368,color:#202124
+  classDef cMap fill:#e8f0fe,stroke:#1a73e8,color:#202124
+  classDef cCorpus fill:#e6f4ea,stroke:#137333,color:#202124
+  classDef cAsk fill:#e8f0fe,stroke:#185abc,color:#202124
+  classDef cSpine fill:#fef7e0,stroke:#e37400,color:#202124
+  classDef cObs fill:#e0f2f1,stroke:#00796b,color:#202124
+  classDef cFound fill:#f1f3f4,stroke:#5f6368,color:#202124
+  class MAIN,CLI,LAUNCH,CONVPY,BUILD cEntry
+  class GATE,GRAPH cMap
+  class CONVERT,INGEST,CHUNK,BRIDGE cCorpus
+  class CACHE,RET,RERANK,GEN,VAL,SCH,OLL,TRACE,SERVE,EVALN cAsk
+  class TASKS,AGENT,SCORE,LIVE,COMPARE cSpine
+  class METRICS,OSSIE cObs
+  class CFG,DB,PG,EMB cFound
+</pre>
+</div>
+
+<h2 class="section" id="feeds">What the other files feed</h2>
+<p class="section-lead">These files are not imported as Python modules. They are corpora, prompts, reports, schemas, and the rig. Arrows are reads or writes. Scroll sideways inside the frame.</p>
+
+<div class="diagram">
+<pre class="mermaid" id="fig-feeds">
+flowchart LR
+  subgraph POL["Policy. Default corpus. This is old, and not part of eval harness. Minion files."]
+    direction TB
+    P1["minion_communications_policy.md"]
+    P2["minion_dress_code_policy.md"]
+    P3["minion_equipment_policy.md"]
+    P4["minion_expense_policy_2021.md"]
+    P5["minion_expense_policy_2024.md"]
+    P6["minion_pto_policy.md"]
+    P7["minion_remote_work_policy.md"]
+    P8["minion_training_policy.md"]
+    P9["minion_travel_security_policy.md"]
+    P10["minion_visitors_policy.md"]
+  end
+
+  subgraph TALK["Talk corpora"]
+    direction TB
+    MAN["corpora/MANIFEST.md"]
+    BANK["corpora/banking/reg-z-1026.md"]
+    AVIA["corpora/aviation/faa-h-8083-25-chapter-2.md"]
+  end
+
+  CONV["app/convert.py"]
+  ING["app/ingest.py"]
+  GEN["app/generate.py"]
+  CACHE["app/cache.py"]
+  EVALN["app/evaluate.py"]
+  GRAPH["app/graph.py"]
+  GATE["app/gate.py"]
+  SCORE["app/score.py"]
+  COMPARE["app/compare.py"]
+  OSSIE["app/ossie.py"]
+  PG["Postgres"]
+  GRAF["Grafana"]
+
+  CONV -->|wrote| BANK
+  CONV -->|wrote| AVIA
+  MAN --- BANK
+  MAN --- AVIA
+  POL --> ING
+  BANK -->|CORPUS_DIR| ING
+  AVIA -->|CORPUS_DIR| ING
+  PROMPT["prompt_v3.md"] --> GEN
+  PROMPT --> CACHE
+  GOLD["eval/goldens.json"] --> EVALN
+  RETJ["eval/retrieve.json"] -.->|saved sample| BRIDGE["app/bridge.py"]
+  DEMOG["eval/demo-graph.json"] --> GRAPH
+  GATE -->|writes| FGATE["eval/fineract-gate.json"]
+  SQL["sql/001_init.sql"] -->|first boot| PG
+  COMPOSE["docker-compose.yml"] --> PG
+  COMPOSE --> GRAF
+  ENV[".env.example"] --> CFG["app/config.py"]
+  SCORE -->|writes| REP["tasks.json + bare.json + map.json + map_rules.json"]
+  REP --> COMPARE
+  YAML["ossie/map-writes-the-test.yaml"] --> OSSIE
+  SCHEMA["ossie/osi-schema.json"] --> OSSIE
+  OSSIE --> PG
+  DASH["grafana/dashboards/map-writes-the-test.json"] --> GRAF
+  PROV1["grafana/provisioning/datasources/postgres.yaml"] --> GRAF
+  PROV2["grafana/provisioning/dashboards/dashboards.yaml"] --> GRAF
+  GRAF -->|reads| PG
+  SMOKE["scripts/smoke_rig.py"] --> COMPOSE
+  SMOKE --> GRAF
+  CI[".github/workflows/ci.yml"] --> REQ["requirements.txt"]
+  CI --> PY["pytest.ini"]
+</pre>
+</div>
+
+<section class="band tests">
+  <h3>Tests · each file locks a module</h3>
+  <p class="why"><code>pytest.ini</code> skips the <code>llm</code> marker. <code>tests/conftest.py</code> pins the embedding model for the whole suite before the app imports it.</p>
+  <div class="pairgrid">
+    <div class="pair"><code>tests/test_agent_jail.py</code><span class="arr">→</span><span>app/agent.py</span></div>
+    <div class="pair"><code>tests/test_bridge.py</code><span class="arr">→</span><span>app/bridge.py, cli.py, retrieve.py</span></div>
+    <div class="pair"><code>tests/test_chunking.py</code><span class="arr">→</span><span>app/chunking.py</span></div>
+    <div class="pair"><code>tests/test_compare.py</code><span class="arr">→</span><span>app/compare.py</span></div>
+    <div class="pair"><code>tests/test_convert.py</code><span class="arr">→</span><span>app/convert.py, convert_docs.py</span></div>
+    <div class="pair"><code>tests/test_docstrings.py</code><span class="arr">→</span><span>every module in app/</span></div>
+    <div class="pair"><code>tests/test_embeddings.py</code><span class="arr">→</span><span>app/embeddings.py</span></div>
+    <div class="pair"><code>tests/test_evaluate.py</code><span class="arr">→</span><span>evaluate, generate, retrieve, validate, cli</span></div>
+    <div class="pair"><code>tests/test_gate.py</code><span class="arr">→</span><span>app/gate.py</span></div>
+    <div class="pair"><code>tests/test_gate_metrics.py</code><span class="arr">→</span><span>cli gate, metrics.py, pgadapter.py</span></div>
+    <div class="pair"><code>tests/test_ingest_empty.py</code><span class="arr">→</span><span>app/ingest.py</span></div>
+    <div class="pair"><code>tests/test_live.py</code><span class="arr">→</span><span>app/live.py, app/score.py</span></div>
+    <div class="pair"><code>tests/test_llm.py</code><span class="arr">→</span><span>cli ask path, ingest. Marker llm</span></div>
+    <div class="pair"><code>tests/test_ossie.py</code><span class="arr">→</span><span>ossie YAML and osi-schema.json</span></div>
+    <div class="pair"><code>tests/test_ossie_live.py</code><span class="arr">→</span><span>cli ossie, ingest, metrics</span></div>
+    <div class="pair"><code>tests/test_rag.py</code><span class="arr">→</span><span>ask chain: cli through validate</span></div>
+    <div class="pair"><code>tests/test_rig_files.py</code><span class="arr">→</span><span>scripts/smoke_rig.py, Grafana JSON</span></div>
+    <div class="pair"><code>tests/test_score.py</code><span class="arr">→</span><span>app/score.py, agent.py, config.py</span></div>
+    <div class="pair"><code>tests/test_score_metrics.py</code><span class="arr">→</span><span>cli score, agent.py, ingest</span></div>
+    <div class="pair"><code>tests/test_tasks.py</code><span class="arr">→</span><span>app/tasks.py</span></div>
+    <div class="pair"><code>tests/test_trace.py</code><span class="arr">→</span><span>app/trace.py, generate, retrieve, validate</span></div>
+    <div class="pair"><code>tests/conftest.py</code><span class="arr">→</span><span>embedding pin for the suite</span></div>
+  </div>
+</section>
+
+<section class="band docs">
+  <h3>Docs · what each file is about</h3>
+  <p class="why">None of these run. They describe the lanes above. This page is the figure the PRD points at.</p>
+  <div class="docgrid">
+    <article class="node">
+      <span class="file">Spec</span>
+      <p><code>docs/prd.md</code> is the domain contract. <code>docs/decision-log.md</code> records the choices. <code>docs/handbook.md</code> walks the harness against the code. <code>docs/handbook-ste.html</code> is the same brief in plain language.</p>
+    </article>
+    <article class="node">
+      <span class="file">Talk and rig</span>
+      <p><code>docs/demo-start.md</code> is the command list. <code>docs/demo-rig.md</code> is the cold start. <code>docs/demo-pipeline.html</code> is this figure. <code>docs/briefing.html</code> is the walk-in deck.</p>
+    </article>
+    <article class="node">
+      <span class="file">Diagnosis and handoff</span>
+      <p><code>docs/part6-diagnosis.md</code> is the planted superseded-policy defect. <code>docs/submission-checklist.md</code> is the bundle check. <code>README.md</code> stops at ingest, ask, serve, and eval. <code>CHANGELOG.md</code> is the release note.</p>
+    </article>
+    <article class="node">
+      <span class="file">Agent cache</span>
+      <p><code>AGENTS.md</code> points here. <code>ARCHITECTURE.md</code>, <code>ENTRYPOINTS.md</code>, <code>CONFIG.md</code>, and <code>GOTCHAS.md</code> are the refreshable map of this repo.</p>
+    </article>
+    <article class="node">
+      <span class="file">Issue tracker notes</span>
+      <p><code>docs/agents/issue-tracker.md</code>, <code>docs/agents/triage-labels.md</code>, and <code>docs/agents/domain.md</code> tell an agent how to use GitHub issues and where the domain docs live.</p>
+    </article>
+    <article class="node">
+      <span class="file">Static pages</span>
+      <p><code>app/static/index.html</code> is the ask trace. <code>app/static/compare.html</code> is the three-run board. <code>app/static/live.html</code> is the call-by-call replay. Each is filled by the Python server beside it.</p>
+    </article>
+  </div>
+</section>
+
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'neutral',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true }
+  });
+
+  function diagramSource(block) {
+    const html = block.innerHTML;
+    if (/<br\s*\/?>/i.test(html)) {
+      return html
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/&gt;/g, '>')
+        .replace(/&lt;/g, '<')
+        .replace(/&amp;/g, '&')
+        .trim();
+    }
+    return block.textContent.trim();
+  }
+
+  const blocks = document.querySelectorAll('pre.mermaid');
+  for (const block of blocks) {
+    const id = (block.id || 'diagram') + '-svg';
+    try {
+      const { svg } = await mermaid.render(id, diagramSource(block));
+      block.innerHTML = svg;
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      const note = document.createElement('p');
+      note.className = 'gate';
+      note.textContent = message;
+      block.insertAdjacentElement('afterend', note);
+    }
+  }
 </script>
 
 </body>

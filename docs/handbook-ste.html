@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What the harness does — Simplified Technical English</title>
+<meta name="description" content="A plain brief of the evaluation harness. What the work measures, why a customer would pay, and what each handbook part is for.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%23141c27' width='32' height='32'/%3E%3Crect x='6' y='6' width='20' height='20' fill='none' stroke='%23e39b3a' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Fragment+Mono&family=Fraunces:ital,opsz,wght@0,9..144,560;0,9..144,700;1,9..144,520;1,9..144,680&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1b1612;
+    --muted: #4e453c;
+    --paper: #f4efe4;
+    --paper-2: #fbf7f0;
+    --line: #d9d0c2;
+    --navy: #172433;
+    --navy-2: #24364a;
+    --amber: #b86112;
+    --amber-2: #e39b3a;
+    --amber-soft: #f6e2c4;
+    --green: #1d6a45;
+    --green-soft: #d7eee2;
+    --red: #8e2e2a;
+    --red-soft: #f6d9d4;
+    --serif: "Fraunces", "Iowan Old Style", Palatino, Georgia, serif;
+    --sans: "Atkinson Hyperlegible", "Avenir Next", "Segoe UI", sans-serif;
+    --mono: "Fragment Mono", "Source Code Pro", ui-monospace, monospace;
+    --shadow: 0 24px 70px rgba(0, 0, 0, .38);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    background:
+      radial-gradient(900px 420px at 0% 0%, #2a3d52 0%, transparent 55%),
+      radial-gradient(700px 380px at 100% 0%, #3c2c24 0%, transparent 50%),
+      #10161d;
+  }
+  ::selection { background: #f0c98a; color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+  a { color: var(--navy); }
+  .sheet a { text-underline-offset: 3px; }
+
+  .skip {
+    position: absolute;
+    left: 12px;
+    top: -40px;
+    background: var(--amber-2);
+    color: var(--ink);
+    padding: 8px 12px;
+    z-index: 5;
+  }
+  .skip:focus { top: 12px; }
+
+  .sheet {
+    max-width: 1080px;
+    margin: 28px auto 72px;
+    background:
+      radial-gradient(rgba(27, 22, 18, .045) .7px, transparent .7px),
+      linear-gradient(180deg, rgba(255,255,255,.45), transparent 120px),
+      var(--paper);
+    background-size: 20px 20px, auto, auto;
+    box-shadow: var(--shadow);
+    position: relative;
+    display: grid;
+    grid-template-columns: 28px 1fr;
+  }
+  .spine {
+    background:
+      repeating-linear-gradient(
+        180deg,
+        #1b1612 0 10px,
+        #c4552a 10px 14px,
+        #1b1612 14px 28px
+      );
+  }
+  .body {
+    padding: 28px 40px 72px;
+    min-width: 0;
+  }
+
+  .mast {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: baseline;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 10px;
+    margin-bottom: 22px;
+  }
+  .mast p, .kicker, .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .kicker { color: var(--amber); margin-bottom: 8px; }
+  .mast p { color: var(--muted); }
+
+  h1, h2, h3 { font-family: var(--serif); font-weight: 560; letter-spacing: -0.02em; }
+  h1 {
+    font-size: clamp(2.5rem, 6vw, 4.4rem);
+    line-height: .96;
+    margin: 0 0 14px;
+    font-weight: 680;
+  }
+  h2 {
+    font-size: clamp(1.7rem, 3vw, 2.35rem);
+    line-height: 1.12;
+    margin: 0 0 14px;
+  }
+  h3 { font-size: 1.35rem; margin: 0 0 8px; line-height: 1.2; }
+  p { margin: 0 0 10px; }
+  .lede { font-size: 1.15rem; max-width: 42rem; }
+
+  .ask {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 520;
+    font-size: 1.2rem;
+    color: var(--amber);
+    margin: 0 0 6px;
+  }
+
+  .jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 22px 0 8px;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(8px);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .jump a {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    padding: 6px 8px;
+    background: var(--paper-2);
+    white-space: nowrap;
+  }
+  .jump a:hover { border-color: var(--ink); }
+
+  .rule {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 18px;
+    border: 1px solid var(--ink);
+    padding: 14px 16px;
+    margin: 18px 0 8px;
+    background: var(--paper-2);
+  }
+  .rule strong { font-family: var(--mono); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+
+  section { padding: 42px 0 8px; border-top: 1px solid var(--line); margin-top: 28px; scroll-margin-top: 58px; }
+  section:first-of-type { border-top: 0; margin-top: 18px; }
+
+  .hero {
+    background: var(--navy);
+    color: #f6f1e7;
+    margin: 8px -40px 0;
+    padding: 36px 40px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    right: -40px;
+    top: -40px;
+    width: 220px;
+    height: 220px;
+    border: 18px solid rgba(227, 155, 58, .18);
+    border-radius: 50%;
+  }
+  .hero .ask { color: var(--amber-2); }
+  .hero h2 { color: #f6f1e7; max-width: 18ch; }
+  .hero p { max-width: 40rem; color: #e6dfd2; }
+  .stamp-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .stamp {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    border: 1px solid rgba(246, 241, 231, .35);
+    padding: 7px 10px;
+    color: #f6f1e7;
+  }
+
+  .prose { max-width: 42rem; }
+  .prose p, .plate p, .step p, .role p { max-width: 42rem; }
+
+  .grid-3, .grid-2 { display: grid; gap: 12px; margin: 16px 0; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+
+  .card, .arm, .role, .step, .status, .plate {
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    padding: 14px 14px 12px;
+  }
+  .arm {
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+    width: 100%;
+    transition: border-color .2s, transform .2s, opacity .2s;
+  }
+  .arm:hover { border-color: var(--ink); }
+  .arm.is-hot { border-color: var(--ink); box-shadow: 4px 4px 0 var(--navy); }
+  .arms.is-filtered .arm:not(.is-hot) { opacity: .42; }
+  .arm .tag, .role .tag, .step .n, .status .tag, .plate .kind, .num {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .arm h3 { font-size: 1.55rem; }
+  .gets { list-style: none; padding: 0; margin: 8px 0 0; }
+  .gets li {
+    padding: 4px 0 4px 16px;
+    position: relative;
+    color: var(--muted);
+  }
+  .gets li::before {
+    content: "";
+    width: 7px; height: 7px;
+    border: 1.5px solid var(--amber);
+    position: absolute; left: 0; top: .55em;
+  }
+  .arm-copy {
+    border-left: 3px solid var(--amber);
+    padding: 8px 0 8px 14px;
+    margin: 8px 0 18px;
+    min-height: 4.6rem;
+  }
+
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
+  .chart { border: 1px solid var(--ink); background: var(--paper-2); padding: 14px; }
+  .chart header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 10px; }
+  .chart h3 { margin: 0; font-size: 1.25rem; }
+  .badge {
+    font-family: var(--mono);
+    font-size: .65rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 3px 6px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .badge.target { color: var(--amber); }
+  .badge.seed { color: var(--navy); }
+  .badge.measured { color: var(--green); }
+  .bars { display: grid; gap: 7px; }
+  .metric {
+    margin: 8px 0 0;
+    font-family: var(--mono);
+    font-size: .65rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .bar-row { display: grid; grid-template-columns: 64px 1fr 84px; gap: 8px; align-items: center; font-size: .92rem; }
+  .track { height: 12px; background: #ece4d6; }
+  .track span {
+    display: block; height: 100%; width: 0;
+    background: var(--navy);
+    transition: width .9s cubic-bezier(.2,.7,.2,1);
+  }
+  .draw .track span { width: var(--w); }
+  .track.alt span { background: var(--amber); }
+  .track.cost span { background: var(--green); }
+  .bar-row b { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .caution, .note {
+    margin: 14px 0;
+    padding: 12px 14px 12px 16px;
+    border: 1px solid var(--ink);
+  }
+  .caution { background: var(--amber-soft); border-left: 8px solid var(--amber); }
+  .note { background: var(--green-soft); border-left: 8px solid var(--green); }
+  .caution .label, .note .label {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 6px; font-size: .98rem; }
+  th, td { border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; padding: 9px 10px 9px 0; }
+  th { font-family: var(--mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 400; color: var(--muted); }
+  td:first-child { font-weight: 700; width: 28%; }
+
+  .cast { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 14px 0; }
+  .role { min-height: 100%; }
+  .role .tag { color: var(--amber); display: block; margin-bottom: 6px; }
+  .role h3 { font-size: 1.15rem; }
+
+  .flow { display: grid; gap: 0; margin: 12px 0 6px; }
+  .step {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 10px;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    background: transparent;
+    padding: 0 0 0 0;
+    position: relative;
+  }
+  .step .n {
+    width: 48px; height: 48px;
+    display: grid; place-items: center;
+    background: var(--navy); color: #f6f1e7;
+    font-size: .85rem;
+    position: relative;
+    z-index: 1;
+  }
+  .step .copy { border-left: 1px solid var(--line); padding: 0 0 16px 14px; margin-left: -38px; padding-left: 52px; }
+  .step:last-child .copy { border-left-color: transparent; }
+
+  .split { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; align-items: start; }
+  .wrong {
+    background: var(--red-soft);
+    border: 1px solid var(--red);
+    padding: 14px;
+  }
+  .wrong h3 { color: var(--red); }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .filters button, .ghost {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--ink);
+    padding: 7px 10px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .plates { display: grid; gap: 10px; }
+  .plate[hidden] { display: none; }
+  .plate header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .kind { padding: 2px 6px; border: 1px solid var(--ink); }
+  .kind.core { background: var(--ink); color: var(--paper); }
+  .kind.proof { background: var(--amber-soft); }
+  .kind.guard { background: var(--green-soft); }
+  .kind.guide { background: transparent; }
+  .plate .num { color: var(--muted); }
+  .mini { color: var(--muted); font-size: .95rem; }
+
+  .layers { display: grid; gap: 8px; margin: 12px 0; }
+  .layer { padding: 14px; border: 1px solid var(--ink); }
+  .layer h3 { margin-bottom: 4px; }
+  .layer ul { margin: 8px 0 0; padding-left: 18px; }
+  .layer li { margin: 3px 0; }
+  .layer.shell { background: #efe2cf; }
+  .layer.mid { background: #e5eaf0; }
+  .layer.core { background: var(--paper-2); }
+  @media (min-width: 861px) {
+    .layer.mid { margin-inline: 32px; }
+    .layer.core { margin-inline: 64px; }
+  }
+  .layer .who {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  }
+
+  .pills { display: grid; gap: 8px; }
+  .status { display: grid; grid-template-columns: 118px 1fr; gap: 10px; align-items: start; }
+  .status .tag { display: inline-block; padding: 3px 6px; border: 1px solid var(--ink); }
+  .status .tag.measured { background: var(--green-soft); }
+  .status .tag.built { background: #e5eaf0; }
+  .status .tag.limit { background: var(--red-soft); }
+
+  .glossary { columns: 2; gap: 28px; }
+  .glossary dt { font-weight: 700; margin-top: 10px; }
+  .glossary dd { margin: 2px 0 0; color: var(--muted); }
+
+  footer {
+    margin-top: 36px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ink);
+    color: var(--muted);
+    font-size: .92rem;
+  }
+  code, .cmd {
+    font-family: var(--mono);
+    font-size: .86em;
+    background: #efe6d6;
+    padding: 0 .25em;
+  }
+
+  @media (max-width: 860px) {
+    .sheet { grid-template-columns: 1fr; margin: 0; }
+    .spine { height: 10px; }
+    .body { padding: 18px 16px 48px; }
+    .hero { margin: 8px -16px 0; padding: 26px 16px; }
+    .grid-3, .grid-2, .charts, .cast, .split, .rule, .status, .glossary { grid-template-columns: 1fr; columns: 1; }
+    .cast { grid-template-columns: 1fr; }
+    .bar-row { grid-template-columns: 58px 1fr 76px; }
+    .jump { flex-wrap: nowrap; overflow-x: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .track span { transition: none; }
+    .arm { transition: none; }
+  }
+  @media print {
+    body { background: white; }
+    .sheet { box-shadow: none; margin: 0; display: block; }
+    .spine, .jump, .filters { display: none; }
+    .hero { break-inside: avoid; }
+    .plate { break-inside: avoid; }
+    a { text-decoration: none; color: inherit; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#result">Skip to the result</a>
+<article class="sheet">
+  <div class="spine" aria-hidden="true"></div>
+  <div class="body">
+    <header class="mast">
+      <p>Minirag · Evaluation harness · Reading aid</p>
+      <p>STE-HB-01 · 7 Oct 2026</p>
+    </header>
+
+    <p class="kicker">ASD-STE100 · Simplified Technical English</p>
+    <p class="lede" style="border:1px solid var(--ink);padding:12px 14px;background:var(--amber-soft)"><a href="briefing.html">Open the walk-in briefing</a>. That page draws how the pieces connect, what each piece passes to the next, and the two real model runs. This page is the short-sentence handbook notes.</p>
+    <h1>What this work does.</h1>
+    <p class="lede">The handbook intro is dense. This page answers the same subject in short sentences. Each sentence has one idea. The page uses one word for each thing.</p>
+
+    <div class="rule">
+      <strong>How to read</strong>
+      <div>
+        <p>Your questions stay in your words. The answers use Simplified Technical English.</p>
+        <p>The blunt form is a standard from aviation maintenance. The form keeps the meaning exact.</p>
+        <p>Source: <a href="handbook.md">docs/handbook.md</a>. If this page and the handbook disagree, the handbook wins. If the handbook and the code disagree, the code wins.</p>
+      </div>
+    </div>
+
+    <nav class="jump" aria-label="Questions">
+      <a href="#result">Result</a>
+      <a href="#pay">Why pay</a>
+      <a href="#arms">Three runs</a>
+      <a href="#without">No map</a>
+      <a href="#basic">Basic eval</a>
+      <a href="#machine">One run</a>
+      <a href="#parts">Each part</a>
+      <a href="#size">Too large?</a>
+      <a href="#enterprise">Enterprise</a>
+      <a href="#words">Words</a>
+    </nav>
+
+    <section id="result">
+      <p class="ask">What are we achieving? Why do we need this?</p>
+      <div class="hero">
+        <h2>The result is a gap you can measure again.</h2>
+        <p>One agent answers one list of eight tasks. The agent does this three times. The model stays the same. The tasks stay the same. Only the context changes.</p>
+        <p>The scoreboard records three numbers for each run. The numbers are tasks passed, tool calls, and cost. The gap between the runs is the value of the context.</p>
+        <div class="stamp-row" aria-label="Fixed conditions">
+          <span class="stamp">One agent</span>
+          <span class="stamp">Eight tasks</span>
+          <span class="stamp">Three contexts</span>
+          <span class="stamp">One model</span>
+          <span class="stamp">Seed 77</span>
+        </div>
+      </div>
+      <div class="prose" style="margin-top:16px">
+        <p>The requirements state the claim in one line. The context supplies the skill. The model stays fixed.</p>
+        <p>The gap is the defense of that claim.</p>
+        <p>An agent on a new repository fails in a known way. The agent searches by trial. The agent misses rules that live outside the code.</p>
+        <p>A person can add a map and a rule book by hand. Hand context has no measured effect. This harness measures the effect.</p>
+      </div>
+    </section>
+
+    <section id="pay">
+      <p class="ask">Why would someone pay me to solve this?</p>
+      <h2>A customer pays for a first week that ends in numbers.</h2>
+      <div class="prose">
+        <p>A company pays an engineer to make an agent useful on a system the agent has not seen.</p>
+        <p>In week 1 you learn the shape of the code. You also learn the rules of the trade. You then put that knowledge into the agent by hand.</p>
+        <p>This system turns those two jobs into files. The map holds the shape of the code. The corpus holds the rules. The harness writes the tasks from the map.</p>
+        <p>The customer can see the change in tasks passed, tool calls, and cost. A second person can run the same command. The fee is for that repeatable start, and for answers that cite a rule.</p>
+      </div>
+      <div class="grid-3">
+        <article class="card">
+          <p class="kicker">Job 1</p>
+          <h3>Learn the code</h3>
+          <p>The map is a graph of the repository. A node is a symbol. An edge says which symbol calls which symbol, and in which file.</p>
+        </article>
+        <article class="card">
+          <p class="kicker">Job 2</p>
+          <h3>Learn the rules</h3>
+          <p>The corpus is a folder of public industry documents. For the demo, the folder is banking law. The folder can be aviation text instead.</p>
+        </article>
+        <article class="card">
+          <p class="kicker">Job 3</p>
+          <h3>Show the effect</h3>
+          <p>A sponsor can read the scoreboard. A higher score and a lower cost are the business case in one view.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="arms">
+      <p class="ask">How do the three runs work, and why three?</p>
+      <h2>Same work. Three levels of help.</h2>
+      <p class="prose">Select an arm. The card lists the text the agent receives. The other conditions stay fixed, so the gap has one cause.</p>
+      <div class="grid-3 arms" id="arms-grid">
+        <button class="arm" type="button" data-arm="bare" aria-pressed="false">
+          <span class="tag">Run 1 · bare</span>
+          <h3>Question only</h3>
+          <ul class="gets">
+            <li>The task text</li>
+          </ul>
+        </button>
+        <button class="arm" type="button" data-arm="map" aria-pressed="false">
+          <span class="tag">Run 2 · map</span>
+          <h3>Question + map</h3>
+          <ul class="gets">
+            <li>The task text</li>
+            <li>The edge and the file</li>
+            <li>One module diagram</li>
+          </ul>
+        </button>
+        <button class="arm" type="button" data-arm="rules" aria-pressed="false">
+          <span class="tag">Run 3 · map + rules</span>
+          <h3>Question + map + rules</h3>
+          <ul class="gets">
+            <li>The task text</li>
+            <li>The edge and the file</li>
+            <li>One module diagram</li>
+            <li>The full text of the cited chunks</li>
+          </ul>
+        </button>
+      </div>
+      <div class="arm-copy" aria-live="polite">
+        <p data-arm-copy="none">The gap from run 1 to run 2 is the value of the map. The gap from run 2 to run 3 is the value of the rules.</p>
+        <p data-arm-copy="bare" hidden>This arm is the baseline. The agent must search the repository with no map. A weak score here is the start of the gap.</p>
+        <p data-arm-copy="map" hidden>This arm adds code knowledge. The diagram has a cap of 24 nodes. The agent sees one module, because a picture of the whole repository does not fit.</p>
+        <p data-arm-copy="rules" hidden>This arm adds domain knowledge. Before the arm starts, the bridge searches again. The log then shows the retrieval for this arm.</p>
+      </div>
+
+      <div class="charts draw" id="charts">
+        <article class="chart">
+          <header>
+            <h3>Target shape</h3>
+            <span class="badge target">Illustrative</span>
+          </header>
+          <p class="mini">Requirements Table 1. These numbers fix the shape. They are a placeholder. Order in each group: bare, map, map + rules.</p>
+          <div class="bars">
+            <p class="metric">Tasks passed</p>
+            <div class="bar-row"><span>Bare</span><div class="track"><span style="--w:25%"></span></div><b>2/8</b></div>
+            <div class="bar-row"><span>Map</span><div class="track"><span style="--w:62%"></span></div><b>5/8</b></div>
+            <div class="bar-row"><span>Rules</span><div class="track"><span style="--w:100%"></span></div><b>8/8</b></div>
+            <p class="metric">Tool calls</p>
+            <div class="bar-row"><span>Bare</span><div class="track alt"><span style="--w:100%"></span></div><b>64</b></div>
+            <div class="bar-row"><span>Map</span><div class="track alt"><span style="--w:48%"></span></div><b>31</b></div>
+            <div class="bar-row"><span>Rules</span><div class="track alt"><span style="--w:28%"></span></div><b>18</b></div>
+            <p class="metric">Cost</p>
+            <div class="bar-row"><span>Bare</span><div class="track cost"><span style="--w:100%"></span></div><b>$0.42</b></div>
+            <div class="bar-row"><span>Map</span><div class="track cost"><span style="--w:45%"></span></div><b>$0.19</b></div>
+            <div class="bar-row"><span>Rules</span><div class="track cost"><span style="--w:26%"></span></div><b>$0.11</b></div>
+          </div>
+        </article>
+        <article class="chart">
+          <header>
+            <h3>Seed rehearsal</h3>
+            <span class="badge seed">Synthetic</span>
+          </header>
+          <p class="mini">Fake agent, fake judge, real database. From scratch/seed-reports. Order in each group: bare, map, map + rules.</p>
+          <div class="bars">
+            <p class="metric">Tasks passed</p>
+            <div class="bar-row"><span>Bare</span><div class="track"><span style="--w:50%"></span></div><b>4/8</b></div>
+            <div class="bar-row"><span>Map</span><div class="track"><span style="--w:100%"></span></div><b>8/8</b></div>
+            <div class="bar-row"><span>Rules</span><div class="track"><span style="--w:100%"></span></div><b>8/8</b></div>
+            <p class="metric">Tool calls</p>
+            <div class="bar-row"><span>Bare</span><div class="track alt"><span style="--w:100%"></span></div><b>24</b></div>
+            <div class="bar-row"><span>Map</span><div class="track alt"><span style="--w:67%"></span></div><b>16</b></div>
+            <div class="bar-row"><span>Rules</span><div class="track alt"><span style="--w:67%"></span></div><b>16</b></div>
+            <p class="metric">Cost</p>
+            <div class="bar-row"><span>Bare</span><div class="track cost"><span style="--w:100%"></span></div><b>$0.0242</b></div>
+            <div class="bar-row"><span>Map</span><div class="track cost"><span style="--w:67%"></span></div><b>$0.0162</b></div>
+            <div class="bar-row"><span>Rules</span><div class="track cost"><span style="--w:67%"></span></div><b>$0.0162</b></div>
+          </div>
+        </article>
+      </div>
+
+      <aside class="caution">
+        <p class="label">Caution — read the dollars this way</p>
+        <p>The seed cost is about two cents. Fake tasks report 100 prompt tokens and 20 completion tokens. The default rates are $0.15 and $0.60 per million tokens, plus $0.001 per tool call.</p>
+        <p>Those cents are a unit for comparison. On a real engagement the token counts are larger. Compare arms with the same formula. Quote a customer only from a real run.</p>
+      </aside>
+      <aside class="note">
+        <p class="label">What is already measured</p>
+        <p>Two real runs of <code>qwen3:8b</code> are on disk. The later one is <code>scratch/live-reports</code>. Code tasks: 0 of 4, then 4 of 4, then 4 of 4. Rule tasks: 0 of 4 in every sitting. Tool calls: 22, then 1, then 0. Cost: $0.03605, then $0.00343, then $0.00497.</p>
+        <p>The earlier run, <code>scratch/actual-reports</code>, has the same shape. Code tasks 0 then 4 then 4. Rule tasks 0. Tool calls 40, then 0, then 0. Cost $0.05138, then $0.00321, then $0.00560.</p>
+        <p>The seed above is still a fake-model rehearsal. Read the real numbers in <a href="briefing.html">the walk-in briefing</a>. The Fineract map gate is separate: 21.697 seconds, 61,983 nodes, 303,539 edges.</p>
+      </aside>
+    </section>
+
+    <section id="without">
+      <p class="ask">Why is this better than work with no map and no rule book?</p>
+      <h2>The agent stops the blind search, and the rule has a citation.</h2>
+      <div class="grid-2">
+        <article class="card">
+          <p class="kicker">Question only</p>
+          <h3>The agent searches by trial</h3>
+          <p>The agent lists directories and reads files until it finds a symbol. Each extra tool call has a price. A rule lives outside the repository. The files alone do not show that rule.</p>
+          <p>You have one score. The score has no separate cause.</p>
+        </article>
+        <article class="card">
+          <p class="kicker">Map and rules</p>
+          <h3>The agent goes direct</h3>
+          <p>The prompt names the symbol and the file. The prompt can also include the rule text. A rule answer must cite a chunk id from the bridge.</p>
+          <p>Run 1 to run 2 isolates the map. Run 2 to run 3 isolates the corpus.</p>
+        </article>
+      </div>
+      <div class="prose">
+        <p>Bank rules do not live in the source files. The code can show that <code>LoanProductHandler</code> calls <code>LoanProduct</code>. The corpus holds the limit on a fee. An agent that reads only the code can miss that limit.</p>
+        <p>The jail and the cap matter here. The agent has two tools, <code>list_dir</code> and <code>read_file</code>. A path outside the repository raises <code>PermissionError</code>. Tool call 13 ends the attempt with an empty answer. An empty answer counts as a failed task. A lost agent stays visible. The run stays bounded.</p>
+      </div>
+    </section>
+
+    <section id="basic">
+      <p class="ask">Why not just write a basic eval?</p>
+      <h2>A hand-written eval tests a pipeline. This harness tests the context.</h2>
+      <div class="prose">
+        <p>This repo already has a basic eval. The command is <code>python -m app eval</code>. It runs ten fixed cases. It tests retrieval and generation. Keep it. It answers a different question.</p>
+        <p>The harness command is <code>python -m app score</code>. The subject is the agent. The generator builds the tasks from the map. The same graph yields the same four edges.</p>
+      </div>
+      <table>
+        <caption class="mini">Two exams in one repository. Different subjects.</caption>
+        <thead>
+          <tr><th></th><th>Golden exam</th><th>This harness</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Subject</td><td>The search pipeline</td><td>The agent on a repository</td></tr>
+          <tr><td>Who writes the tasks</td><td>A person, in a file</td><td>The generator, from four edges</td></tr>
+          <tr><td>Answer key</td><td>Facts in the case file</td><td>The edge, or the chunk ids</td></tr>
+          <tr><td>Contexts</td><td>One path</td><td>Three arms, one change</td></tr>
+          <tr><td>A pass means</td><td>The pipeline met the golden facts</td><td>The agent met the key for that arm</td></tr>
+        </tbody>
+      </table>
+      <div class="prose">
+        <p>A hand-written list has three weak points. You choose the questions, so a critic can call them easy. The key can drift away from the code. One score hides the cause.</p>
+        <p>Here, a fixed sort selects extracted call edges and import edges. Loan paths come first. The sort takes four edges. Fewer than four edges and the run refuses to start.</p>
+        <p>The model writes only the words of the task. The instruction says: phrase a task list. Do not invent facts. If the model invents a tier-1 target, the harness keeps the graph target. If the model cites a chunk id that the bridge did not return, the run stops.</p>
+        <p>That is the reason for the extra machine. The exam carries its own key. The key was in the map and in the bridge log before the model spoke.</p>
+      </div>
+    </section>
+
+    <section id="machine">
+      <p class="ask">How does one score run work?</p>
+      <h2>Eight steps. One command.</h2>
+      <p class="prose"><code>python -m app score --repo PATH --graph PATH --output PATH</code></p>
+      <div class="flow">
+        <div class="step"><div class="n">01</div><div class="copy"><h3>Pick four edges</h3><p>Load the graph. Keep extracted calls and imports. Sort loan paths first. Take four.</p></div></div>
+        <div class="step"><div class="n">02</div><div class="copy"><h3>Search the corpus</h3><p>The source label is the query. Example label: <code>LoanProductHandler</code>. The bridge returns chunks with ids and text. Each id goes to the log.</p></div></div>
+        <div class="step"><div class="n">03</div><div class="copy"><h3>Phrase the tasks</h3><p>One model call writes the words for eight tasks. Four tasks are code facts. Four tasks are rule questions. The model cannot supply the key.</p></div></div>
+        <div class="step"><div class="n">04</div><div class="copy"><h3>Save the paper</h3><p>The eight tasks become eight cases. The file <code>tasks.json</code> is the audit copy.</p></div></div>
+        <div class="step"><div class="n">05</div><div class="copy"><h3>Run three arms</h3><p>The same cases run three times. The prompt changes. One run id covers all three arms.</p></div></div>
+        <div class="step"><div class="n">06</div><div class="copy"><h3>Let the agent answer</h3><p>The agent may list and read files inside the repository. The cap is 12 tool calls. Temperature is 0. The seed is 77.</p></div></div>
+        <div class="step"><div class="n">07</div><div class="copy"><h3>Grade on two tracks</h3><p>Tier 1: the answer must contain the symbol and the file name. Tier 2: a judge must name one allowed chunk id. A second check confirms that id.</p></div></div>
+        <div class="step"><div class="n">08</div><div class="copy"><h3>Write the board</h3><p>One row per arm. Reports go to disk. Rows go to Postgres. Grafana reads those tables.</p></div></div>
+      </div>
+
+      <div class="split">
+        <div>
+          <p class="kicker">Direction rule</p>
+          <h3>The map aims. The corpus fills.</h3>
+          <p>Graph labels are the queries. Keep that direction. The corpus does not choose edges. Source code does not enter the vector store.</p>
+          <p>The map is exact, so the map can be a key. The corpus is prose, so the corpus can ground a rule. A mix of the two has no clean key.</p>
+          <svg viewBox="0 0 520 150" width="100%" role="img" aria-label="Flow from map label to bridge to task words. The answer key comes from the edge and the chunk ids.">
+            <rect x="8" y="36" width="120" height="52" fill="#172433"/>
+            <text x="68" y="66" text-anchor="middle" fill="#f6f1e7" font-family="Atkinson Hyperlegible, sans-serif" font-size="14">Map label</text>
+            <rect x="196" y="36" width="120" height="52" fill="#fbf7f0" stroke="#1b1612"/>
+            <text x="256" y="66" text-anchor="middle" fill="#1b1612" font-family="Atkinson Hyperlegible, sans-serif" font-size="14">Bridge</text>
+            <rect x="384" y="36" width="124" height="52" fill="#f6e2c4" stroke="#1b1612"/>
+            <text x="446" y="66" text-anchor="middle" fill="#1b1612" font-family="Atkinson Hyperlegible, sans-serif" font-size="14">Task words</text>
+            <line x1="128" y1="62" x2="196" y2="62" stroke="#1b1612" stroke-width="1.5"/>
+            <line x1="316" y1="62" x2="384" y2="62" stroke="#1b1612" stroke-width="1.5"/>
+            <text x="68" y="118" text-anchor="middle" fill="#1d6a45" font-family="Fragment Mono, monospace" font-size="11">tier-1 key</text>
+            <text x="256" y="118" text-anchor="middle" fill="#1d6a45" font-family="Fragment Mono, monospace" font-size="11">tier-2 key</text>
+            <text x="446" y="118" text-anchor="middle" fill="#4e453c" font-family="Fragment Mono, monospace" font-size="11">words only</text>
+          </svg>
+        </div>
+        <aside class="wrong">
+          <h3>The wrong way</h3>
+          <p>Do not send source code into the corpus search.</p>
+          <p>Do not let the corpus pick the edges.</p>
+          <p>Do not take the tier-1 answer from the model text.</p>
+        </aside>
+      </div>
+
+      <div class="cast" aria-label="Roles in the electrician story">
+        <article class="role"><span class="tag">Blueprint</span><h3>Map</h3><p>What connects to what.</p></article>
+        <article class="role"><span class="tag">Code book</span><h3>Corpus</h3><p>The written rules.</p></article>
+        <article class="role"><span class="tag">Inspector</span><h3>Generator</h3><p>Writes the task. Attaches the key.</p></article>
+        <article class="role"><span class="tag">Apprentice</span><h3>Agent</h3><p>May walk inside. May not leave.</p></article>
+        <article class="role"><span class="tag">Master</span><h3>Grader</h3><p>Checks the answer against the key.</p></article>
+      </div>
+      <p class="mini">Use the story when a design question appears. The inspector writes the exam. The inspector does not teach. The master does not choose the sections.</p>
+    </section>
+
+    <section id="parts">
+      <p class="ask">How does each handbook section work, and why is it there?</p>
+      <h2>Thirteen parts. Four jobs.</h2>
+      <p class="prose">The book feels large because the parts do different jobs. Filter the list. Core is the claim. Proof is the demo. Guard is a check. Guide is a reading aid.</p>
+      <div class="filters" role="group" aria-label="Filter handbook parts">
+        <button type="button" data-filter="all" aria-pressed="true">All 13</button>
+        <button type="button" data-filter="core" aria-pressed="false">Core</button>
+        <button type="button" data-filter="proof" aria-pressed="false">Proof</button>
+        <button type="button" data-filter="guard" aria-pressed="false">Guard</button>
+        <button type="button" data-filter="guide" aria-pressed="false">Guide</button>
+      </div>
+      <p id="filter-status" class="mini" aria-live="polite">13 parts</p>
+      <div class="plates">
+        <article class="plate" data-kind="core">
+          <header><span class="num">01 · Handbook §1</span><span class="kind core">Core</span></header>
+          <h3>The one thesis</h3>
+          <p>It names the only measurement. One agent, eight tasks, three arms, one scoreboard.</p>
+          <p>Every later part serves that measurement. Drop this part, and the rest is a list of parts with no stated goal.</p>
+        </article>
+        <article class="plate" data-kind="core">
+          <header><span class="num">02 · Handbook §2</span><span class="kind core">Core</span></header>
+          <h3>The cast</h3>
+          <p>Two inputs feed one spine. The map is inside the repository. The corpus is outside it. The subject is the agent.</p>
+          <p>The section also splits <code>eval</code> from <code>score</code>. People mix the two commands. The two commands test different subjects.</p>
+        </article>
+        <article class="plate" data-kind="proof">
+          <header><span class="num">03 · Handbook §3</span><span class="kind proof">Proof</span></header>
+          <h3>Why Fineract</h3>
+          <p>The generator accepts any graph with four good edges. A toy graph can pass the code. A toy graph cannot support the claim.</p>
+          <p>Apache Fineract is a real banking core, and it pairs with a public lending rule book. The gate measured 21.697 seconds, 61,983 nodes, and 303,539 edges. You can swap the repository with <code>--repo</code>.</p>
+          <p>At that size, the human diagram shows one module. The largest module offered 9,255 nodes. The cap is 24. That is why run 2 does not show a whole-repository picture.</p>
+        </article>
+        <article class="plate" data-kind="core">
+          <header><span class="num">04 · Handbook §4</span><span class="kind core">Core</span></header>
+          <h3>The join</h3>
+          <p>This is the trick. The graph has no questions. The corpus has no questions. The task is born at the join, and it is born with a key.</p>
+          <p>A fixed sort chooses the facts. A critic can read the sort. Swap the corpus folder and the rule questions change. The code stays the same.</p>
+        </article>
+        <article class="plate" data-kind="guide">
+          <header><span class="num">05 · Handbook §5</span><span class="kind guide">Guide</span></header>
+          <h3>The analogy</h3>
+          <p>Blueprint, code book, inspector, apprentice, master. Each role is one module.</p>
+          <p>The story is a memory tool. The story and the code name the same roles. When a debate starts, put the debate in the story first. Then return to the code.</p>
+        </article>
+        <article class="plate" data-kind="core">
+          <header><span class="num">06 · Handbook §6</span><span class="kind core">Core</span></header>
+          <h3>Anatomy of one run</h3>
+          <p>Eight steps from the command to the board. The worked edge is <code>LoanProductHandler</code> calls <code>LoanProduct</code>.</p>
+          <p>Read this section when you want the path of one task. The other sections comment on these steps.</p>
+        </article>
+        <article class="plate" data-kind="proof">
+          <header><span class="num">07 · Handbook §7</span><span class="kind proof">Proof</span></header>
+          <h3>Pydantic Evals</h3>
+          <p>The library holds the exam. A case is one task. A dataset is the eight tasks. An evaluator grades one case. A report evaluator sums the scoreboard.</p>
+          <p>Tests replace the model, the bridge, the judge, and the agent with fakes. CI checks the exam logic with no Ollama. The real model is configuration.</p>
+        </article>
+        <article class="plate" data-kind="guard">
+          <header><span class="num">08 · Handbook §8</span><span class="kind guard">Guard</span></header>
+          <h3>The judge</h3>
+          <p>A model writes the words. A model can grade the rule answer. That loop is a real risk.</p>
+          <p>Tier 1 is the grade you can check with no model. The grader is a script. The key is the graph edge. Tier 2 stays in its own column. The judge must name an allowed chunk id. A second check confirms the id. Tone alone cannot pass a task.</p>
+        </article>
+        <article class="plate" data-kind="guard">
+          <header><span class="num">09 · Handbook §9</span><span class="kind guard">Guard</span></header>
+          <h3>OSSIE</h3>
+          <p>OSSIE is a YAML contract for the datasets. An early file named graph tables that were not tables. Nothing read the file, so the error stayed hidden.</p>
+          <p><code>ossie materialize</code> writes the graph into real Postgres tables. <code>ossie validate</code> checks every declared table and column. A miss exits with code 1 and names the miss. The contract and the database must agree.</p>
+        </article>
+        <article class="plate" data-kind="core">
+          <header><span class="num">10 · Handbook §10</span><span class="kind core">Core</span></header>
+          <h3>Pins and cost</h3>
+          <p>Temperature 0 and seed 77 are set on the agent and on the graders. Edge choice is a sort. Retrieval rank uses a fixed formula. A second run should build the same exam.</p>
+          <p>Cost is the column a budget owner can read. A lost agent explores at a high cost. A mapped agent goes to the target. The judge tokens count too. Grading is not free in the books. Set the rates to a real price before you quote a customer.</p>
+        </article>
+        <article class="plate" data-kind="proof">
+          <header><span class="num">11 · Handbook §11</span><span class="kind proof">Proof</span></header>
+          <h3>The board</h3>
+          <p>The sink writes four tables: runs, task results, tool calls, and gate metrics. Grafana shows five panel families and refreshes every 5 seconds.</p>
+          <p>The opening picture is the seed. Treat it as a rehearsal of the shape. Measured model numbers come from a real score run, which is a separate path in the demo rig notes.</p>
+        </article>
+        <article class="plate" data-kind="guide">
+          <header><span class="num">12 · Handbook §12</span><span class="kind guide">Guide</span></header>
+          <h3>Glossary</h3>
+          <p>The handbook lists pairs that people mix. Score and eval. Map and corpus. Tier 1 and tier 2. Graph and diagram. Run and arm. Sink and board.</p>
+          <p>Use it when a sentence in the handbook uses two names for one worry. Often the names are two objects.</p>
+        </article>
+        <article class="plate" data-kind="guide">
+          <header><span class="num">13 · Handbook §13</span><span class="kind guide">Guide</span></header>
+          <h3>Where to go next</h3>
+          <p>Reading order for the spec, the rig notes, and the decision log. Then a path through the code: the test that blocks a fake fact, the generator, one full run, the graders, the sink.</p>
+          <p>The section is a route. It adds no new claim.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="size">
+      <p class="ask">Is it over-engineered?</p>
+      <h2>The aid is small. The proof is large. The claim needs the proof.</h2>
+      <div class="layers">
+        <div class="layer shell">
+          <p class="who">Outer shell · for the talk and the audit</p>
+          <h3>You can remove this shell and still help the agent.</h3>
+          <ul>
+            <li>Fineract as the stage repository</li>
+            <li>Grafana and the metrics tables</li>
+            <li>The OSSIE contract and live validate</li>
+            <li>The synthetic seed</li>
+            <li>The golden exam for the search pipeline</li>
+            <li>The one-machine demo rig</li>
+          </ul>
+        </div>
+        <div class="layer mid">
+          <p class="who">Middle · the minimum honest test</p>
+          <h3>Remove this layer and you have a story with no score.</h3>
+          <ul>
+            <li>Eight tasks written from the map, with keys</li>
+            <li>Three arms, one model, one task list</li>
+            <li>A script grade for code facts</li>
+            <li>A citation grade for rules</li>
+            <li>Tasks passed, tool calls, and cost</li>
+          </ul>
+        </div>
+        <div class="layer core">
+          <p class="who">Center · what you hand the agent</p>
+          <h3>This is the product a customer feels.</h3>
+          <ul>
+            <li>A map of the repository</li>
+            <li>A corpus of industry rules</li>
+            <li>Those two texts inside the prompt</li>
+          </ul>
+        </div>
+      </div>
+      <div class="prose">
+        <p>The demo rig is large for a laptop script. The claim is also large. The claim covers quality and money. A mixed room of about 30,000 people needs one thesis, one live mechanism, and one scoreboard.</p>
+        <p>Daily work can stop at the center. Give the agent the map and the rules. Keep the middle when someone says “show me.” Keep the shell when the room is large, or when a paper contract must not drift.</p>
+        <p>Four edges and eight tasks are a demo sample. The same generator can take a wider set. The fixed count is for the talk, so the board stays readable.</p>
+      </div>
+    </section>
+
+    <section id="enterprise">
+      <p class="ask">Is it viable in production and in an enterprise?</p>
+      <h2>The method can earn a fee. The rig is a measured demo.</h2>
+      <div class="prose">
+        <p>An enterprise can use the method on an engagement now. Map the repository. Load a public rule folder. Run the three arms. Show the gap.</p>
+        <p>The rig is one machine. Ollama runs on the host. Docker runs Postgres and Grafana. The build uses public documents only. Access control for a private rule book is out of this build.</p>
+        <p>Sell the method as the first week of an engagement. Do not sell the rig as a finished platform for many customers.</p>
+      </div>
+      <div class="pills">
+        <article class="status"><span class="tag measured">Measured</span><p>The map runs on a large public repository. Fineract: 21.697 seconds, 61,983 nodes, 303,539 edges.</p></article>
+        <article class="status"><span class="tag built">Built</span><p>Swap the repository with <code>--repo</code>. Swap the corpus by a folder change and a new load. The jail blocks paths outside the root. Tier 1 uses a script. Temperature is 0. The seed is 77.</p></article>
+        <article class="status"><span class="tag built">Built</span><p>Tests use fakes. A refactor of the exam logic can fail in CI with no local model.</p></article>
+        <article class="status"><span class="tag limit">Limit</span><p>The committed scoreboard is synthetic. Quote a customer only after a run on the model you will deploy. Pin that model. The default and the host can drift.</p></article>
+        <article class="status"><span class="tag limit">Limit</span><p>Tier 2 still uses a model as judge. Report tier 2 apart from tier 1. The citation check blocks a pass on tone. The judge remains a model.</p></article>
+        <article class="status"><span class="tag limit">Limit</span><p>The dollar column is a local formula. Match the rates to the contract before a finance review. The formula is stable, so arms stay comparable.</p></article>
+        <article class="status"><span class="tag limit">Limit</span><p>Eight tasks are a demo sample. A full regression suite is a later use of the same generator. Compliance tests for the banking software are out of this build.</p></article>
+      </div>
+    </section>
+
+    <section id="words">
+      <p class="ask">Which words are fixed?</p>
+      <h2>One word for each thing.</h2>
+      <dl class="glossary">
+        <dt>Agent</dt><dd>The program that reads the repository and answers the tasks. The program under test.</dd>
+        <dt>Map</dt><dd>Knowledge of the repository. A graph for the agent. A module diagram for a person.</dd>
+        <dt>Corpus</dt><dd>The folder of industry rules, loaded into Postgres.</dd>
+        <dt>Bridge</dt><dd>The search command. A text query in. Chunk JSON out. Every chunk id goes to the log.</dd>
+        <dt>Task</dt><dd>One exam question. Eight tasks make the list.</dd>
+        <dt>Tier 1</dt><dd>A code-fact task. The key is the graph edge. A script grades it.</dd>
+        <dt>Tier 2</dt><dd>A rule task. The key is the chunk ids. A judge and a citation check grade it.</dd>
+        <dt>Arm</dt><dd>One context level. The names are bare, map, and map_rules.</dd>
+        <dt>Run</dt><dd>All three arms under one run id.</dd>
+        <dt>Scoreboard</dt><dd>Tasks passed, tool calls, and cost for each arm.</dd>
+        <dt>Jail</dt><dd>The path check. It rejects files outside the repository.</dd>
+        <dt>Sink</dt><dd>The writer that fills the Postgres metric tables.</dd>
+        <dt>Board</dt><dd>The Grafana view that reads the sink.</dd>
+        <dt>Golden exam</dt><dd>The older ten-case test of the search pipeline. Command: <code>python -m app eval</code>.</dd>
+        <dt>OSSIE</dt><dd>The YAML contract. Validate checks it against the live database.</dd>
+        <dt>Gate</dt><dd>The scale run that mapped Fineract and stored the counts.</dd>
+      </dl>
+    </section>
+
+    <footer>
+      <p>Reading aid for <a href="handbook.md">docs/handbook.md</a> v1.0, written against branch <code>feat/eval-harness</code> at commit <code>30ec7fa</code>. Pipeline picture: <a href="demo-pipeline.html">docs/demo-pipeline.html</a>. Rig steps: <a href="demo-rig.md">docs/demo-rig.md</a>.</p>
+      <p>Gate figures come from the requirements appendix. Seed figures come from <code>scratch/seed-reports</code>. Table 1 figures are illustrative.</p>
+    </footer>
+  </div>
+</article>
+<script>
+(function () {
+  var grid = document.getElementById("arms-grid");
+  var buttons = grid.querySelectorAll("[data-arm]");
+  var copies = document.querySelectorAll("[data-arm-copy]");
+  buttons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-arm");
+      var on = btn.getAttribute("aria-pressed") === "true";
+      buttons.forEach(function (b) { b.setAttribute("aria-pressed", "false"); b.classList.remove("is-hot"); });
+      copies.forEach(function (el) { el.hidden = true; });
+      if (on) {
+        grid.classList.remove("is-filtered");
+        document.querySelector('[data-arm-copy="none"]').hidden = false;
+        return;
+      }
+      grid.classList.add("is-filtered");
+      btn.setAttribute("aria-pressed", "true");
+      btn.classList.add("is-hot");
+      document.querySelector('[data-arm-copy="' + id + '"]').hidden = false;
+    });
+  });
+
+  var filters = document.querySelectorAll("[data-filter]");
+  var plates = document.querySelectorAll(".plate");
+  var status = document.getElementById("filter-status");
+  var labels = { all: "13 parts", core: "Core parts. These carry the claim.", proof: "Proof parts. These serve the demo.", guard: "Guard parts. These keep the result honest.", guide: "Guide parts. These help you read." };
+  filters.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var kind = btn.getAttribute("data-filter");
+      filters.forEach(function (b) { b.setAttribute("aria-pressed", b === btn ? "true" : "false"); });
+      var n = 0;
+      plates.forEach(function (plate) {
+        var show = kind === "all" || plate.getAttribute("data-kind") === kind;
+        plate.hidden = !show;
+        if (show) n += 1;
+      });
+      status.textContent = n + " shown. " + labels[kind];
+    });
+  });
+
+  var charts = document.getElementById("charts");
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    charts.classList.add("draw");
+  } else {
+    charts.classList.remove("draw");
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { charts.classList.add("draw"); });
+    });
+  }
+})();
+</script>
+</body>
+</html>

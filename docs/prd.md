@@ -276,7 +276,7 @@ Retrieval is hybrid: a dense lane of local sentence-transformer embeddings with 
 
 Generation runs on qwen3:8b via native host Ollama, temperature 0, seed 77, and no cloud API keys anywhere. Storage is Postgres with pgvector in Docker on local port 5433 via the compose override, which stays machine-local. The embedding dimension is fixed at 768 by the table schema, and the local environment pins all-mpnet-base-v2 while the code default names gte-modernbert-base, so the model must be pinned explicitly.
 
-The eval corpus today is ten markdown policy files with ten golden evaluation cases and persisted records.
+This is old, and not part of eval harness. The eval corpus today is ten Minion markdown policy files with ten golden evaluation cases and persisted records. `python -m app eval` loads `eval/goldens.json` and runs each question through the same search the ask path uses. Search reads `policy_chunks`.
 
 The eval harness side is new since v0.1: pydantic-evals plus pydantic-ai drive a jailed repo agent with list_dir and read_file tools capped at 12 calls, a task generator derives the two-tier task list, scoreboard JSONs record each run, and a compare page puts runs side by side. The observability layer for this phase is Grafana over a metrics sink (FR-12).
 

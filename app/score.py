@@ -86,14 +86,14 @@ def prepare_local_judge(settings: Settings) -> LLMJudge:
     model = OllamaModel(
         settings.ollama_model,
         provider=OllamaProvider(base_url=ollama_base_url(settings.ollama_host)),
-        settings={"temperature": 0, "seed": 77},
+        settings={"temperature": 0, "seed": 77, "thinking": False},
     )
     set_default_judge_model(model)
     return LLMJudge(
         rubric=JUDGE_RUBRIC,
         model=model,
         include_input=True,
-        model_settings={"temperature": 0, "seed": 77},
+        model_settings={"temperature": 0, "seed": 77, "thinking": False},
     )
 
 
@@ -117,7 +117,7 @@ def judge_rule(prompt: str, answer: str, allowed: list[str]) -> dict:
     model = OllamaModel(
         settings.ollama_model,
         provider=OllamaProvider(base_url=ollama_base_url(settings.ollama_host)),
-        settings={"temperature": 0, "seed": 77},
+        settings={"temperature": 0, "seed": 77, "thinking": False},
     )
     agent = Agent(
         model,
@@ -131,7 +131,7 @@ def judge_rule(prompt: str, answer: str, allowed: list[str]) -> dict:
     result = agent.run_sync(
         f"Question:\n{prompt}\n\nAnswer:\n{answer}\n\nAllowed chunk ids: {allowed_text}"
     )
-    usage = result.usage()
+    usage = result.usage
     return {
         "pass": bool(result.output.passed),
         "citation": result.output.citation,

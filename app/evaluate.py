@@ -1,4 +1,9 @@
-"""The fixed exam: golden cases, recall and answer checks, the harness run."""
+"""The fixed exam: golden cases, recall and answer checks, the harness run.
+
+This is old, and not part of eval harness. python -m app eval loads
+eval/goldens.json and runs each question through the same search the ask
+path uses. Search reads policy_chunks. The cases are the Minion policies.
+"""
 
 import json
 from pathlib import Path

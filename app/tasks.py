@@ -11,6 +11,34 @@ from app.generate import LanguageModel
 from app.graph import Edge, candidate_edges, load_graph, module_mermaid, node_label
 
 TASK_COUNT = 4
+# One chunk per fact. A longer list blows the local model's context and it
+# stops returning tier1/tier2, or cites a chunk from a different fact.
+SHOWN_CHUNKS = 1
+TASK_RESPONSE_FORMAT = {
+    "type": "object",
+    "properties": {
+        "tier1": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"prompt": {"type": "string"}},
+                "required": ["prompt"],
+            },
+        },
+        "tier2": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "prompt": {"type": "string"},
+                    "chunk_ids": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["prompt", "chunk_ids"],
+            },
+        },
+    },
+    "required": ["tier1", "tier2"],
+}
 
 
 class Task(BaseModel):
@@ -52,20 +80,21 @@ def _parse_object(raw: str) -> dict:
 def _prompt(edges: list[Edge], retrieved: list[list[dict]], labels: list[str]) -> str:
     facts = []
     for index, edge in enumerate(edges, start=1):
-        chunks = retrieved[index - 1]
+        shown = retrieved[index - 1][:SHOWN_CHUNKS]
         chunk_lines = [
-            f"- {chunk['chunk_id']}: {chunk.get('section_title', '')} {chunk.get('text', '')[:240]}"
-            for chunk in chunks
+            f"- {chunk['chunk_id']}: {chunk.get('section_title', '')} {chunk.get('text', '')[:160]}"
+            for chunk in shown
         ]
+        cite = shown[0]["chunk_id"] if shown else "none"
         facts.append(
             "\n".join(
                 [
                     f"Fact {index}",
                     f"source: {edge.source}",
                     f"relation: {edge.relation}",
-                    f"target: {edge.target}",
                     f"file: {edge.source_file or edge.target_file}",
                     f"label: {labels[index - 1]}",
+                    f"cite: {cite}",
                     "chunks:",
                     *(chunk_lines or ["- none"]),
                 ]
@@ -73,11 +102,22 @@ def _prompt(edges: list[Edge], retrieved: list[list[dict]], labels: list[str]) -
         )
     return (
         "Phrase a task list. Do not invent facts. "
-        f"Return JSON with tier1 and tier2, each a list of {TASK_COUNT} objects in this fact order. "
-        'tier1 objects are {"prompt": "..."} and ask for the target symbol and the file. '
-        'tier2 objects are {"prompt": "...", "chunk_ids": ["..."]} and must cite only the chunk ids listed for that fact. '
-        "Temperature is already zero. JSON only.\n\n" + "\n\n".join(facts)
+        f"Return JSON with tier1 and tier2, each a list of exactly {TASK_COUNT} objects, in this fact order. "
+        "Each tier1 prompt must name that fact's source and ask which symbol it calls and in which file. "
+        "Do not include the callee symbol in the tier1 prompt. "
+        "Each tier2 prompt must name that fact's source and ask what rule the cited chunk states. "
+        "tier2 chunk_ids must be a one-item list of that fact's cite value and no other id. "
+        "JSON only.\n\n" + "\n\n".join(facts)
     )
+
+
+def _phrase(model: LanguageModel, prompt: str) -> str:
+    """Ask for the task JSON. A schema is sent when the model accepts one."""
+    chat = model.chat
+    try:
+        return chat(prompt, response_format=TASK_RESPONSE_FORMAT)
+    except TypeError:
+        return chat(prompt)
 
 
 def _edge_payload(edge: Edge) -> dict:
@@ -154,7 +194,7 @@ def generate_tasks(
                     "chunk_ids": [chunk["chunk_id"] for chunk in chunks],
                 }
             )
-    parsed = _parse_object(model.chat(_prompt(chosen, retrieved, labels)))
+    parsed = _parse_object(_phrase(model, _prompt(chosen, retrieved, labels)))
     tier1 = parsed.get("tier1")
     tier2 = parsed.get("tier2")
     if not isinstance(tier1, list) or not isinstance(tier2, list):

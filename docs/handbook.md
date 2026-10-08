@@ -86,7 +86,9 @@ fleshes them out.
 
 There are two exam runners in this repo and they test different subjects.
 
-The **golden exam**, `python -m app eval`, tests the RAG itself. It runs ten
+This is old, and not part of eval harness. The Minion golden exam,
+`python -m app eval`, loads eval/goldens.json and runs each question through
+the same search the ask path uses. Search reads policy_chunks. It runs ten
 fixed, hand-written cases (evaluate.py:16 loads eval/goldens.json; the ten
 cases ship in the file) through the exact ask path, checks recall and required
 facts, and exits nonzero if any case fails (evaluate.py:73-119; cli.py:224-237).
@@ -554,8 +556,10 @@ run path in the next section.
   deterministic script (score.py:143-170).
 - **tier 2**: a domain-rule task, derived from an edge plus retrieved chunks,
   graded by a model judge plus a citation check (score.py:173-197).
-- **golden exam**: the older fixed exam, `python -m app eval`, ten hand-written
-  cases testing the RAG itself (evaluate.py:73-119; cli.py:49-61).
+- **golden exam**: This is old, and not part of eval harness. The Minion exam,
+  `python -m app eval`, loads eval/goldens.json and runs each question through
+  the same search the ask path uses. Search reads policy_chunks.
+  (evaluate.py:73-119; cli.py:49-61).
 - **case**: one pydantic-evals exam item: inputs, metadata holding the answer
   key and origin, and its evaluators (score.py:283-292).
 - **arm**: one context level of the three-run protocol: bare, map, map_rules
@@ -579,9 +583,10 @@ run path in the next section.
 
 ### Pairs that get confused
 
-- **score vs eval**: different subjects. `python -m app score` tests the agent
-  on a fresh, self-writing exam (cli.py:69-77); `python -m app eval` tests the
-  RAG on the fixed golden exam (cli.py:49-61).
+- **score vs eval**: `python -m app score` is the harness (cli.py:69-77).
+  This is old, and not part of eval harness: `python -m app eval` loads
+  eval/goldens.json and runs each Minion question through the same search the
+  ask path uses. Search reads policy_chunks. (cli.py:49-61).
 - **map vs corpus**: the map is exact and inside the repo; the corpus is prose
   and outside it. The map aims the questions, the corpus fills them
   (tasks.py:135-140).
@@ -617,7 +622,7 @@ python -m app ossie materialize --graph P           # graph into Postgres
 python -m app ossie validate                        # contract, live
 python -m app live                                  # watch a score run
 python -m app compare DIR                           # three reports side by side
-python -m app eval                                  # the golden exam (RAG)
+python -m app eval                                  # This is old, and not part of eval harness. Minion goldens.json.
 python -m app retrieve "query"                      # the bridge, raw
 ```
 

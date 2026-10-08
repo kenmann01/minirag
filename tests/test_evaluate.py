@@ -1,4 +1,9 @@
-"""Golden exam and evaluation harness behavior at their public seams."""
+"""Golden exam and evaluation harness behavior at their public seams.
+
+This is old, and not part of eval harness. python -m app eval loads
+eval/goldens.json and runs each Minion question through the same search the
+ask path uses. Search reads policy_chunks.
+"""
 
 import json
 

@@ -46,6 +46,7 @@ def main(
         action="store_true",
         help="Bypass the lineage filter to reproduce the planted defect; never cached",
     )
+    # This is old, and not part of eval harness. Minion goldens in eval/goldens.json.
     eval_parser = sub.add_parser("eval", help="Run the golden exam and write the harness record")
     eval_parser.add_argument("--output", type=Path, default=Path("eval/record.json"))
     eval_parser.add_argument(
@@ -221,6 +222,9 @@ def main(
             store(args.question, response, adapter)
         print(response.model_dump_json())
         return 0
+    # This is old, and not part of eval harness. Loads eval/goldens.json and
+    # runs each Minion question through the same search the ask path uses.
+    # Search reads policy_chunks.
     if args.command == "eval":
         goldens = load_goldens()
         record = run_exam(

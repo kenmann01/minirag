@@ -8,6 +8,7 @@ from app.chunking import split
 from app.db import DatabaseAdapter
 from app.embeddings import embed_texts
 
+# This is old, and not part of eval harness. Default folder is the Minion policies.
 POLICY_DIR = Path(__file__).resolve().parents[1] / "Policy"
 
 

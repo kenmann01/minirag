@@ -71,4 +71,4 @@ Banking markdown is a public slice of 12 CFR 1026. Aviation markdown is a public
 5. The live swap: banking questions, then aviation questions, same code.
 6. One future beat: the Ossie file is the unit other tools can read.
 
-The ten-question policy exam is unchanged: `python -m app eval`.
+This is old, and not part of eval harness. The ten-question Minion exam is unchanged: `python -m app eval` loads `eval/goldens.json` and runs each question through the same search the ask path uses. Search reads `policy_chunks`.

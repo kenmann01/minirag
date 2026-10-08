@@ -63,6 +63,10 @@ that admits the superseded 2021 duplicate into both retrieval lanes. It
 exists to reproduce the planted per-diem defect on demand (see
 docs/part6-diagnosis.md); bypassed asks are never cached.
 
+This is old, and not part of eval harness. `python -m app eval` loads
+`eval/goldens.json` and runs each Minion question through the same search the
+ask path uses. Search reads `policy_chunks`.
+
 Run the fixed ten-golden exam, print the per-golden table, and write
 `eval/record.json`:
 
