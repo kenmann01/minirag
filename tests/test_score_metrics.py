@@ -1,7 +1,6 @@
 """The score CLI writes its run metrics into Postgres while the run happens."""
 
 import json
-import re
 from dataclasses import dataclass
 
 import pytest
@@ -11,11 +10,9 @@ from app.agent import RunOutput
 from app.cli import main
 from app.ingest import run as run_ingest
 from app.pgadapter import PgAdapter
-from tests.test_tasks import write_graph
+from tests.test_tasks import tier2_items, write_graph
 
 METRICS_TABLES = ("tool_calls", "task_results", "runs")
-
-_CHUNK_LINE = re.compile(r"^- (\S+:[sc]\d+:[sc]\d+):")
 
 
 @dataclass
@@ -25,37 +22,14 @@ class AlwaysPass(Evaluator):
 
 
 class CorpusPhraser:
-    """Phrase tier tasks from the real corpus, reading only fact-line chunk ids."""
+    """Phrase tier-2 tasks from the real corpus, reading each fact's source and cite."""
 
     def __init__(self):
         self.prompts = []
 
     def chat(self, prompt: str) -> str:
         self.prompts.append(prompt)
-        fact_blocks = re.split(r"^Fact \d+$", prompt, flags=re.MULTILINE)[1:]
-        first_chunk_per_fact = [
-            next(
-                (
-                    match.group(1)
-                    for line in block.splitlines()
-                    if (match := _CHUNK_LINE.match(line))
-                ),
-                None,
-            )
-            for block in fact_blocks
-        ]
-        return json.dumps(
-            {
-                "tier1": [
-                    {"prompt": "Which method does this loan type call?", "target": "made-up"}
-                    for _ in range(4)
-                ],
-                "tier2": [
-                    {"prompt": f"What rule is in {chunk_id}?", "chunk_ids": [chunk_id]}
-                    for chunk_id in first_chunk_per_fact
-                ],
-            }
-        )
+        return json.dumps({"tier2": tier2_items(prompt)})
 
 
 @pytest.fixture(scope="module", autouse=True)

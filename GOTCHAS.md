@@ -11,7 +11,7 @@ Landmines. Unwritten convention, surprising coupling, local-vs-container traps, 
 - `--include-superseded` is a planted defect, and those asks are not cached. Evidence: `app/cli.py`, `docs/part6-diagnosis.md`. Instead: leave the flag off for normal answers.
 - `retrieve` is not `ask` without the printer. Evidence: `app/bridge.py` skips the reranker because rerank keeps one chunk per section. Instead: use ask or eval when you need the generation path.
 - Init SQL does not create the demo schema. Evidence: `sql/001_init.sql` runs only on an empty volume. Metrics and graph tables appear after score, gate, or `ossie materialize`. `docs/demo-rig.md` says `ossie validate` fails until that seed exists.
-- Graphify and `mmdc` are external. Evidence: `app/gate.py` looks for a `graphify` binary beside the interpreter (a venv symlink hides it) and records an error if `mmdc` is missing. Instead: install `graphifyy` on the host (`docs/demo-start.md`).
+- `mmdc` is external. Evidence: `app/gate.py` records an error when the mermaid renderer is missing. The map itself is the in-repo call-scan skill (`skills/call-scan/scripts/scan.py`); `app/adapter.py` chooses the tree. Instead: install `mmdc` on the host when a gate run must render SVG.
 - `pytest` hides the live generator. Evidence: `addopts = -m "not llm"` in `pytest.ini`. Instead: `pytest -m llm` or the manual CI full workflow.
 - `README.md` says Compose runs only Postgres. Evidence: `docker-compose.yml` also starts Grafana. The README also omits score, gate, retrieve, and ossie; those are in `docs/demo-start.md`.
 

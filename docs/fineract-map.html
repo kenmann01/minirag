@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>24 most connected nodes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700&family=Fragment+Mono&family=Fraunces:opsz,wght@9..144,560;9..144,680&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1b1612;
+    --muted: #5c5148;
+    --paper: #f3ecdf;
+    --card: #fbf7f0;
+    --line: #d9d0c2;
+    --navy: #172433;
+    --amber: #b86112;
+    --amber-2: #e39b3a;
+    --serif: "Fraunces", Palatino, Georgia, serif;
+    --sans: "Atkinson Hyperlegible", "Segoe UI", sans-serif;
+    --mono: "Fragment Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--sans);
+    background:
+      radial-gradient(rgba(27,22,18,.045) .7px, transparent .7px),
+      var(--paper);
+    background-size: 18px 18px, auto;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  header {
+    background: var(--navy);
+    color: #f6f1e7;
+    padding: 22px 28px 18px;
+  }
+  .kicker {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--amber-2);
+    margin: 0 0 6px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 560;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    letter-spacing: -.03em;
+    line-height: .95;
+    margin: 0 0 8px;
+  }
+  header p { margin: 0; max-width: 62ch; color: #e7dccb; }
+  main { padding: 22px 28px 48px; }
+  .diagram {
+    background: var(--card);
+    border: 1px solid var(--line);
+    padding: 16px 12px;
+    overflow: auto;
+  }
+  .diagram svg { max-width: none; height: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 22px;
+    background: var(--card);
+    border: 1px solid var(--line);
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: baseline;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  td:first-child, td:nth-child(3) {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  td:nth-child(3) { color: var(--amber); }
+  td:last-child {
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--muted);
+  }
+  caption {
+    caption-side: bottom;
+    text-align: left;
+    color: var(--muted);
+    padding: 10px 2px 0;
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">Human map · Apache Fineract</p>
+  <h1>24 most connected nodes</h1>
+  <p>Ranked by how many edges touch the node. Each name sits on the file that holds it, so the heavy files are the ones in this list.</p>
+</header>
+<main>
+  <div class="diagram">
+    <pre class="mermaid">flowchart LR
+  n0["JsonCommand · JsonCommand.java"]
+  n1["CommandProcessingResult · CommandProcessingResult.java"]
+  n2["Loan · Loan.java"]
+  n3["CommandWrapperBuilder · CommandWrapperBuilder.java"]
+  n4["Money · Money.java"]
+  n5["NewCommandSourceHandler · NewCommandSourceHandler.java"]
+  n6["CommandType · CommandType.java"]
+  n7[".testContext() · AbstractStepDef.java"]
+  n8["LoanTransaction · LoanTransaction.java"]
+  n9["EnumOptionData · EnumOptionData.java"]
+  n10["DataValidatorBuilder · DataValidatorBuilder.java"]
+  n11[".authenticatedUser() · PlatformSecurityContext.java"]
+  n12["PlatformSecurityContext · PlatformSecurityContext.java"]
+  n13["FromJsonHelper · FromJsonHelper.java"]
+  n14["WorkingCapitalLoan · WorkingCapitalLoan.java"]
+  n15["FeignLoanTestBase · FeignLoanTestBase.java"]
+  n16["PlatformApiDataValidationException · PlatformApiDataValidationException.java"]
+  n17["ExternalId · ExternalId.java"]
+  n18["CommandProcessingResultBuilder · CommandProcessingResultBuilder.java"]
+  n19["FineractFeignClient · FineractFeignClient.java"]
+  n20["LoanRepaymentScheduleInstallment · LoanRepaymentScheduleInstallment.java"]
+  n21[".reset() · DataValidatorBuilder.java"]
+  n22["MonetaryCurrency · MonetaryCurrency.java"]
+  n23["SavingsAccount · SavingsAccount.java"]
+  n3 -->|references| n17
+  n0 -->|references| n13
+  n0 -->|references| n17
+  n1 -->|references| n17
+  n18 -->|references| n17
+  n10 -->|method| n21
+  n21 -->|references| n10
+  n12 -->|method| n11
+  n2 -->|references| n17
+  n2 -->|references| n20
+  n2 -->|references| n8
+  n20 -->|references| n2
+  n8 -->|references| n2
+  n8 -->|references| n17
+  n23 -->|references| n17
+  n23 -->|references| n22
+  n14 -->|references| n17
+  n15 -->|references| n19</pre>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Node</th><th>Edges</th><th>File</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>JsonCommand</td><td>2,747</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/core/api/JsonCommand.java</td></tr><tr><td>2</td><td>CommandProcessingResult</td><td>2,464</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/core/data/CommandProcessingResult.java</td></tr><tr><td>3</td><td>Loan</td><td>1,516</td><td>fineract-loan/src/main/java/org/apache/fineract/portfolio/loanaccount/domain/Loan.java</td></tr><tr><td>4</td><td>CommandWrapperBuilder</td><td>1,371</td><td>fineract-core/src/main/java/org/apache/fineract/commands/service/CommandWrapperBuilder.java</td></tr><tr><td>5</td><td>Money</td><td>995</td><td>fineract-core/src/main/java/org/apache/fineract/organisation/monetary/domain/Money.java</td></tr><tr><td>6</td><td>NewCommandSourceHandler</td><td>927</td><td>fineract-core/src/main/java/org/apache/fineract/commands/handler/NewCommandSourceHandler.java</td></tr><tr><td>7</td><td>CommandType</td><td>885</td><td>fineract-core/src/main/java/org/apache/fineract/commands/annotation/CommandType.java</td></tr><tr><td>8</td><td>.testContext()</td><td>881</td><td>fineract-e2e-tests-core/src/test/java/org/apache/fineract/test/stepdef/AbstractStepDef.java</td></tr><tr><td>9</td><td>LoanTransaction</td><td>839</td><td>fineract-loan/src/main/java/org/apache/fineract/portfolio/loanaccount/domain/LoanTransaction.java</td></tr><tr><td>10</td><td>EnumOptionData</td><td>825</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/core/data/EnumOptionData.java</td></tr><tr><td>11</td><td>DataValidatorBuilder</td><td>806</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/core/data/DataValidatorBuilder.java</td></tr><tr><td>12</td><td>.authenticatedUser()</td><td>800</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/security/service/PlatformSecurityContext.java</td></tr><tr><td>13</td><td>PlatformSecurityContext</td><td>699</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/security/service/PlatformSecurityContext.java</td></tr><tr><td>14</td><td>FromJsonHelper</td><td>683</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/core/serialization/FromJsonHelper.java</td></tr><tr><td>15</td><td>WorkingCapitalLoan</td><td>651</td><td>fineract-working-capital-loan/src/main/java/org/apache/fineract/portfolio/workingcapitalloan/domain/WorkingCapitalLoan.java</td></tr><tr><td>16</td><td>FeignLoanTestBase</td><td>603</td><td>integration-tests/src/test/java/org/apache/fineract/integrationtests/client/feign/FeignLoanTestBase.java</td></tr><tr><td>17</td><td>PlatformApiDataValidationException</td><td>589</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/core/exception/PlatformApiDataValidationException.java</td></tr><tr><td>18</td><td>ExternalId</td><td>587</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/core/domain/ExternalId.java</td></tr><tr><td>19</td><td>CommandProcessingResultBuilder</td><td>572</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/core/data/CommandProcessingResultBuilder.java</td></tr><tr><td>20</td><td>FineractFeignClient</td><td>547</td><td>fineract-client-feign/src/main/java/org/apache/fineract/client/feign/FineractFeignClient.java</td></tr><tr><td>21</td><td>LoanRepaymentScheduleInstallment</td><td>541</td><td>fineract-loan/src/main/java/org/apache/fineract/portfolio/loanaccount/domain/LoanRepaymentScheduleInstallment.java</td></tr><tr><td>22</td><td>.reset()</td><td>539</td><td>fineract-core/src/main/java/org/apache/fineract/infrastructure/core/data/DataValidatorBuilder.java</td></tr><tr><td>23</td><td>MonetaryCurrency</td><td>529</td><td>fineract-core/src/main/java/org/apache/fineract/organisation/monetary/domain/MonetaryCurrency.java</td></tr><tr><td>24</td><td>SavingsAccount</td><td>528</td><td>fineract-savings/src/main/java/org/apache/fineract/portfolio/savings/domain/SavingsAccount.java</td></tr>
+    </tbody>
+    <caption>A line is drawn only when both ends are inside these 24. The edge count is the node's connections in the whole graph, 303,539 edges across 61,983 nodes.</caption>
+  </table>
+</main>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'loose',
+    theme: 'base',
+    fontFamily: 'Atkinson Hyperlegible, sans-serif',
+    flowchart: { htmlLabels: true, useMaxWidth: false, curve: 'basis', nodeSpacing: 28, rankSpacing: 40 },
+    themeVariables: {
+      background: '#fbf7f0',
+      primaryColor: '#fbf7f0',
+      primaryTextColor: '#1b1612',
+      primaryBorderColor: '#1b1612',
+      lineColor: '#172433',
+      fontFamily: 'Atkinson Hyperlegible, sans-serif',
+      fontSize: '15px'
+    }
+  });
+  const block = document.querySelector('pre.mermaid');
+  try {
+    const { svg } = await mermaid.render('top24', block.textContent.trim());
+    block.innerHTML = svg;
+  } catch (error) {
+    const note = document.createElement('p');
+    note.textContent = error && error.message ? error.message : String(error);
+    block.insertAdjacentElement('afterend', note);
+  }
+</script>
+</body>
+</html>

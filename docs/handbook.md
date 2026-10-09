@@ -47,9 +47,9 @@ The system has two input lanes and one measurement spine (docs/prd.md:106).
 **The map lane** reads a repository and produces the map: module-level mermaid
 diagrams for humans and a graphify `graph.json` for agents (docs/prd.md:106).
 The graph is inside-the-repo knowledge. Its facts are exact: this class calls
-that class, in this file (graph.py:40-65 loads it; graph.py:115-134 renders it
+that class, in this file (graph.py:41-66 loads it; graph.py:162-184 renders it
 as mermaid). Questions built from it are graded by an exact substring check on
-symbol and file name (score.py:150-156).
+symbol and file name (score.py:151-157).
 
 **The corpus lane** converts public industry documents into markdown, ingests
 them into Postgres as `policy_chunks` and `sections`, and serves them through a
@@ -75,8 +75,8 @@ The owner once had this backwards, so it gets its own box.
 
 Graph node labels are the RAG's query strings. Never the reverse. The generator
 takes the source node of each chosen edge, reads its human label, and fires
-that label at the corpus as a retrieval query (tasks.py:135-140, with the label
-lookup at graph.py:90-95). The RAG never sees code: the bridge embeds the label
+that label at the corpus as a retrieval query (tasks.py:252-257, with the label
+lookup at graph.py:104-109). The RAG never sees code: the bridge embeds the label
 text and searches the corpus table with it (bridge.py:38-39; retrieve.py:79-121).
 No source file, class body, or edge structure ever enters the vector store, and
 the corpus never picks graph edges. The map aims the questions; the corpus
@@ -112,14 +112,15 @@ eval/fineract-gate.json). Large but mappable, and banking pairs naturally with
 the reg-z-1026 corpus that anchors tier 2 (docs/prd.md:231).
 
 What breaks without Fineract? Nothing in code. The task generator runs on any
-graph that holds at least four EXTRACTED call or import edges (tasks.py:117-119;
-graph.py:72-87), and the gate's loans-coverage check is just a scan for the
-package name (graph.py:137-142). What dies is everything the demo says:
+graph that holds at least four EXTRACTED call or import edges whose source,
+relation, and source file occur once (tasks.py:235-236; graph.py:82-101), and
+the gate's loans-coverage check is just a scan for the package name
+(graph.py:187-191). What dies is everything the demo says:
 
 - Tier-1 tasks at real scale: the claim "the map works on a real repository,
   not a toy" (docs/prd.md:69) needs a repository that is actually real.
 - RUN 2: the map arm is assembled from graph nodes, edges, and the module
-  mermaid diagram (tasks.py:232-243). No map, no second arm, no gap to measure.
+  mermaid diagram (tasks.py:342-353). No map, no second arm, no gap to measure.
 - The talk's title. The five gate numbers are the scale slide (docs/prd.md:293),
   and "The Map Writes the Test" is a claim about maps of real repositories.
 
@@ -128,7 +129,7 @@ The gate also stress-tested the human-facing half of the map at scale. At
 largest module offered 9,255 candidate nodes and the diagram cap is 24, and
 the whole-repository diagram is out of the question (docs/prd.md:302). That is
 why the map excerpt shown to the agent in RUN 2 draws one module's diagram,
-not the repository's (tasks.py:232-243; graph.py:115-134).
+not the repository's (tasks.py:342-353; graph.py:162-184).
 
 Fineract is swappable by design. The corpus is already a folder; the repository
 is one `--repo` argument away (cli.py:70-72). The bank is a prop with measured
@@ -143,44 +144,43 @@ key.
 
 Walk the join once. The generator picks an edge, say our canonical worked
 example, `LoanProductHandler calls LoanProduct`. It takes the source node's
-label, `LoanProductHandler`, and queries the corpus with it (tasks.py:135-140).
+label, `LoanProductHandler`, and queries the corpus with it (tasks.py:254-257).
 The bridge returns prose chunks about loan product rules (bridge.py:22-46). The
-generator then hands the model one prompt containing the fixed facts: the edge,
-the file, the label, and the retrieved chunks, with the instruction "Phrase a
-task list. Do not invent facts" (tasks.py:52-80). One chat call produces the
-wording of eight questions (tasks.py:157).
+script writes each tier-1 question from the edge: the source, the source file,
+and whether the edge calls or imports (tasks.py:84-89). It then hands the model
+one prompt containing the fixed facts, with the instruction "Phrase tier-2
+questions. Do not invent facts" (tasks.py:160-167). One chat call produces the
+wording of the four tier-2 questions (tasks.py:274-275).
 
 Born holding its own answer key means this:
 
-- A tier-1 task's expected value is the edge payload itself, taken from the
-  graph, not from the model's output (tasks.py:185-193). The model can phrase
-  "Which class does the loan product handler call?" however it likes; the
-  graded answer is still `LoanProduct` in its file, straight from the edge.
-  A test proves the point: when a fake model invents a target, the invented
-  value is discarded and the graph's target is kept (tests/test_tasks.py:108-121).
-- A tier-2 task's expected value is the chunk ids it cites, and every cited id
-  must be one the bridge actually returned. If the model cites anything outside
-  the bridge log, the whole run dies with `TaskGenerationError` (tasks.py:200-205;
-  the CLI turns that into exit code 1, cli.py:189-191). The module's own
-  docstring says it plainly: "A tier-2 citation that the bridge did not return
-  fails the whole list" (tasks.py:103).
+- A tier-1 question is that template. Its expected value is the edge payload
+  itself, taken from the graph (tasks.py:278-288). The graded answer is the
+  graph target in its source file. A test keeps that target when a fake model
+  invents a different one (tests/test_tasks.py:131).
+- A tier-2 task's expected value is the one shown chunk id. The model echoes
+  the fact number and the generator joins on that number (tasks.py:190-206,
+  tasks.py:289-299). A citation other than that shown chunk fails the whole
+  run with `TaskGenerationError` (tasks.py:296-299; the CLI turns that into
+  exit code 1, cli.py:190). The docstring says it plainly: "A tier-2 citation
+  that is not the shown bridge chunk fails the whole list" (tasks.py:220).
 
 This is answerability by construction: a task exists only if the context to
 answer it demonstrably exists. Three payoffs follow.
 
 **Payoff one: no cherry-picking.** Nobody chose the facts. Edge selection is a
 deterministic sort over EXTRACTED call and import edges, loan paths first
-(graph.py:72-87). The docstring is blunt: "A human does not choose the facts"
-(graph.py:75). The objection "you picked easy questions" has no surface to
+(graph.py:82-101). The docstring is blunt: "A human does not choose the facts"
+(graph.py:87). The objection "you picked easy questions" has no surface to
 attach to.
 
 **Payoff two: relevance filtering. The map is a lens.** Only EXTRACTED edges
-whose relation is a call or import survive selection (graph.py:9 and 77-79);
+whose relation is a call or import survive selection (graph.py:9 and 89-93);
 INFERRED edges never become questions, and the committed fixture graph carries
 one precisely so the tests can prove the generator ignores it
-(docs/demo-rig.md:81-86). The lens also points the corpus: swap the banking
+(docs/demo-rig.md:83-88). The lens also points the corpus: swap the banking
 folder for the aviation folder and the tier-2 questions change flavor with no
-code change (tests/test_tasks.py:149-158).
+code change (tests/test_tasks.py:169-178).
 
 **Payoff three: an attributable scoreboard.** Because the arms differ only in
 context, each gap has one owner. The RUN 1 to RUN 2 gap is the value of code
@@ -198,7 +198,7 @@ complete (graph.py:40-65). The **code book** on the shelf is the corpus: the
 written rules of the trade, prose and authoritative (bridge.py:22-46). The
 **inspector** writes the exam, and being a professional, writes each question
 with the cited code section already stapled to it: that is the tier-2 task
-carrying its bridge-returned chunk ids (tasks.py:200-205). The **apprentice**
+carrying its shown bridge chunk id (tasks.py:311-325). The **apprentice**
 is the jailed agent, allowed to walk the building and read plans but never to
 step outside it (agent.py:22-31). The **master electrician** grades: he checks
 the apprentice's answer against the cited section and fails it if the citation
@@ -213,8 +213,8 @@ wanders burns daylight. Then translate back to code.
 |---|---|---|
 | blueprint | the graphify graph | graph.py:40-65 |
 | code book | the corpus, served retrieve-only | bridge.py:22-46 |
-| inspector | the task generator | tasks.py:93-229 |
-| question with the cited section stapled on | tier-2 task with its chunk ids | tasks.py:200-205 |
+| inspector | the task generator | tasks.py:209-339 |
+| question with the cited section stapled on | tier-2 task with its chunk id | tasks.py:311-325 |
 | apprentice | the jailed agent | agent.py:58-125 |
 | master electrician | judge plus citation check | score.py:100-140, 173-197 |
 
@@ -230,15 +230,16 @@ python -m app score --repo PATH --graph PATH --output PATH
 data-flow order.
 
 **Step 1: load the map, pick the edges.** The generator loads nodes and edges
-from the graphify file (tasks.py:116; graph.py:40-65). Edge selection is fully
-deterministic: keep EXTRACTED edges with call or import relations, sort
-loan-first then by source, target, relation, take the top four (graph.py:72-87;
-the count is `TASK_COUNT = 4` at tasks.py:13). Fewer than four and the run
-refuses to start (tasks.py:117-119). Our canonical edge
-`LoanProductHandler calls LoanProduct` is one of the four.
+from the graphify file (tasks.py:233; graph.py:41-66). Edge selection is fully
+deterministic: keep EXTRACTED call and import edges whose source, relation, and
+source file occur once, sort loan-first then by source, target, relation, and
+take four (graph.py:82-101; the count is `TASK_COUNT = 4` at tasks.py:13). A
+question whose wording already contains the callee is skipped (tasks.py:92-100).
+Fewer than four and the run refuses to start (tasks.py:235-236). Our canonical
+edge `LoanProductHandler calls LoanProduct` is one of the four.
 
 **Step 2: labels through the bridge.** For each chosen edge, the source node's
-label becomes a corpus query (tasks.py:135-140). The bridge is retrieve-only:
+label becomes a corpus query (tasks.py:254-257). The bridge is retrieve-only:
 it embeds the label, fuses a dense vector lane with a keyword lane using
 reciprocal rank fusion with k equal to 60 (retrieve.py:59-76), and returns
 chunk records with ids, titles, text, and distance (bridge.py:22-46). Every
@@ -248,14 +249,16 @@ deduplicates by section and would silently drop chunks the log must keep
 (bridge.py:26-27). The corpus here is the banking corpus, so the
 `LoanProductHandler` label pulls back reg-z lending chunks.
 
-**Step 3: the model phrases, and only phrases.** One prompt assembles the
-fixed facts and the phrasing contract (tasks.py:52-80). The model's entire
-contribution is one JSON object with tier-1 and tier-2 question wording
-(tasks.py:157). It cannot invent evidence. Tier-1 expected answers come from
-the edges (tasks.py:185-193), and tier-2 citations are checked against the
-bridge log with a fail-loud raise (tasks.py:200-205). The generator also
-records each tier-2 task's grounding distance: the mean cosine distance of the
-chunks it cites (tasks.py:207-212), which the board later shows per task.
+**Step 3: the script writes tier 1, and the model phrases tier 2.** Tier-1
+prompts come from the edge template (tasks.py:84-89). One prompt assembles the
+fixed facts and the tier-2 phrasing contract (tasks.py:160-167). The model's
+entire contribution is one JSON object of tier-2 question wording, each item
+carrying its fact number (tasks.py:274-275). It cannot invent evidence.
+Tier-1 expected answers come from the edges (tasks.py:278-288), and tier-2
+citations must be that fact's shown bridge chunk (tasks.py:296-299). The
+generator also records each tier-2 task's grounding distance: the mean cosine
+distance of the chunk it cites (tasks.py:303-309), which the board later shows
+per task.
 
 **Step 4: eight cases, one dataset.** The task list becomes a pydantic-evals
 Dataset of eight Cases, tier-1 cases carrying the script evaluator, tier-2
@@ -267,7 +270,7 @@ disk as `tasks.json` so every later number is auditable (score.py:436-439).
 (score.py:466-531). The prompt given to the agent per case is assembled by arm
 (score.py:489-498): `bare` is the question alone; `map` adds the map excerpt,
 which is the case's edge, its file, and the module mermaid diagram
-(tasks.py:232-243); `map_rules` adds the full text of the cited chunks on top
+(tasks.py:342-353); `map_rules` adds the full text of the cited chunks on top
 (score.py:266-269). Before the RUN 3 arm starts, the bridge is called again for
 every tier-2 task so that arm's own retrieval appears in the log
 (score.py:468-484). One uuid covers all three arms as one run identity
@@ -302,7 +305,7 @@ run id, context, tasks passed, tasks total, tool calls, and cost
 pushed into the metrics sink, which writes `runs`, `task_results` (including
 grounding distance), and `tool_calls` rows in Postgres (score.py:527-530;
 metrics.py:157-205). The Grafana board reads those tables and refreshes every
-5 seconds (docs/demo-rig.md:43-46). A compare page can put the three reports
+5 seconds (docs/demo-rig.md:45-47). A compare page can put the three reports
 side by side (cli.py:78-81).
 
 ### One task, traced end to end
@@ -311,15 +314,16 @@ Follow one tier-2 task, our canonical edge, through the whole machine. The
 chunk ids below are illustrative shapes; the format is the bridge contract
 (docs/prd.md:193).
 
-1. Selection keeps the edge `LoanProductHandler calls LoanProduct` (graph.py:72-87).
+1. Selection keeps the edge `LoanProductHandler calls LoanProduct` (graph.py:82-101).
 2. The label `LoanProductHandler` goes to the bridge; reg-z chunks come back,
-   say `lending-rules:s12:c01` and `lending-rules:s15:c02` (tasks.py:137-140;
+   say `lending-rules:s12:c01` and `lending-rules:s15:c02` (tasks.py:254-257;
    bridge.py:22-46).
-3. The model phrases: "Which lending rule limits what a loan product handler
-   may charge at product open?" citing `lending-rules:s12:c01`
-   (tasks.py:52-80).
-4. The gate check: the cited id is in the bridge log, so the task survives.
-   Had the model cited `made-up-id`, the run would die here (tasks.py:200-205).
+3. The model phrases the tier-2 question: "Which lending rule limits what a
+   loan product handler may charge at product open?" citing
+   `lending-rules:s12:c01` (tasks.py:160-167).
+4. The gate check: the cited id is that fact's shown chunk, so the task
+   survives. Had the model cited `made-up-id`, the run would die here
+   (tasks.py:296-299).
 5. The task becomes Case `t2-01`, its cited chunks and edge stored as metadata
    and origin (score.py:283-292).
 6. In RUN 1 the agent sees only the question. In RUN 3 it also sees the full
@@ -330,9 +334,10 @@ chunk ids below are illustrative shapes; the format is the bridge contract
    (score.py:208-219), in a `task_results` row (metrics.py:74-77), and in the
    family-d panel on the board.
 
-Its tier-1 sibling uses the same edge differently: the expected answer is the
-graph's own target, `LoanProduct` in its file (tasks.py:185-193), graded by
-substring, no model involved (score.py:150-156).
+Its tier-1 sibling uses the same edge differently: the question is the
+template, and the expected answer is the graph's own target, `LoanProduct` in
+its source file (tasks.py:84-89, tasks.py:278-288), graded by substring, no
+model involved (score.py:151-157).
 
 That is one run: map, bridge, phrasing, dataset, three arms, jail, judge,
 board. Everything else in this handbook is commentary on these eight steps.
@@ -383,13 +388,13 @@ reads top to bottom like a story.
 
 **Tests fake the whole thing.** This is the part to imitate. CI never needs
 Ollama. A fake chat model called `Phraser` returns canned task JSON parsed
-from the prompt's own fact lines (tests/test_tasks.py:68-89); a
-`retrieve_factory` fakes the bridge (tests/test_tasks.py:92-105); an
+from the prompt's own fact lines (tests/test_tasks.py:68-101); a
+`retrieve_factory` fakes the bridge (tests/test_tasks.py:115-128); an
 `AlwaysPass` evaluator fakes the judge (tests/test_score.py:13-16); a
 stand-in `task_fn` fakes the agent, answering from the prompt so the tests can
 assert exactly which context each arm received (tests/test_score.py:24-33);
 and the metrics tests fake the agent at the CLI boundary so the real sink code
-runs against real Postgres (tests/test_score_metrics.py:79-103). The real
+runs against real Postgres (tests/test_score_metrics.py:49-92). The real
 models are configuration; the exam's logic is tested without them.
 
 ## 8. The judge and the circularity objection
@@ -410,8 +415,8 @@ repository's structure.
 Tier 2 is where the model judge lives, so tier 2 is reported as its own
 column, never merged into tier 1 (score.py:208-219). The sink stores
 `passed_tier1` and `passed_tier2` as separate columns (metrics.py:17-18) and
-the board's first panel shows them separately (grafana/dashboards/
-map-writes-the-test.json:92, panel title at line 113). Two guards keep the
+the Results section shows them as separate bars (grafana/dashboards/
+map-writes-the-test.json, panel title "Tasks passed by tier"). Two guards keep the
 tier-2 judge honest in the narrow sense that matters: the judge must cite one
 of the allowed chunk ids, and a second check independently verifies the
 citation is on the case's allowed list (score.py:100-140, 173-197). The judge
@@ -512,29 +517,46 @@ creates and fills four tables (metrics.py:150-236):
 - `gate_metrics`: one appended row per mapping gate run with the wall time,
   node and edge counts, and the full gate document (metrics.py:50-60).
 
-The board is provisioned as code at grafana/dashboards/map-writes-the-test.json
-with five panel families, each family labeled in the dashboard itself:
+The board is provisioned as code at grafana/dashboards/map-writes-the-test.json.
+It is one kiosk page in four sections and refreshes every 5 seconds. The time
+picker is hidden: every panel reads the latest run id or the latest gate row,
+so the dashboard clock does not select the data.
 
-- a. Tasks passed by tier per arm, a bar chart over the latest run's rows
-  (family note at map-writes-the-test.json:15).
-- b. Tool calls per arm for the latest run, with earlier runs as history
-  (line 121).
-- c. Cost per run, same shape, dollar units (line 255).
-- d. Grounding distance by task for tier 2, a table of the bridge distances
-  behind each cited rule (line 390).
-- e. Gate stats: wall time, node count, edge count from the latest
-  gate_metrics row (lines 474, 556, 636).
+Arm names on the board are Baseline (no map), Map only, and Map + rules. Each
+arm keeps one color on every comparison, and those colors are not red, amber,
+or green. Red, amber, and green appear only on the pass rate and on the gate
+result. The leading-arm tile says Best only when one arm strictly leads on
+tasks passed. A tie stays a tie. The takeaway sentence is computed from that
+same latest run.
 
-What the seeded screenshot shows. The seed recipe (docs/demo-rig.md:52-75)
+- Results, family a. The takeaway, the leading-arm tile, the pass rate, and
+  tasks passed by tier. Pass rate is green at 100 percent, amber in between,
+  and red at none.
+- Cost and efficiency, families b and c. Tool-call totals and cost totals for
+  the latest run, drawn as bars with the value on the bar. Fewer calls is
+  better. Lower cost is better. Cost keeps four decimal places. These are arm
+  totals, not averages.
+- Retrieval quality, family d. Tier 2 grounding distance, one row per task.
+  Lower is better. The distance is fixed when the task list is built and
+  copied onto every arm (score.py:464), so the table is not an arm score.
+- Diagnostics. The per-task record (task, tier, arm, pass or fail, distance,
+  tool calls) and earlier-run lines for families b and c. Cost is a run total
+  and is not repeated on the task rows. Eight tasks is a small sample, and
+  the section says so. Family e is the gate: mapping time with a sparkline of
+  earlier gate runs, plus node count and edge count. Those counts describe
+  the map. The passed flag is the only gate value with a direction.
+
+What the seeded screenshot shows. The seed recipe (docs/demo-rig.md:53-76)
 runs one full pass with real Postgres and fake models, the same fakes the
-metrics tests use (tests/test_score_metrics.py:79-103). The resulting board
+metrics tests use (tests/test_score_metrics.py:49-92). The resulting board
 state is the demo's opening image: the bare arm passed 4 of 8 (tier 1 zero of
 four, tier 2 four of four) while both the map and map_rules arms passed 8 of 8,
 and the bare arm spent 24 tool calls against 16 for each mapped arm. The
 numbers come straight from the seeded reports (scratch/seed-reports), where
 the fake agent spends 3 calls per case bare and 2 with the map
-(tests/test_score_metrics.py:82-90). Four versus eight with context; twenty-four
-versus sixteen tool calls. The board is at
+(tests/test_score_metrics.py:56-64). Four versus eight with context; twenty-four
+versus sixteen tool calls. On the board those arms read Baseline (no map),
+Map only, and Map + rules. The board is at
 http://127.0.0.1:3000/d/map-writes-the-test?kiosk (docs/demo-rig.md:43).
 
 One caveat to keep honest: those are seeded, synthetic numbers rehearsing the
@@ -544,7 +566,7 @@ run path in the next section.
 ## 12. Glossary
 
 - **map**: the repository knowledge artifact, two halves: module mermaid for
-  humans, graphify graph.json for agents (docs/prd.md:106; tasks.py:232-243).
+  humans, graphify graph.json for agents (docs/prd.md:106; tasks.py:342-353).
 - **graph**: the machine-readable half of the map: nodes and typed,
   confidence-tagged edges (graph.py:12-21).
 - **corpus**: the swappable folder of public industry documents, ingested into
@@ -552,8 +574,8 @@ run path in the next section.
 - **bridge**: the retrieve-only command `python -m app retrieve` that turns a
   text query into chunk JSON and logs every chunk id (bridge.py:22-46;
   cli.py:65-68).
-- **tier 1**: a code-fact task, derived from a graph edge, graded by a
-  deterministic script (score.py:143-170).
+- **tier 1**: a code-fact task. The question is a fixed template over one graph
+  edge, graded by a deterministic script (tasks.py:84-89; score.py:145-170).
 - **tier 2**: a domain-rule task, derived from an edge plus retrieved chunks,
   graded by a model judge plus a citation check (score.py:173-197).
 - **golden exam**: This is old, and not part of eval harness. The Minion exam,
@@ -571,7 +593,7 @@ run path in the next section.
   (agent.py:22-31; agent.py:10).
 - **grounding distance**: the mean cosine distance of the chunks a tier-2 task
   cites; how far the corpus had to reach to ground the question
-  (tasks.py:207-212).
+  (tasks.py:303-309).
 - **OSSIE**: the semantic contract YAML declaring the eight datasets and the
   agent instructions, schema-checked and validated live against the database
   (ossie/map-writes-the-test.yaml; ossie.py:142-182).
@@ -589,16 +611,17 @@ run path in the next section.
   ask path uses. Search reads policy_chunks. (cli.py:49-61).
 - **map vs corpus**: the map is exact and inside the repo; the corpus is prose
   and outside it. The map aims the questions, the corpus fills them
-  (tasks.py:135-140).
+  (tasks.py:252-257).
 - **tier 1 vs tier 2**: graph fact vs domain rule; script grader vs judge
   (score.py:143-170; score.py:173-197). Tier 1 is the trust floor.
 - **graph vs mermaid**: two representations of one map. The graph is the
   agent-facing artifact, mermaid the human-facing one, module-level only
-  (docs/prd.md:106; graph.py:115-134).
+  (docs/prd.md:106; graph.py:162-184).
 - **run vs arm**: an arm is one context level; a run is all three arms under
   one shared run id (score.py:29-33; score.py:464).
 - **sink vs board**: the sink writes Postgres (metrics.py:150-236); the board
-  reads it on a 5-second refresh (docs/demo-rig.md:45-46).
+  reads the latest run on a 5-second refresh and hides the time picker
+  (docs/demo-rig.md:45-47).
 
 ## 13. Where to go deeper
 
@@ -628,15 +651,16 @@ python -m app retrieve "query"                      # the bridge, raw
 
 A suggested reading path through the code, one sitting:
 
-1. The join in miniature: tests/test_tasks.py:108-146, where a fake model
+1. The join in miniature: tests/test_tasks.py:131-167, where a fake model
    fails to invent evidence and a bad citation kills the run.
-2. The generator itself: tasks.py:93-229, with tasks.py:52-80 as the phrasing
-   contract the model must obey.
+2. The generator itself: tasks.py:209-339. Tier 1 is the template at
+   tasks.py:84-89. The tier-2 phrasing contract the model must obey is
+   tasks.py:160-167.
 3. One run start to finish: score.py:417-547, the eight steps of section 6 in
    executable form.
 4. The graders: score.py:143-197, script then judge then citation.
 5. The board's inputs: metrics.py:150-236, then the seed recipe
-   (docs/demo-rig.md:52-75) and watch the panels fill.
+   (docs/demo-rig.md:53-76) and watch the panels fill.
 
 Sources live in the files this handbook cited throughout: tasks.py, score.py,
 agent.py, graph.py, bridge.py, ossie.py, metrics.py, and their tests. When

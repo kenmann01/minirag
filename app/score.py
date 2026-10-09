@@ -17,6 +17,7 @@ from app.agent import RunOutput, build_agent, ollama_base_url, run_agent
 from app.config import Settings, get_settings
 from app.db import DatabaseAdapter
 from app.generate import LanguageModel
+from app.graph import callee_symbol
 from app.metrics import MetricsSink
 from app.tasks import Task, TaskGenerationError, generate_tasks, map_excerpt
 
@@ -148,7 +149,7 @@ class GraphFact(Evaluator):
         """Pass when the answer names the expected symbol and source file."""
         expected = ctx.metadata["expected"]
         answer = (ctx.output.answer or "").lower()
-        symbol = str(expected["target"]).split(":")[-1].split(".")[-1].lower()
+        symbol = callee_symbol(expected["target"])
         file_name = Path(
             expected.get("source_file") or expected.get("target_file") or ""
         ).name.lower()

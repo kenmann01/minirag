@@ -31,10 +31,10 @@ def gate_metrics_table():
 
 @pytest.fixture(autouse=True)
 def mocked_mapper(tmp_path, monkeypatch):
-    """Stand in for the graphify CLI exactly like the gate tests do."""
+    """Stand in for the call-scan skill the way the gate tests do."""
 
     def fake_run(repo, work_dir):
-        graph = work_dir / "graphify-out" / "graph.json"
+        graph = work_dir / "graph.json"
         graph.parent.mkdir(parents=True, exist_ok=True)
         graph.write_text(
             json.dumps(
@@ -57,7 +57,7 @@ def mocked_mapper(tmp_path, monkeypatch):
         )
         return graph, [], 1.5
 
-    monkeypatch.setattr("app.gate.run_graphify", fake_run)
+    monkeypatch.setattr("app.gate.run_call_scan", fake_run)
     monkeypatch.setattr(
         "app.gate.render_largest",
         lambda diagrams, out_dir: ({"name": "loanaccount", "nodes": 2, "rendered": False}, []),
@@ -129,7 +129,7 @@ def test_gate_cli_keeps_the_committed_json_output_shape(tmp_path):
     output = gate_through_cli(tmp_path)
     document = json.loads(output.read_text(encoding="utf-8"))
     assert set(document) == set(committed)
-    assert document["scope"] == "full"
+    assert document["scope"] == "loans"
     assert document["wall_time_seconds"] == 1.5
     assert document["node_count"] == 2
     assert document["edge_count"] == 1

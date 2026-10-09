@@ -7,7 +7,7 @@ The talk shows one repository, one corpus, and three scored runs. The comparison
 1. Start Postgres: `docker compose up -d`. The app expects `DATABASE_URL` on port 5432.
 2. Pin the embedder. `.env` should set `EMBEDDING_MODEL=Alibaba-NLP/gte-modernbert-base`. The retrieve command prints this name.
 3. Start Ollama and pull the pinned model: `ollama serve` then `ollama pull qwen3:8b`. Generation and the judge use temperature 0 and seed 77. No cloud API key is required. The Ollama client uses a placeholder key because the local OpenAI-compatible endpoint demands a non-empty value.
-4. Install Python dependencies from `requirements.txt`. Install the Graphify CLI (`graphifyy`) on the demo machine. It is not imported by the app.
+4. Install Python dependencies from `requirements.txt`. The gate maps a repository with `skills/call-scan`. Which tree it scans is `app/adapter.py`. Both are in the repo and are not a separate install.
 5. Ingest the banking corpus: `CORPUS_DIR=corpora/banking python -m app ingest`.
 
 ## The four talk commands

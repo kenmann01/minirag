@@ -21,7 +21,8 @@ def test_semantic_model_matches_the_pinned_schema():
     assert {"retrieved_chunks", "graph_nodes", "graph_edges"} <= names
     extension = json.loads(model["custom_extensions"][0]["data"])
     assert extension["minirag"]["heading"] == "## N. Title"
-    assert extension["graphify"]["mermaid"] == "module-level"
+    assert extension["call_scan"]["mermaid"] == "module-level"
+    assert extension["call_scan"]["skill"] == "skills/call-scan"
     assert (
         "chunk id" in model["ai_context"]["instructions"].lower()
         or "chunk ids" in model["ai_context"]["instructions"].lower()

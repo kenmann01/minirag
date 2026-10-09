@@ -43,7 +43,8 @@ Run these before the room fills. Steps 1 and 2 are host apps, step 3 onward is t
 5. Open the board at http://127.0.0.1:3000/d/map-writes-the-test?kiosk
    (anonymous admin is enabled for the demo; the datasource picker must show
    minirag-postgres). After step 6 the panels fill on their own; the board
-   refreshes every 5 seconds.
+   refreshes every 5 seconds. The time picker is hidden because the panels
+   follow the latest run, not the dashboard clock.
 
 Order note: run `ossie validate` only after the seed (next section) has created the
 metrics tables. On a wiped rig the metrics tables do not exist yet and validate
@@ -74,9 +75,10 @@ python scratch/seed_rig.py
 python -m app ossie validate   # exit 0, silent on success
 ```
 
-After step 4 the board shows the synthetic run on every panel: tasks passed by tier
-per arm, tool calls per arm, cost per run, grounding distances for tier 2, and the
-three gate stats (21.70 s, 61983 nodes, 303539 edges from the recorded gate).
+After step 4 the board shows the synthetic run: the Results takeaway and pass
+rate, tasks passed by tier, tool-call and cost totals, tier 2 grounding
+distances, the per-task record, and the gate tiles (21.70 s, 61983 nodes,
+303539 edges from the recorded gate).
 
 Fixture graph: `eval/demo-graph.json` is a committed, realistic Fineract-shaped
 graph in the graphify format (nodes with id, label, source_file; links with source,

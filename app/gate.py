@@ -1,5 +1,5 @@
 # Internal and Confidential - Not for External Distribution.
-"""Run Graphify on a repository and record the five scale numbers."""
+"""Run the call-scan skill on a repository and record the five scale numbers."""
 
 import json
 import shutil
@@ -9,37 +9,30 @@ import tempfile
 import time
 from pathlib import Path
 
+from app.adapter import source_tree
 from app.graph import load_graph, loans_covered, module_key, module_mermaid
 
-LOANS_RELATIVE = Path("fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount")
+SKILL_SCRIPT = (
+    Path(__file__).resolve().parents[1] / "skills" / "call-scan" / "scripts" / "scan.py"
+)
 
 
-def graphify_bin() -> str:
-    """Return the Graphify executable next to this interpreter, else on PATH.
-
-    The venv Python is often a symlink. Resolving it first would leave the
-    venv ``bin`` directory and miss the installed console script.
-    """
-    executable = Path(sys.executable)
-    for candidate in (executable.parent / "graphify", executable.resolve().parent / "graphify"):
-        if candidate.is_file():
-            return str(candidate)
-    return shutil.which("graphify") or "graphify"
-
-
-def run_graphify(repo: Path, work_dir: Path) -> tuple[Path | None, list[str], float]:
-    """Run Graphify in ``work_dir``. Return the graph path, errors, and seconds."""
+def run_call_scan(repo: Path, work_dir: Path) -> tuple[Path | None, list[str], float]:
+    """Run the call-scan skill on the adapter's tree. Return path, errors, and seconds."""
+    located = source_tree(repo)
+    if located is None:
+        return None, ["source tree is missing"], 0.0
+    tree, _scope = located
     work_dir.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
     try:
         completed = subprocess.run(
             [
-                graphify_bin(),
-                "extract",
+                sys.executable,
+                str(SKILL_SCRIPT),
+                str(tree),
+                "--base",
                 str(repo),
-                "--code-only",
-                "--no-cluster",
-                "--allow-partial",
                 "--out",
                 str(work_dir),
             ],
@@ -52,12 +45,9 @@ def run_graphify(repo: Path, work_dir: Path) -> tuple[Path | None, list[str], fl
     elapsed = time.perf_counter() - started
     errors = []
     if completed.returncode != 0:
-        detail = (completed.stderr or completed.stdout or "graphify failed").strip()
+        detail = (completed.stderr or completed.stdout or "call scan failed").strip()
         errors.append(detail[-4000:])
-    graph_path = work_dir / "graphify-out" / "graph.json"
-    if not graph_path.is_file():
-        alt = repo / "graphify-out" / "graph.json"
-        graph_path = alt if alt.is_file() else graph_path
+    graph_path = work_dir / "graph.json"
     if not graph_path.is_file():
         errors.append(f"graph.json was not written under {work_dir}")
         return None, errors, elapsed
@@ -161,25 +151,12 @@ def summarize(
 
 
 def run_gate(repo: Path, output: Path, work_root: Path | None = None) -> dict:
-    """Map the repo. On failure, map the loans module and record that scope."""
+    """Map the adapter's tree with the call-scan skill and record that scope."""
     root = work_root or Path(tempfile.gettempdir()) / "minirag-gate"
-    graph_path, errors, elapsed = run_graphify(repo, root / "full")
-    scope = "full"
-    covered = False
-    if graph_path is not None:
-        nodes, _edges = load_graph(graph_path)
-        covered = loans_covered(nodes)
-    if graph_path is None or not covered:
-        if graph_path is None:
-            errors.append("full repository map failed; mapping the loans module")
-        else:
-            errors.append("full repository map did not cover loanaccount; mapping the loans module")
-        loans = repo / LOANS_RELATIVE
-        if not loans.is_dir():
-            loans = repo
-        graph_path, loans_errors, elapsed = run_graphify(loans, root / "loans")
-        errors.extend(loans_errors)
-        scope = "loans"
+    located = source_tree(repo)
+    scope = located[1] if located else "loans"
+    graph_path, errors, elapsed = run_call_scan(repo, root / "scan")
+    scope = "loans"
     if graph_path is None:
         record = {
             "scope": scope,

@@ -4,19 +4,615 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
+  "graphTooltip": 1,
   "links": [],
   "panels": [
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "content": "The leading-arm tile says Best only when one arm is strictly ahead. A tie stays a tie.",
+        "mode": "markdown"
+      },
+      "title": "Results",
+      "transparent": true,
+      "type": "text",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1
+    },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${datasource}"
       },
-      "description": "Family a. Latest run: total tasks and passes per tier for each context arm.",
+      "description": "Family a. One sentence computed from the latest run's tier counts.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "fixedColor": "#D0D6DE",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".+"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "lg",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": false,
+        "showViewButtons": false,
+        "smartVFormat": "default",
+        "sortBy": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "WITH latest AS ( SELECT context, tasks_total, tasks_passed, passed_tier1, passed_tier2 FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ), tier_n AS ( SELECT tier, COUNT(DISTINCT task_id)::int AS n FROM task_results WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) GROUP BY tier ), b AS (SELECT * FROM latest WHERE context = 'bare'), m AS (SELECT * FROM latest WHERE context = 'map'), r AS (SELECT * FROM latest WHERE context = 'map_rules') SELECT CASE WHEN (SELECT COUNT(*) FROM b) = 0 OR (SELECT COUNT(*) FROM m) = 0 OR (SELECT COUNT(*) FROM r) = 0 THEN 'Latest run is missing one of the three arms.' WHEN (SELECT passed_tier1 FROM m) > (SELECT passed_tier1 FROM b) AND (SELECT passed_tier1 FROM r) = (SELECT passed_tier1 FROM m) AND (SELECT passed_tier2 FROM m) = (SELECT passed_tier2 FROM b) AND (SELECT passed_tier2 FROM r) = (SELECT passed_tier2 FROM b) THEN format( 'Map context lifts tier 1 from %s of %s to %s of %s and does not lift tier 2.', (SELECT passed_tier1 FROM b), COALESCE((SELECT n FROM tier_n WHERE tier = 1), 0), (SELECT passed_tier1 FROM m), COALESCE((SELECT n FROM tier_n WHERE tier = 1), 0) ) WHEN (SELECT tasks_passed FROM m) > (SELECT tasks_passed FROM b) AND (SELECT tasks_passed FROM r) > (SELECT tasks_passed FROM m) THEN format( 'Passes rise from %s to %s to %s of %s across baseline, map only, and map + rules.', (SELECT tasks_passed FROM b), (SELECT tasks_passed FROM m), (SELECT tasks_passed FROM r), (SELECT tasks_total FROM b) ) WHEN (SELECT tasks_passed FROM m) = (SELECT tasks_passed FROM r) AND (SELECT tasks_passed FROM m) > (SELECT tasks_passed FROM b) THEN format( 'Map only and Map + rules tie at %s of %s. Baseline passed %s of %s.', (SELECT tasks_passed FROM m), (SELECT tasks_total FROM m), (SELECT tasks_passed FROM b), (SELECT tasks_total FROM b) ) ELSE format( 'Baseline %s of %s, Map only %s of %s, Map + rules %s of %s. Tier 1 is %s, %s, and %s of %s. Tier 2 is %s, %s, and %s of %s.', (SELECT tasks_passed FROM b), (SELECT tasks_total FROM b), (SELECT tasks_passed FROM m), (SELECT tasks_total FROM m), (SELECT tasks_passed FROM r), (SELECT tasks_total FROM r), (SELECT passed_tier1 FROM b), (SELECT passed_tier1 FROM m), (SELECT passed_tier1 FROM r), COALESCE((SELECT n FROM tier_n WHERE tier = 1), 0), (SELECT passed_tier2 FROM b), (SELECT passed_tier2 FROM m), (SELECT passed_tier2 FROM r), COALESCE((SELECT n FROM tier_n WHERE tier = 2), 0) ) END AS takeaway",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Takeaway",
+      "type": "table",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 3
+      },
+      "id": 2
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family a. Best appears only when one arm passed more tasks than the other two.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#D0D6DE",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".+"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "lg",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": false,
+        "showViewButtons": false,
+        "smartVFormat": "default",
+        "sortBy": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "WITH latest AS ( SELECT context, tasks_passed, tasks_total FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ), best AS ( SELECT MAX(tasks_passed) AS passed FROM latest ), leaders AS ( SELECT context FROM latest WHERE tasks_passed = (SELECT passed FROM best) ) SELECT CASE WHEN (SELECT COUNT(*) FROM latest) = 0 THEN 'No scored run yet' WHEN (SELECT COUNT(*) FROM leaders) = 1 THEN 'Best \u00b7 ' || (SELECT CASE context WHEN 'bare' THEN 'Baseline (no map)' WHEN 'map' THEN 'Map only' WHEN 'map_rules' THEN 'Map + rules' ELSE context END FROM leaders) || ', ' || (SELECT passed FROM best) || ' of ' || (SELECT MAX(tasks_total) FROM latest) || ' passed' ELSE 'Tie, ' || (SELECT passed FROM best) || ' of ' || (SELECT MAX(tasks_total) FROM latest) || ' passed' END AS leading_arm",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Leading arm",
+      "type": "table",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 7
+      },
+      "id": 3
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family b. Totals for this run. The name under each number is the arm.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#9AA4B2",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Baseline (no map)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9AA4B2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map only"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2A9D8F",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map + rules"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6E8CA0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT MAX(CASE WHEN context = 'bare' THEN tool_calls END) AS \"Baseline (no map)\", MAX(CASE WHEN context = 'map' THEN tool_calls END) AS \"Map only\", MAX(CASE WHEN context = 'map_rules' THEN tool_calls END) AS \"Map + rules\" FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Tool calls \u2014 fewer is better",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 7
+      },
+      "id": 4
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family c. Totals for this run, four decimal places. The name under each number is the arm.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#9AA4B2",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 4,
+          "unit": "currencyUSD"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Baseline (no map)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9AA4B2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map only"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2A9D8F",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map + rules"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6E8CA0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT MAX(CASE WHEN context = 'bare' THEN cost_usd END) AS \"Baseline (no map)\", MAX(CASE WHEN context = 'map' THEN cost_usd END) AS \"Map only\", MAX(CASE WHEN context = 'map_rules' THEN cost_usd END) AS \"Map + rules\" FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Cost (USD) \u2014 lower is better",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 7
+      },
+      "id": 5
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family a. Share of tasks passed on the latest run.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "basic",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT ROUND(MAX(CASE WHEN context = 'bare' THEN 100.0 * tasks_passed / NULLIF(tasks_total, 0) END)::numeric, 1) AS \"Baseline (no map)\", ROUND(MAX(CASE WHEN context = 'map' THEN 100.0 * tasks_passed / NULLIF(tasks_total, 0) END)::numeric, 1) AS \"Map only\", ROUND(MAX(CASE WHEN context = 'map_rules' THEN 100.0 * tasks_passed / NULLIF(tasks_total, 0) END)::numeric, 1) AS \"Map + rules\" FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Pass rate \u2014 100% green, partial amber, none red",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 6
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family a. Latest run. Passes in each tier. The color is the arm.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#9AA4B2",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
           },
           "custom": {
             "axisBorderShow": false,
@@ -24,14 +620,14 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "fillOpacity": 80,
+            "fillOpacity": 70,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "lineWidth": 1,
+            "lineWidth": 0,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -39,29 +635,59 @@
               "mode": "off"
             }
           },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Baseline (no map)"
+            },
+            "properties": [
               {
-                "color": "green",
-                "value": null
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9AA4B2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map only"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2A9D8F",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map + rules"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6E8CA0",
+                  "mode": "fixed"
+                }
               }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
       "options": {
-        "barRadius": 0,
-        "barWidth": 0.8,
+        "barRadius": 0.15,
+        "barWidth": 0.75,
         "fullHighlight": false,
         "groupWidth": 0.7,
         "legend": {
@@ -70,9 +696,8 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "mode": "basic",
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -89,7 +714,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT context AS arm, tasks_total, passed_tier1, passed_tier2 FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY context",
+          "rawSql": "SELECT 'Tier 1' AS tier, MAX(CASE WHEN context = 'bare' THEN passed_tier1 END) AS \"Baseline (no map)\", MAX(CASE WHEN context = 'map' THEN passed_tier1 END) AS \"Map only\", MAX(CASE WHEN context = 'map_rules' THEN passed_tier1 END) AS \"Map + rules\" FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) UNION ALL SELECT 'Tier 2', MAX(CASE WHEN context = 'bare' THEN passed_tier2 END), MAX(CASE WHEN context = 'map' THEN passed_tier2 END), MAX(CASE WHEN context = 'map_rules' THEN passed_tier2 END) FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
           "refId": "A",
           "sql": {
             "columns": [
@@ -110,19 +735,58 @@
           }
         }
       ],
-      "title": "Tasks passed by tier per arm",
-      "type": "barchart"
+      "title": "Tasks passed by tier",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 7
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "content": "Totals for this run, not averages. Fewer tool calls is better. Lower cost is better.",
+        "mode": "markdown"
+      },
+      "title": "Cost and efficiency",
+      "transparent": true,
+      "type": "text",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 8
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${datasource}"
       },
-      "description": "Family b. Tool calls per arm for the latest run, with every earlier run as history.",
+      "description": "Family b. Arm totals for the latest run.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "fixedColor": "#9AA4B2",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
           },
           "custom": {
             "axisBorderShow": false,
@@ -130,63 +794,92 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
+            "fillOpacity": 70,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
+            "lineWidth": 0,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 8
           },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Baseline (no map)"
+            },
+            "properties": [
               {
-                "color": "green",
-                "value": null
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9AA4B2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map only"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2A9D8F",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map + rules"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6E8CA0",
+                  "mode": "fixed"
+                }
               }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "id": 2,
       "options": {
+        "barRadius": 0.15,
+        "barWidth": 0.75,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
+        "orientation": "auto",
+        "showValue": "always",
+        "stacking": "none",
         "tooltip": {
           "mode": "single",
           "sort": "none"
-        }
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
       "targets": [
         {
@@ -195,36 +888,9 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "format": "time_series",
-          "rawSql": "SELECT created_at AS time, context AS arm, tool_calls FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at",
+          "format": "table",
+          "rawSql": "SELECT 'This run' AS run, MAX(CASE WHEN context = 'bare' THEN tool_calls END) AS \"Baseline (no map)\", MAX(CASE WHEN context = 'map' THEN tool_calls END) AS \"Map only\", MAX(CASE WHEN context = 'map_rules' THEN tool_calls END) AS \"Map + rules\" FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
           "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        },
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawSql": "SELECT created_at AS time, context AS arm, tool_calls AS tool_calls_history FROM runs WHERE run_id <> (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at",
-          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -244,84 +910,131 @@
           }
         }
       ],
-      "title": "Tool calls per arm",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${datasource}"
-      },
-      "description": "Family c. Cost per arm for the latest run, with every earlier run as history.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "currencyUSD"
-        },
-        "overrides": []
-      },
+      "title": "Tool calls, this run \u2014 fewer is better",
+      "type": "barchart",
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 29
       },
-      "id": 3,
+      "id": 9
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family c. Arm totals for the latest run, four decimal places.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#9AA4B2",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 4,
+          "unit": "currencyUSD"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Baseline (no map)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9AA4B2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map only"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2A9D8F",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map + rules"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6E8CA0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
       "options": {
+        "barRadius": 0.15,
+        "barWidth": 0.75,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
+        "orientation": "auto",
+        "showValue": "always",
+        "stacking": "none",
         "tooltip": {
           "mode": "single",
           "sort": "none"
-        }
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
       "targets": [
         {
@@ -330,36 +1043,9 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "format": "time_series",
-          "rawSql": "SELECT created_at AS time, context AS arm, cost_usd FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at",
+          "format": "table",
+          "rawSql": "SELECT 'This run' AS run, MAX(CASE WHEN context = 'bare' THEN cost_usd END) AS \"Baseline (no map)\", MAX(CASE WHEN context = 'map' THEN cost_usd END) AS \"Map only\", MAX(CASE WHEN context = 'map_rules' THEN cost_usd END) AS \"Map + rules\" FROM runs WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
           "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        },
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${datasource}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawSql": "SELECT created_at AS time, context AS arm, cost_usd AS cost_usd_history FROM runs WHERE run_id <> (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at",
-          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -379,48 +1065,98 @@
           }
         }
       ],
-      "title": "Cost per run",
-      "type": "timeseries"
+      "title": "Cost, this run (USD) \u2014 lower is better",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
+      "id": 10
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "content": "Distance is fixed on the task list and copied to every arm. Lower is better. It is not an arm score.",
+        "mode": "markdown"
+      },
+      "title": "Retrieval quality",
+      "transparent": true,
+      "type": "text",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 11
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${datasource}"
       },
-      "description": "Family d. Tier 2 only: average bridge distance across the chunks each task actually cites.",
+      "description": "Family d. One row per tier 2 task on the latest run.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "fixedColor": "#D0D6DE",
+            "mode": "fixed"
           },
           "custom": {
             "align": "auto",
             "cellOptions": {
               "type": "auto"
             },
-            "inspect": false
+            "inspect": false,
+            "filterable": false
           },
-          "decimals": 3,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#9AA4B2",
                 "value": null
               }
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "task_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Task"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "grounding_distance"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Distance (lower is better)"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          }
+        ]
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
-      "id": 4,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -431,8 +1167,10 @@
           ],
           "show": false
         },
+        "showHeader": true,
         "showViewButtons": false,
-        "smartVFormat": "default"
+        "smartVFormat": "default",
+        "sortBy": []
       },
       "targets": [
         {
@@ -442,7 +1180,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT context AS arm, task_id, grounding_distance FROM task_results WHERE tier = 2 AND grounding_distance IS NOT NULL AND run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at DESC, task_id",
+          "rawSql": "SELECT DISTINCT ON (task_id) task_id, grounding_distance FROM task_results WHERE tier = 2 AND grounding_distance IS NOT NULL AND run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY task_id, context",
           "refId": "A",
           "sql": {
             "columns": [
@@ -463,46 +1201,605 @@
           }
         }
       ],
-      "title": "Grounding distance by task (tier 2)",
-      "type": "table"
+      "title": "Grounding distance by task (tier 2) \u2014 lower is better",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 12
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "content": "Eight tasks is a small sample. Gate tiles describe the map; only Gate result is pass or fail.",
+        "mode": "markdown"
+      },
+      "title": "Diagnostics",
+      "transparent": true,
+      "type": "text",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "id": 13
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${datasource}"
       },
-      "description": "Family e. Latest gate_metrics row: wall time in seconds.",
+      "description": "Latest run. Cost is a run total and is not repeated on these rows.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "#D0D6DE",
+            "mode": "fixed"
           },
-          "decimals": 2,
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "task_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Task"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "tier"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Tier"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "arm"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Arm"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "result"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Result"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "pass": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "pass"
+                      },
+                      "fail": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "fail"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "grounding_distance"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Distance (lower is better)"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "tool_calls"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Tool calls (fewer is better)"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "showViewButtons": false,
+        "smartVFormat": "default",
+        "sortBy": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT t.task_id, t.tier, CASE t.context WHEN 'bare' THEN 'Baseline (no map)' WHEN 'map' THEN 'Map only' WHEN 'map_rules' THEN 'Map + rules' ELSE t.context END AS arm, CASE WHEN t.passed THEN 'pass' ELSE 'fail' END AS result, t.grounding_distance, c.tool_calls FROM task_results t LEFT JOIN tool_calls c ON c.run_id = t.run_id AND c.context = t.context AND c.task_id = t.task_id WHERE t.run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY t.tier, t.task_id, CASE t.context WHEN 'bare' THEN 1 WHEN 'map' THEN 2 WHEN 'map_rules' THEN 3 ELSE 4 END",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Per-task record \u2014 pass, fail, distance, tool calls",
+      "type": "table",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      },
+      "id": 14
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family b. One line per arm, runs before the latest. Empty until a second run is stored. Fewer is better.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#9AA4B2",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
                 "value": null
               }
             ]
           },
-          "unit": "s"
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 6,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Baseline (no map)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9AA4B2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map only"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2A9D8F",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map + rules"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6E8CA0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT created_at AS time, CASE context WHEN 'bare' THEN 'Baseline (no map)' WHEN 'map' THEN 'Map only' WHEN 'map_rules' THEN 'Map + rules' ELSE context END AS metric, tool_calls AS value FROM runs WHERE run_id <> (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at ASC",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Tool calls on earlier runs",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 63
+      },
+      "id": 15
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family c. One line per arm, runs before the latest. Empty until a second run is stored. Lower is better.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#9AA4B2",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 6,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 4,
+          "unit": "currencyUSD"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Baseline (no map)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9AA4B2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map only"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2A9D8F",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Map + rules"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6E8CA0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT created_at AS time, CASE context WHEN 'bare' THEN 'Baseline (no map)' WHEN 'map' THEN 'Map only' WHEN 'map_rules' THEN 'Map + rules' ELSE context END AS metric, cost_usd AS value FROM runs WHERE run_id <> (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) ORDER BY created_at ASC",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Cost on earlier runs (USD)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 63
+      },
+      "id": 16
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family e. Passed means this mapping run met its gate. This is the only gate tile with a direction.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "Passed"
+                },
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "Not passed"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 0,
-        "y": 16
-      },
-      "id": 5,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
@@ -513,7 +1810,7 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "textMode": "value",
         "wideLayout": true
       },
       "targets": [
@@ -524,7 +1821,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT wall_time_seconds FROM gate_metrics ORDER BY created_at DESC LIMIT 1",
+          "rawSql": "SELECT CASE WHEN passed THEN 1 ELSE 0 END AS result FROM gate_metrics ORDER BY created_at DESC LIMIT 1",
           "refId": "A",
           "sql": {
             "columns": [
@@ -545,26 +1842,35 @@
           }
         }
       ],
-      "title": "Gate wall time (s)",
-      "type": "stat"
+      "title": "Gate result",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 71
+      },
+      "id": 17
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${datasource}"
       },
-      "description": "Family e. Latest gate_metrics row: node count.",
+      "description": "Family e. Seconds the map took. Shown in seconds, including values below one. The sparkline is earlier gate runs. This is not an agent score.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "#D0D6DE",
+            "mode": "fixed"
           },
+          "decimals": 3,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#9AA4B2",
                 "value": null
               }
             ]
@@ -572,17 +1878,10 @@
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 8,
-        "y": 16
-      },
-      "id": 6,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
@@ -593,7 +1892,89 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT created_at AS time, wall_time_seconds FROM gate_metrics ORDER BY created_at ASC",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Mapping time (s)",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 71
+      },
+      "id": 18
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Family e. How many nodes the map produced. The count describes the map, not the agent's score.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#D0D6DE",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9AA4B2",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
         "wideLayout": true
       },
       "targets": [
@@ -625,26 +2006,35 @@
           }
         }
       ],
-      "title": "Gate node count",
-      "type": "stat"
+      "title": "Map nodes",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 71
+      },
+      "id": 19
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${datasource}"
       },
-      "description": "Family e. Latest gate_metrics row: edge count.",
+      "description": "Family e. How many edges the map produced. The count describes the map, not the agent's score.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "#D0D6DE",
+            "mode": "fixed"
           },
+          "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#9AA4B2",
                 "value": null
               }
             ]
@@ -652,17 +2042,10 @@
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 16,
-        "y": 16
-      },
-      "id": 7,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
+        "graphMode": "none",
+        "justifyMode": "center",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
@@ -673,7 +2056,7 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "textMode": "value",
         "wideLayout": true
       },
       "targets": [
@@ -705,8 +2088,15 @@
           }
         }
       ],
-      "title": "Gate edge count",
-      "type": "stat"
+      "title": "Map edges",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 71
+      },
+      "id": 20
     }
   ],
   "refresh": "5s",
@@ -740,10 +2130,12 @@
     "from": "now-6h",
     "to": "now"
   },
-  "timepicker": {},
+  "timepicker": {
+    "hidden": true
+  },
   "timezone": "browser",
   "title": "Map Writes the Test",
   "uid": "map-writes-the-test",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

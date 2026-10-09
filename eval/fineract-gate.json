@@ -1,12 +1,12 @@
 {
-  "scope": "full",
-  "wall_time_seconds": 21.697,
-  "node_count": 61983,
-  "edge_count": 303539,
+  "scope": "loans",
+  "wall_time_seconds": 0.311,
+  "node_count": 1026,
+  "edge_count": 631,
   "largest_mermaid": {
-    "name": "service",
+    "name": "loanaccount",
     "nodes": 24,
-    "module_nodes": 9255,
+    "module_nodes": 1026,
     "rendered": false
   },
   "errors": [
@@ -14,5 +14,5 @@
     "mermaid renderer mmdc is not installed"
   ],
   "loans_covered": true,
-  "graph_path": "/tmp/minirag-gate/full/graphify-out/graph.json"
+  "graph_path": "/tmp/minirag-gate/scan/graph.json"
 }

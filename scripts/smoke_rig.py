@@ -21,41 +21,56 @@ HEALTH_RETRY_SECONDS = 2.0
 FAMILIES = (
     (
         "a",
-        "tasks passed by tier per arm",
-        "SELECT context AS arm, tasks_total, passed_tier1, passed_tier2 "
+        "tasks passed by tier",
+        "SELECT 'Tier 1' AS tier, "
+        'MAX(CASE WHEN context = \'bare\' THEN passed_tier1 END) AS "Baseline (no map)", '
+        'MAX(CASE WHEN context = \'map\' THEN passed_tier1 END) AS "Map only", '
+        'MAX(CASE WHEN context = \'map_rules\' THEN passed_tier1 END) AS "Map + rules" '
         "FROM runs "
         "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) "
-        "ORDER BY context",
+        "UNION ALL "
+        "SELECT 'Tier 2', "
+        "MAX(CASE WHEN context = 'bare' THEN passed_tier2 END), "
+        "MAX(CASE WHEN context = 'map' THEN passed_tier2 END), "
+        "MAX(CASE WHEN context = 'map_rules' THEN passed_tier2 END) "
+        "FROM runs "
+        "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
     ),
     (
         "b",
-        "tool calls per arm",
-        "SELECT created_at AS time, context AS arm, tool_calls "
+        "tool calls, this run",
+        "SELECT 'This run' AS run, "
+        'MAX(CASE WHEN context = \'bare\' THEN tool_calls END) AS "Baseline (no map)", '
+        'MAX(CASE WHEN context = \'map\' THEN tool_calls END) AS "Map only", '
+        'MAX(CASE WHEN context = \'map_rules\' THEN tool_calls END) AS "Map + rules" '
         "FROM runs "
-        "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) "
-        "ORDER BY created_at",
+        "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
     ),
     (
         "c",
-        "cost per run",
-        "SELECT created_at AS time, context AS arm, cost_usd "
+        "cost, this run",
+        "SELECT 'This run' AS run, "
+        'MAX(CASE WHEN context = \'bare\' THEN cost_usd END) AS "Baseline (no map)", '
+        'MAX(CASE WHEN context = \'map\' THEN cost_usd END) AS "Map only", '
+        'MAX(CASE WHEN context = \'map_rules\' THEN cost_usd END) AS "Map + rules" '
         "FROM runs "
-        "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) "
-        "ORDER BY created_at",
+        "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
     ),
     (
         "d",
-        "grounding distance distribution",
-        "SELECT context AS arm, task_id, grounding_distance "
+        "grounding distance by task",
+        "SELECT DISTINCT ON (task_id) task_id, grounding_distance "
         "FROM task_results "
         "WHERE tier = 2 AND grounding_distance IS NOT NULL "
         "AND run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) "
-        "ORDER BY created_at DESC, task_id",
+        "ORDER BY task_id, context",
     ),
     (
         "e",
-        "gate stats",
-        "SELECT wall_time_seconds " "FROM gate_metrics " "ORDER BY created_at DESC LIMIT 1",
+        "mapping time",
+        "SELECT created_at AS time, wall_time_seconds "
+        "FROM gate_metrics "
+        "ORDER BY created_at ASC",
     ),
 )
 

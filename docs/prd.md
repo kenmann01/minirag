@@ -129,7 +129,7 @@ Table 2. Functional requirements with true status
 
 Notes on the reconciled statuses:
 
-- FR-1: the mapping skill lives on the owner's work laptop; app/gate.py wraps the graphify CLI for gate runs.
+- FR-1: the mapping skill is `skills/call-scan` in this repo. `app/adapter.py` chooses the tree (Fineract's loans package today; another repository is another adapter). `app/gate.py` runs the skill on that tree. The 21.7s / 61,983 / 303,539 figures below are the previous Graphify measurement.
 - FR-2: app/tasks.py generate_tasks (tasks.py:92) derives tier 1 from graph edges. Selection is deterministic (graph.py:71-90): EXTRACTED call and import edges, loan-first ordering, limit 4. Zero human selection.
 - FR-3: tier 2 questions are grounded in bridge-returned chunk ids. A task citing chunks the bridge never returned fails the whole run (tasks.py:198-204).
 - FR-4: app/convert.py plus convert_docs.py. Emits "## N. Title" markdown and exits nonzero when a document yields zero sections (tests/test_convert.py).

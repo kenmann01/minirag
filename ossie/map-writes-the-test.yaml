@@ -1,5 +1,5 @@
 # Apache Ossie 0.1.1 semantic model for the map and the corpus contract.
-# vendor_name is restricted by the schema, so minirag and graphify live in the
+# vendor_name is restricted by the schema, so minirag and call_scan live in the
 # COMMON extension payload. Every source below is a public-schema table that
 # `python -m app ossie validate` can prove exists in the live database:
 # policy_chunks and sections come from ingest, graph_nodes and graph_edges
@@ -348,4 +348,4 @@ semantic_model:
         to_columns: [node_id]
     custom_extensions:
       - vendor_name: COMMON
-        data: '{"minirag":{"corpus_dir":"Policy","embedding_model":"Alibaba-NLP/gte-modernbert-base","heading":"## N. Title"},"graphify":{"graph":"graph.json","mermaid":"module-level"}}'
+        data: '{"minirag":{"corpus_dir":"Policy","embedding_model":"Alibaba-NLP/gte-modernbert-base","heading":"## N. Title"},"call_scan":{"skill":"skills/call-scan","graph":"graph.json","mermaid":"module-level"}}'

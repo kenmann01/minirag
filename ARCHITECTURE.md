@@ -37,7 +37,8 @@ flowchart TD
   agent --> ollama
   score --> search
   score --> metrics["metrics sink"]
-  gate --> graphify["Graphify CLI"]
+  gate --> adapter["repo adapter"]
+  adapter --> callScan["call-scan skill"]
   gate --> metrics
   metrics --> pg
   ossie --> pg
@@ -48,13 +49,13 @@ flowchart TD
 
 - `app` (`app/`): the only installable package (`pyproject.toml`). CLI dispatch is `app/cli.py`; storage is `app/pgadapter.py` behind `app/db.py`.
 - Policy exam path (`app/retrieve.py`, `app/reranker.py`, `app/generate.py`, `app/evaluate.py`): hybrid search, rerank, grounded answer, ten-golden exam. This is old, and not part of eval harness. `python -m app eval` loads `eval/goldens.json` and runs each Minion question through the same search the ask path uses. Search reads `policy_chunks`.
-- Map-writes-the-test path (`app/graph.py`, `app/tasks.py`, `app/agent.py`, `app/score.py`, `app/bridge.py`): Graphify graph in, three scored runs out. The bridge is retrieve-only and skips the reranker.
+- Map-writes-the-test path (`app/graph.py`, `app/tasks.py`, `app/agent.py`, `app/score.py`, `app/bridge.py`): call-scan `graph.json` in, three scored runs out. The bridge is retrieve-only and skips the reranker. `app/adapter.py` chooses which tree the skill scans. Fineract's loans package is the adapter shipped today.
 - Observability (`app/metrics.py`, `grafana/`, `app/ossie.py`): score and gate rows land in Postgres; Grafana reads them; OSSIE validates the declared tables.
 
 ## Runtime
 
-An ask that misses the cache embeds the question (`app/embeddings.py`), fuses cosine and `tsvector` lanes with reciprocal rank fusion (`app/retrieve.py`), reranks with `cross-encoder/ms-marco-MiniLM-L-6-v2` (`app/reranker.py`), then asks Ollama for JSON (`app/ollama.py` → `POST /api/chat`) and keeps the answer only if `app/validate.py` accepts the citation. `score` builds tasks from a graph file, then runs a pydantic-ai agent jailed to a repository (`app/agent.py` uses Ollama's `/v1` base). `gate` shells out to the Graphify binary (`app/gate.py`).
+An ask that misses the cache embeds the question (`app/embeddings.py`), fuses cosine and `tsvector` lanes with reciprocal rank fusion (`app/retrieve.py`), reranks with `cross-encoder/ms-marco-MiniLM-L-6-v2` (`app/reranker.py`), then asks Ollama for JSON (`app/ollama.py` → `POST /api/chat`) and keeps the answer only if `app/validate.py` accepts the citation. `score` builds tasks from a graph file, then runs a pydantic-ai agent jailed to a repository (`app/agent.py` uses Ollama's `/v1` base). `gate` asks `app/adapter.py` which tree to map, then shells out to the call-scan skill (`skills/call-scan/scripts/scan.py`).
 
 ## Out of scope for this cache
 
-Ollama, the Graphify CLI (`graphifyy`), and the Mermaid renderer `mmdc` are host tools, not modules. Apache Fineract is an external repository the gate maps. Hugging Face supplies the embedding and reranker weights at runtime.
+Ollama and the Mermaid renderer `mmdc` are host tools, not modules. The call-scan skill lives in this repo. Apache Fineract is the external repository the current adapter maps. Hugging Face supplies the embedding and reranker weights at runtime.
