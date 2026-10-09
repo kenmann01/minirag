@@ -379,3 +379,20 @@ def test_the_record_table_lists_every_failure_detail():
     assert "minimum-interest-charge" in table
     assert "FAIL" in table
     assert "missing required fact '$1.00'" in table
+
+
+def test_the_reranker_returns_nothing_when_there_are_no_candidates():
+    assert CrossEncoderReranker().rank("any question", []) == []
+
+
+def test_generation_refuses_without_calling_the_model_when_retrieval_is_empty():
+    from app.generation.generate import generate
+
+    class ExplodingModel:
+        def chat(self, prompt):
+            raise AssertionError("the model must not be called")
+
+    response = generate("What is the mileage rate?", [], ExplodingModel())
+    assert response.answer == REFUSAL
+    assert response.citation is None
+    assert response.retrieved_chunks == []

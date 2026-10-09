@@ -66,3 +66,15 @@ def test_short_section_is_one_child_carrying_lineage():
             "text": "Meals cost sixty-five dollars per day.",
         }
     ]
+
+
+def test_an_empty_range_spans_nothing():
+    from app.corpus.chunking import _span_length
+
+    assert _span_length("some body text", [(0, 4), (5, 9)], 1, 1) == 0
+
+
+def test_a_body_without_sentences_has_no_child_windows():
+    from app.corpus.chunking import _child_windows
+
+    assert _child_windows("") == []

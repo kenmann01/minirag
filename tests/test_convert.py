@@ -77,3 +77,58 @@ def test_a_good_pdf_is_kept_when_a_sibling_fails(tmp_path):
     written = list(out_dir.glob("*.md"))
     assert [path.name for path in written] == ["rules.md"]
     assert "## 1. Purpose" in written[0].read_text(encoding="utf-8")
+
+
+def test_title_text_rejects_lines_that_cannot_be_titles():
+    from app.corpus.convert import _title_text
+
+    assert _title_text("") is None
+    assert _title_text("word " * 30) is None
+    assert _title_text("Ends with a period.") is None
+    assert _title_text("lowercase start") is None
+    assert _title_text("Figure 12 the chart") is None
+
+
+def test_a_bare_cfr_marker_waits_for_its_title():
+    from app.corpus.convert import _marker
+
+    assert _marker("§ 1026.5") == "5"
+
+
+def test_title_on_next_returns_none_at_the_end_of_the_document():
+    from app.corpus.convert import _title_on_next
+
+    assert _title_on_next(["§ 1026.5", "", ""], 0) is None
+
+
+def test_a_marker_takes_a_title_separated_by_a_blank_line():
+    markdown = to_markdown("§ 1026.4\n\nLate Payments\n\nA late payment is late.\n")
+    assert markdown is not None
+    assert "## 4. Late Payments" in markdown
+    assert "A late payment is late." in markdown
+
+
+def test_a_marker_without_a_valid_title_keeps_a_generic_one():
+    markdown = to_markdown(
+        "§ 1026.7\n\nthis cannot be a Title because it starts lowercased\n\nBody.\n"
+    )
+    assert markdown is not None
+    assert "## 7. Section 7" in markdown
+    assert "Body." in markdown
+
+
+def test_an_empty_pdf_folder_reports_failure(tmp_path):
+    pdf_dir = tmp_path / "pdfs"
+    pdf_dir.mkdir()
+    assert convert_dir(pdf_dir, tmp_path / "md") == 1
+
+
+def test_a_stale_markdown_file_is_removed_when_the_pdf_now_fails(tmp_path):
+    pdf_dir = tmp_path / "pdfs"
+    out_dir = tmp_path / "md"
+    pdf_dir.mkdir()
+    out_dir.mkdir()
+    _pdf(pdf_dir / "broken.pdf", "no numbered heading at all")
+    (out_dir / "broken.md").write_text("stale output", encoding="utf-8")
+    assert convert_dir(pdf_dir, out_dir) == 1
+    assert not (out_dir / "broken.md").exists()

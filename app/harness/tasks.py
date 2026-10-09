@@ -79,7 +79,7 @@ def _parse_object(raw: str) -> dict:
         parsed = json.loads(text[start : end + 1])
     except json.JSONDecodeError as exc:
         raise TaskGenerationError("generator returned malformed JSON") from exc
-    if not isinstance(parsed, dict):
+    if not isinstance(parsed, dict):  # pragma: no cover - the substring is always brace-delimited
         raise TaskGenerationError("generator JSON was not an object")
     return parsed
 

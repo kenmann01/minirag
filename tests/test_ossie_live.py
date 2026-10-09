@@ -185,3 +185,17 @@ def test_validate_names_the_drifted_column(materialized_graph, capsys):
     err = capsys.readouterr().err
     assert code != 0
     assert "missing column: public.graph_edges.confidence" in err
+
+
+def test_validate_names_a_field_that_is_not_a_bare_column(materialized_graph, tmp_path, capsys):
+    document = yaml.safe_load(
+        (ROOT / "ossie" / "map-writes-the-test.yaml").read_text(encoding="utf-8")
+    )
+    field = document["semantic_model"][0]["datasets"][0]["fields"][0]
+    field["expression"]["dialects"][0]["expression"] = "count(*)"
+    broken = tmp_path / "expression.yaml"
+    broken.write_text(yaml.safe_dump(document), encoding="utf-8")
+    code = main(["ossie", "validate", "--map", str(broken)], database_adapter=materialized_graph)
+    err = capsys.readouterr().err
+    assert code != 0
+    assert "non-column expression" in err

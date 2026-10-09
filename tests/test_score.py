@@ -1,9 +1,11 @@
 """Three pydantic-evals runs share one task list, cost honestly, and hide answers."""
 
+import json
 from pathlib import Path
 
+from app.config import Settings
 from app.harness.agent import RunOutput
-from app.harness.score import Prices, run_score
+from app.harness.score import Prices, _default_task_fn, _dump_output, run_score
 from app.harness.tasks import generate_tasks, map_excerpt
 from tests.test_tasks import Phraser, retrieve_factory, write_graph
 
@@ -194,3 +196,115 @@ def test_judge_tokens_count_toward_the_run_cost(tmp_path, monkeypatch):
         assert row["prompt_tokens"] >= 4 * 1000
         assert row["completion_tokens"] >= 4 * 500
         assert row["cost_usd"] > (4 * 1000 * 0.15 + 4 * 500 * 0.60) / 1_000_000
+
+
+def test_a_crashed_case_is_counted_as_a_failed_task(tmp_path, monkeypatch):
+    graph = tmp_path / "graph.json"
+    write_graph(graph)
+    key = _answer_key(graph)
+    monkeypatch.setattr("app.harness.score.judge_rule", _judge)
+    inner = _task_fn(key)
+
+    def task_fn(prompt: str, context: str) -> RunOutput:
+        question = prompt.split("\n\n", 1)[0]
+        if context == "bare" and key[question].id == "t1-01":
+            raise RuntimeError("the agent crashed")
+        return inner(prompt, context)
+
+    rows = run_score(
+        graph_path=graph,
+        repo=tmp_path,
+        output_dir=tmp_path / "runs",
+        model=Phraser(),
+        retrieve=retrieve_factory("bank"),
+        task_fn=task_fn,
+        prices=Prices(0.15, 0.60, 0.001),
+    )
+    bare = rows[0]
+    assert bare["context"] == "bare"
+    assert bare["tasks_total"] == 8
+    assert bare["tasks_passed"] < 7
+    report = json.loads((tmp_path / "runs" / "bare.json").read_text(encoding="utf-8"))
+    assert "t1-01" in report["failures"]
+
+
+def test_dump_output_wraps_a_plain_object():
+    assert _dump_output("just a string") == {
+        "answer": "just a string",
+        "tool_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+    }
+
+
+def test_the_default_task_fn_forwards_tool_events_to_the_listener(tmp_path, monkeypatch):
+    captured = {}
+
+    def fake_build_agent(repo, settings, on_tool=None):
+        captured["on_tool"] = on_tool
+        return object()
+
+    def fake_run_agent(agent, prompt):
+        return RunOutput(answer="a", tool_calls=1, prompt_tokens=2, completion_tokens=3)
+
+    monkeypatch.setattr("app.harness.score.build_agent", fake_build_agent)
+    monkeypatch.setattr("app.harness.score.run_agent", fake_run_agent)
+    events = []
+    settings = Settings(database_url="postgresql://minirag:minirag@127.0.0.1:5432/minirag")
+
+    task_fn = _default_task_fn(tmp_path, settings, events.append)
+    result = task_fn("What does Loan call?", "map")
+
+    assert result.answer == "a"
+    assert captured["on_tool"] is not None
+    captured["on_tool"]({"call": "tool", "title": "read_file", "detail": "Loan.java"})
+    assert events[-1]["title"] == "read_file"
+    assert events[-1]["station"] == "bare"
+
+
+def test_dump_output_uses_model_dump_when_available():
+    from app.generation.schemas import AskResponse
+
+    response = AskResponse(answer="a", citation=None, retrieved_chunks=[])
+    assert _dump_output(response) == response.model_dump()
+
+
+def test_a_crashed_case_is_stored_as_a_failed_task_row(tmp_path, monkeypatch):
+    from app.storage.pgadapter import PgAdapter
+
+    graph = tmp_path / "graph.json"
+    write_graph(graph)
+    key = _answer_key(graph)
+    monkeypatch.setattr("app.harness.score.judge_rule", _judge)
+    inner = _task_fn(key)
+
+    def task_fn(prompt: str, context: str) -> RunOutput:
+        question = prompt.split("\n\n", 1)[0]
+        if key[question].id == "t2-02":
+            raise RuntimeError("the agent crashed")
+        return inner(prompt, context)
+
+    adapter = PgAdapter()
+    # task_results is a history table: clear this task's rows so the query
+    # below sees only what this run writes.
+    with adapter.connect() as conn:
+        conn.execute("DELETE FROM task_results WHERE task_id = 't2-02'")
+    rows = run_score(
+        graph_path=graph,
+        repo=tmp_path,
+        output_dir=tmp_path / "runs",
+        model=Phraser(),
+        retrieve=retrieve_factory("bank"),
+        task_fn=task_fn,
+        prices=Prices(0.15, 0.60, 0.001),
+        database_adapter=adapter,
+    )
+    assert all(row["tasks_total"] == 8 for row in rows)
+    with adapter.connect() as conn:
+        stored = conn.execute(
+            """
+            SELECT task_id, tier, passed FROM task_results
+            WHERE task_id = 't2-02' AND context = 'bare'
+            """
+        ).fetchone()
+    assert stored == ("t2-02", 2, False)

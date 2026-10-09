@@ -1,5 +1,7 @@
 """Module diagrams keep the most connected nodes, and their ids stay distinct."""
 
+import json
+
 from app.harness.graph import Edge, callee_symbol, candidate_edges, module_mermaid
 
 
@@ -63,3 +65,67 @@ def test_long_shared_prefixes_stay_distinct_nodes():
     declared = [line.strip().split("[", 1)[0] for line in diagram.splitlines() if '["' in line]
     assert len(declared) == 2
     assert declared[0] != declared[1]
+
+
+def test_node_file_tolerates_missing_nodes_and_unknown_shapes():
+    from app.harness.graph import node_file
+
+    assert node_file(None) == ""
+    assert node_file({}) == ""
+    assert node_file({"file": "pkg/A.java"}) == "pkg/A.java"
+
+
+def test_edges_may_carry_their_endpoints_as_objects(tmp_path):
+    from app.harness.graph import load_graph
+
+    graph = tmp_path / "graph.json"
+    graph.write_text(
+        json.dumps(
+            {
+                "nodes": [],
+                "links": [
+                    {
+                        "source": {"id": "Loan"},
+                        "target": {"id": "approve"},
+                        "relation": "calls",
+                        "confidence": "EXTRACTED",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    _nodes, edges = load_graph(graph)
+    assert edges[0].source == "Loan"
+    assert edges[0].target == "approve"
+
+
+def test_an_unknown_node_keeps_its_id_as_the_label():
+    from app.harness.graph import node_label
+
+    assert node_label([], "ghost") == "ghost"
+
+
+def test_mermaid_ids_get_a_prefix_when_they_start_with_a_digit():
+    from app.harness.graph import _mermaid_id
+
+    assert _mermaid_id("123abc") == "n_123abc"
+    assert _mermaid_id("Loan") == "Loan"
+
+
+def test_a_bare_file_name_is_its_own_module():
+    from app.harness.graph import module_key
+
+    assert module_key("Loan.java") == "Loan.java"
+
+
+def test_no_loan_nodes_means_loans_are_not_covered():
+    from app.harness.graph import loans_covered
+
+    assert loans_covered([{"id": "Client"}]) is False
+
+
+def test_a_node_with_no_file_keys_has_no_file():
+    from app.harness.graph import node_file
+
+    assert node_file({"id": "Loan"}) == ""

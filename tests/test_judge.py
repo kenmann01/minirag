@@ -129,3 +129,37 @@ def test_judge_rule_dispatches_to_the_configured_provider(monkeypatch):
     }
     assert "reference chunk" in seen["instructions"].lower()
     assert "Reference chunks:" in seen["body"]
+
+
+def test_the_bedrock_provider_builds_the_bedrock_adapter():
+    assert isinstance(judge_adapter(_settings(judge_provider="bedrock")), BedrockJudgeAdapter)
+
+
+def test_an_unregistered_provider_name_is_rejected_by_the_dispatch():
+    from types import SimpleNamespace
+
+    with pytest.raises(RuntimeError, match="unknown JUDGE_PROVIDER"):
+        judge_adapter(SimpleNamespace(judge_provider="vibes"))
+
+
+def test_the_bedrock_client_is_created_lazily_and_cached(monkeypatch):
+    import sys
+    import types as types_module
+
+    calls = []
+    fake_boto3 = types_module.ModuleType("boto3")
+
+    def fake_client(name, region_name=None):
+        calls.append((name, region_name))
+        return object()
+
+    fake_boto3.client = fake_client
+    monkeypatch.setitem(sys.modules, "boto3", fake_boto3)
+    adapter = BedrockJudgeAdapter(
+        _settings(judge_provider="bedrock", judge_model="anthropic.test:0", aws_region="eu-west-1")
+    )
+
+    first = adapter._bedrock()
+    second = adapter._bedrock()
+    assert first is second
+    assert calls == [("bedrock-runtime", "eu-west-1")]

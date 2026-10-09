@@ -5,7 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from app.harness.tasks import TaskGenerationError, generate_tasks
+from app.harness.tasks import (
+    TaskGenerationError,
+    _mentions_ident,
+    _parse_object,
+    _shown_cite,
+    _tier2_by_fact,
+    generate_tasks,
+)
 
 
 def write_graph(path: Path) -> None:
@@ -342,3 +349,85 @@ def test_repeated_tier2_wording_is_rejected(tmp_path):
 
     with pytest.raises(TaskGenerationError, match="unique"):
         generate_tasks(graph, model=Rewrite(same_wording), retrieve=retrieve_factory("bank"))
+
+
+def test_a_fenced_json_reply_is_unwrapped():
+    assert _parse_object('```json\n{"tier2": []}\n```') == {"tier2": []}
+
+
+def test_a_reply_without_json_is_rejected():
+    with pytest.raises(TaskGenerationError, match="did not return JSON"):
+        _parse_object("sorry, I cannot do that")
+
+
+def test_a_malformed_json_reply_is_rejected():
+    with pytest.raises(TaskGenerationError, match="malformed JSON"):
+        _parse_object('{"tier2": [}')
+
+
+def test_a_tier2_list_must_be_a_list():
+    with pytest.raises(TaskGenerationError, match="missing the tier 2 list"):
+        _tier2_by_fact(None)
+
+
+def test_a_tier2_item_must_be_an_object():
+    with pytest.raises(TaskGenerationError, match="not an object"):
+        _tier2_by_fact(["nope"])
+
+
+def test_every_fact_from_one_to_four_must_be_present():
+    with pytest.raises(TaskGenerationError, match="1 through 4"):
+        _tier2_by_fact([{"fact": 1, "prompt": "p", "chunk_ids": ["c"]}])
+
+
+def test_an_empty_retrieval_has_nothing_to_cite():
+    assert _shown_cite([]) is None
+
+
+def test_an_empty_identifier_matches_nothing():
+    assert _mentions_ident("any text", "") is False
+
+
+def test_fewer_than_four_edges_stop_the_generation(tmp_path):
+    graph = tmp_path / "graph.json"
+    data = {"nodes": [], "links": []}
+    for index in range(1, 4):
+        data["links"].append(
+            {
+                "source": f"Loan{index}",
+                "target": f"apply{index}",
+                "relation": "calls",
+                "confidence": "EXTRACTED",
+                "source_file": f"loanaccount/Loan{index}.java",
+                "target_file": f"loanaccount/Loan{index}.java",
+            }
+        )
+    graph.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(TaskGenerationError, match="need 4 EXTRACTED edges"):
+        generate_tasks(graph, model=Phraser(), retrieve=retrieve_factory("bank"))
+
+
+def test_a_blank_tier2_prompt_is_rejected(tmp_path):
+    graph = tmp_path / "graph.json"
+    write_graph(graph)
+
+    def blank_first(items: list[dict]) -> None:
+        items[0]["prompt"] = ""
+
+    with pytest.raises(TaskGenerationError, match="no prompt"):
+        generate_tasks(graph, model=Rewrite(blank_first), retrieve=retrieve_factory("bank"))
+
+
+def test_a_fenced_reply_from_the_model_still_phrases(tmp_path):
+    graph = tmp_path / "graph.json"
+    write_graph(graph)
+
+    class FencedPhraser(Phraser):
+        def chat(self, prompt: str) -> str:
+            self.prompts.append(prompt)
+            return f"```json\n{json.dumps({'tier2': tier2_items(prompt)})}\n```"
+
+    tasks, _nodes, _edges = generate_tasks(
+        graph, model=FencedPhraser(), retrieve=retrieve_factory("bank")
+    )
+    assert len(tasks) == 8

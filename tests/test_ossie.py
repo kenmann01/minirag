@@ -27,3 +27,30 @@ def test_semantic_model_matches_the_pinned_schema():
         "chunk id" in model["ai_context"]["instructions"].lower()
         or "chunk ids" in model["ai_context"]["instructions"].lower()
     )
+
+
+def test_a_short_source_defaults_to_the_public_schema():
+    from app.observability.ossie import _schema_and_table
+
+    assert _schema_and_table("graph_nodes") == ("public", "graph_nodes")
+
+
+def test_a_non_column_expression_is_rejected():
+    from app.observability.ossie import _declared_columns
+
+    columns, error = _declared_columns(
+        {
+            "name": "dataset",
+            "fields": [
+                {
+                    "name": "total",
+                    "expression": {
+                        "dialects": [{"dialect": "ANSI_SQL", "expression": "sum(amount)"}]
+                    },
+                }
+            ],
+        }
+    )
+    assert columns == []
+    assert "non-column expression" in error
+    assert "total" in error
