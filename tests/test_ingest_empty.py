@@ -1,6 +1,6 @@
 """An empty corpus must not wipe the stored index."""
 
-from app.ingest import EmptyCorpusError, run
+from app.corpus.ingest import EmptyCorpusError, run
 
 
 class BoomAdapter:

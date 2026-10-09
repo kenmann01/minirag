@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from app.tasks import TaskGenerationError, generate_tasks
+from app.harness.tasks import TaskGenerationError, generate_tasks
 
 
 def write_graph(path: Path) -> None:

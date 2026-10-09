@@ -1,0 +1,6 @@
+# Copy to docker-compose.override.yml (gitignored) when the host already runs
+# Postgres on 5432, then set DATABASE_URL in .env to port 5433.
+services:
+  postgres:
+    ports: !override
+      - "5433:5432"

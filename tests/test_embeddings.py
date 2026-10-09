@@ -1,7 +1,7 @@
 """Process-local embedding cache at the embed_texts seam."""
 
-import app.embeddings as embeddings
-from app.embeddings import embed_texts
+import app.corpus.embeddings as embeddings
+from app.corpus.embeddings import embed_texts
 
 
 class _Vector:

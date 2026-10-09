@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from app.cli import main
-from app.metrics import MetricsSink
-from app.pgadapter import PgAdapter
+from app.harness.metrics import MetricsSink
+from app.storage.pgadapter import PgAdapter
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -57,9 +57,9 @@ def mocked_mapper(tmp_path, monkeypatch):
         )
         return graph, [], 1.5
 
-    monkeypatch.setattr("app.gate.run_call_scan", fake_run)
+    monkeypatch.setattr("app.harness.gate.run_call_scan", fake_run)
     monkeypatch.setattr(
-        "app.gate.render_largest",
+        "app.harness.gate.render_largest",
         lambda diagrams, out_dir: ({"name": "loanaccount", "nodes": 2, "rendered": False}, []),
     )
 

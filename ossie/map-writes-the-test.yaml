@@ -208,6 +208,42 @@ semantic_model:
               dialects:
                 - dialect: ANSI_SQL
                   expression: cost_usd
+          - name: label
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: label
+            description: Human label for the invocation, shared by every arm.
+          - name: model
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: model
+            description: Provenance; the model that answered the tasks.
+          - name: corpus
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: corpus
+            description: Provenance; the corpus folder the rules were ingested from.
+          - name: graph
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: graph
+            description: Provenance; the graph file the task list was generated from.
+          - name: task_list_sha
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: task_list_sha
+            description: Short content hash of the task list, linking runs that share it.
+          - name: origin
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: origin
+            description: "real for full runs, seeded for rig seeds."
       - name: task_results
         source: minirag.public.task_results
         primary_key: [run_id, context, task_id]
@@ -323,6 +359,12 @@ semantic_model:
                 - dialect: ANSI_SQL
                   expression: passed
             description: True when the run produced a graph, the gate exit-zero signal.
+          - name: label
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: label
+            description: Human label for the gate run, usually the mapped repository name.
           - name: created_at
             expression:
               dialects:
@@ -348,4 +390,4 @@ semantic_model:
         to_columns: [node_id]
     custom_extensions:
       - vendor_name: COMMON
-        data: '{"minirag":{"corpus_dir":"Policy","embedding_model":"Alibaba-NLP/gte-modernbert-base","heading":"## N. Title"},"call_scan":{"skill":"skills/call-scan","graph":"graph.json","mermaid":"module-level"}}'
+        data: '{"minirag":{"corpus_dir":"corpora/banking","embedding_model":"Alibaba-NLP/gte-modernbert-base","heading":"## N. Title"},"call_scan":{"skill":"skills/call-scan","graph":"graph.json","mermaid":"module-level"}}'

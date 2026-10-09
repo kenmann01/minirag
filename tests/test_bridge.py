@@ -4,9 +4,9 @@ import json
 from contextlib import contextmanager
 from types import SimpleNamespace
 
-from app.bridge import retrieve
 from app.cli import main
-from app.retrieve import search
+from app.retrieval.bridge import retrieve
+from app.retrieval.retrieve import search
 
 
 class FakeConn:
@@ -31,12 +31,14 @@ class FakeAdapter:
 
 
 def test_search_limits_each_lane_to_top_k(monkeypatch):
-    monkeypatch.setattr("app.retrieve.embed_texts", lambda texts: [[0.0, 0.1, 0.2]])
+    monkeypatch.setattr("app.retrieval.retrieve.embed_texts", lambda texts: [[0.0, 0.1, 0.2]])
     adapter = FakeAdapter()
     assert search("provisioning", adapter, top_k=3) == []
-    assert adapter.conn.calls[0][1][-1] == 3
+    # Call 0 is the embedding-model guard; the lanes follow it.
     assert adapter.conn.calls[1][1][-1] == 3
-    assert "LIMIT %s" in adapter.conn.calls[0][0]
+    assert adapter.conn.calls[2][1][-1] == 3
+    assert "LIMIT %s" in adapter.conn.calls[1][0]
+    assert "LIMIT %s" in adapter.conn.calls[2][0]
 
 
 def _chunks():
@@ -72,9 +74,9 @@ def test_retrieve_logs_every_chunk_and_does_not_drop_a_section(capsys, monkeypat
         seen["top_k"] = kwargs["top_k"]
         return _chunks()
 
-    monkeypatch.setattr("app.bridge.search", fake_search)
+    monkeypatch.setattr("app.retrieval.bridge.search", fake_search)
     monkeypatch.setattr(
-        "app.bridge.get_settings",
+        "app.retrieval.bridge.get_settings",
         lambda: SimpleNamespace(embedding_model="Alibaba-NLP/gte-modernbert-base"),
     )
     payload = retrieve("provisioning limits", adapter=None, top_k=5)
@@ -91,9 +93,9 @@ def test_retrieve_logs_every_chunk_and_does_not_drop_a_section(capsys, monkeypat
 
 
 def test_retrieve_command_writes_json(tmp_path, capsys, monkeypatch):
-    monkeypatch.setattr("app.bridge.search", lambda *args, **kwargs: _chunks())
+    monkeypatch.setattr("app.retrieval.bridge.search", lambda *args, **kwargs: _chunks())
     monkeypatch.setattr(
-        "app.bridge.get_settings",
+        "app.retrieval.bridge.get_settings",
         lambda: SimpleNamespace(embedding_model="Alibaba-NLP/gte-modernbert-base"),
     )
     destination = tmp_path / "out.json"

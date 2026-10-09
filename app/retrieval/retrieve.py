@@ -1,0 +1,159 @@
+# Internal and Confidential - Not for External Distribution.
+"""Hybrid policy retrieval: vector and keyword lanes fused by reciprocal rank."""
+
+from typing import Literal
+
+from app.config import get_settings
+from app.corpus.embeddings import embed_texts
+from app.storage.db import DatabaseAdapter
+
+Mode = Literal["hybrid", "vector"]
+
+_VECTOR_SQL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+WHERE superseded_by IS NULL
+ORDER BY distance
+LIMIT %s
+"""
+
+_KEYWORD_SQL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+WHERE superseded_by IS NULL AND tsv @@ websearch_to_tsquery('english', %s)
+ORDER BY ts_rank(tsv, websearch_to_tsquery('english', %s)) DESC
+LIMIT %s
+"""
+
+_VECTOR_SQL_ALL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+ORDER BY distance
+LIMIT %s
+"""
+
+_KEYWORD_SQL_ALL = """
+SELECT chunk_id, source_doc, section, section_title, effective_date,
+       parent_text, embedding <=> %s::vector AS distance
+FROM policy_chunks
+WHERE tsv @@ websearch_to_tsquery('english', %s)
+ORDER BY ts_rank(tsv, websearch_to_tsquery('english', %s)) DESC
+LIMIT %s
+"""
+
+
+def _candidate(row) -> dict:
+    return {
+        "chunk_id": row[0],
+        "source_doc": row[1],
+        "section": row[2],
+        "section_title": row[3],
+        "effective_date": row[4],
+        "text": row[5],
+        "distance": float(row[6]),
+    }
+
+
+def fuse(vector_rows: list[dict], keyword_rows: list[dict], k: int = 60) -> list[tuple]:
+    """Fuse both lanes with reciprocal rank fusion, returning chunk ids best-first."""
+    ranks: dict[str, dict] = {}
+    for lane, rows in (("vector_rank", vector_rows), ("keyword_rank", keyword_rows)):
+        for rank, row in enumerate(rows, start=1):
+            ranks.setdefault(row["chunk_id"], {})[lane] = rank
+    scored = [
+        (
+            chunk_id,
+            1.0 / (k + lane.get("vector_rank", float("inf")))
+            + 1.0 / (k + lane.get("keyword_rank", float("inf"))),
+            lane.get("vector_rank", float("inf")),
+            lane.get("keyword_rank", float("inf")),
+        )
+        for chunk_id, lane in ranks.items()
+    ]
+    scored.sort(key=lambda entry: (-entry[1], entry[2], entry[3]))
+    return [(chunk_id, score) for chunk_id, score, _, _ in scored]
+
+
+class EmbeddingModelMismatch(RuntimeError):
+    """Stored chunks were embedded by a different model than the query uses."""
+
+
+def _guard_embedding_model(conn) -> None:
+    """Refuse to rank vectors that a different embedder produced.
+
+    Querying old vectors with a new model returns meaningless distances that
+    look like ordinary bad retrieval, so the mismatch is raised loudly and
+    the operator is pointed at re-ingesting. Tables from before the
+    ``embedding_model`` column existed are skipped until the next ingest.
+    """
+    columns = {
+        row[0]
+        for row in conn.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = %s",
+            ("policy_chunks",),
+        ).fetchall()
+    }
+    if "embedding_model" not in columns:
+        return
+    rows = conn.execute(
+        "SELECT DISTINCT embedding_model FROM policy_chunks WHERE embedding_model <> %s",
+        ("",),
+    ).fetchall()
+    if not rows:
+        return
+    stored = {row[0] for row in rows}
+    configured = get_settings().embedding_model
+    if stored != {configured}:
+        raise EmbeddingModelMismatch(
+            f"policy_chunks holds vectors from {sorted(stored)} but the query "
+            f"embeds with {configured!r}; re-run 'python -m app ingest'"
+        )
+
+
+def search(
+    question: str,
+    adapter: DatabaseAdapter,
+    mode: Mode = "hybrid",
+    include_superseded: bool = False,
+    top_k: int = 20,
+) -> list[dict]:
+    """Fuse the vector and keyword lanes for an embedded employee question.
+
+    Args:
+        question: Employee question to embed and match against stored chunks.
+        adapter: Provider of a managed vector-capable SQL connection.
+        mode: ``hybrid`` runs both lanes; ``vector`` runs cosine search only.
+        include_superseded: Keep chunks whose document is marked superseded.
+            The lineage filter stays on by default so stale policy versions
+            never reach the prompt.
+        top_k: Maximum fused chunks to return. Ask and eval keep the default of 20.
+
+    Returns:
+        Up to ``top_k`` chunk dictionaries ordered by fused reciprocal rank.
+    """
+    if top_k < 1:
+        raise ValueError("top_k must be at least 1")
+    query_vector = embed_texts([question])[0]
+    vector_sql = _VECTOR_SQL_ALL if include_superseded else _VECTOR_SQL
+    keyword_sql = _KEYWORD_SQL_ALL if include_superseded else _KEYWORD_SQL
+    with adapter.connect() as conn:
+        _guard_embedding_model(conn)
+        vector_rows = [
+            _candidate(row) for row in conn.execute(vector_sql, (query_vector, top_k)).fetchall()
+        ]
+        keyword_rows = (
+            []
+            if mode == "vector"
+            else [
+                _candidate(row)
+                for row in conn.execute(
+                    keyword_sql, (query_vector, question, question, top_k)
+                ).fetchall()
+            ]
+        )
+    by_chunk_id = {row["chunk_id"]: row for row in [*vector_rows, *keyword_rows]}
+    fused = fuse(vector_rows, keyword_rows)[:top_k]
+    return [{**by_chunk_id[chunk_id], "rrf_score": float(score)} for chunk_id, score in fused]

@@ -2,7 +2,7 @@
 
 import json
 
-from app.compare import load_summaries, render_page
+from app.web.compare import load_summaries, render_page
 
 
 def _row(run_id: str, context: str, passed: int, tools: int, cost: float) -> dict:

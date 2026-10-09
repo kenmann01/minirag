@@ -20,9 +20,9 @@ jobs:
       - name: Install the linters
         run: pip install ruff black
       - name: Ruff
-        run: ruff check app/ build_submission.py scripts/ tests/
+        run: ruff check app/ scripts/ tests/
       - name: Black
-        run: black --check app/ build_submission.py scripts/ tests/
+        run: black --check app/ scripts/ tests/
 
   fast:
     # Gate tier: runs on push and on pull_request. Only the full tier is

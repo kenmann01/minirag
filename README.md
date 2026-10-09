@@ -1,30 +1,37 @@
-# Mini RAG
+# Map Writes the Test
 
-A command-line RAG assistant for the Version 2.0 employee expense policy.
-Postgres with pgvector stores policy chunks; Alibaba-NLP/gte-modernbert-base creates
-embeddings; Qwen 3 generates grounded answers through Ollama. Each ask
-retrieves policy sections through hybrid vector and keyword search fused with
-reciprocal rank fusion, then reranks the fused candidates with a cross-encoder
-before generation.
+An evaluation harness that scores one task list three ways: the question
+alone, the question with a code map, and the question with the map plus the
+cited rule text. A call-scan skill maps a Java repository, the map generates
+the task list, a jailed agent answers, and a judge grades the citations.
+Postgres with pgvector stores the corpus chunks and every run's metrics;
+Grafana shows the runs.
+
+Public-domain corpora only: `corpora/banking` (12 CFR 1026, Regulation Z) and
+`corpora/aviation` (FAA handbook). The demo repository mapped by the gate is
+committed at `eval/demo-repo`.
 
 ## Setup
 
-1. Install and start Ollama on the host, then pull Qwen 3 8B:
+1. Start Postgres and Grafana:
+
+   ```bash
+   docker compose up -d
+   ```
+
+   Compose publishes Postgres on 5432 and Grafana on 127.0.0.1:3000. When the
+   host already runs Postgres on 5432, copy
+   `docker-compose.override.yml.example` to `docker-compose.override.yml` to
+   publish on 5433 and set `DATABASE_URL` accordingly.
+
+2. Install and start Ollama on the host, then pull the model:
 
    ```bash
    ollama serve
    ollama pull qwen3:8b
    ```
 
-2. Start Postgres and pgvector:
-
-   ```bash
-   docker compose up -d
-   ```
-
-   Compose runs only Postgres. Ollama remains on the host.
-
-3. Create the environment and install dependencies:
+3. Create the environment:
 
    ```bash
    python -m venv .venv
@@ -33,54 +40,74 @@ before generation.
    cp .env.example .env
    ```
 
-   The default Ollama URL is `http://host.docker.internal:11434` and the
-   default generation model is `qwen3:8b`.
-
 ## Use
 
-Ingest the policy:
+Ingest the corpus (defaults to `CORPUS_DIR`, else `corpora/banking`):
 
 ```bash
 python -m app ingest
 ```
 
-Ask one question:
-
-```bash
-python -m app ask "How much can I spend on food each day?"
-```
-
-Open the ask-trace page (the question runs the same path, and the diagram shows each stage):
-
-```bash
-python -m app serve
-```
-
-Then open http://127.0.0.1:8765.
-
-Both ask and eval accept `--include-superseded`, an opt-in lineage bypass
-that admits the superseded 2021 duplicate into both retrieval lanes. It
-exists to reproduce the planted per-diem defect on demand (see
-docs/part6-diagnosis.md); bypassed asks are never cached.
-
-This is old, and not part of eval harness. `python -m app eval` loads
-`eval/goldens.json` and runs each Minion question through the same search the
-ask path uses. Search reads `policy_chunks`.
-
-Run the fixed ten-golden exam, print the per-golden table, and write
-`eval/record.json`:
+Run the fixed ten-golden retrieval exam and write `eval/record.json`:
 
 ```bash
 python -m app eval
-```
-
-A/B the retriever by disabling the keyword lane (`vector` runs vector-only,
-which is the Part 3 comparison arm):
-
-```bash
 python -m app eval --retriever vector --output eval/record-vector.json
 ```
 
-The exam exits nonzero when any golden fails recall or its answer checks.
-The goldens live in `eval/goldens.json`; the harness bypasses the question
-cache so its numbers always measure the pipeline.
+Map a repository and record the gate numbers:
+
+```bash
+python -m app gate --repo eval/demo-repo
+```
+
+Score one task list three times (bare, map, map plus rules):
+
+```bash
+python -m app score --repo eval/demo-repo --graph eval/demo-graph.json \
+    --output eval/runs --label "run name"
+```
+
+Watch a score run stream each call, or compare three written reports:
+
+```bash
+python -m app live      # http://127.0.0.1:8767
+python -m app compare eval/runs   # http://127.0.0.1:8766
+```
+
+Validate the semantic model against the live database:
+
+```bash
+python -m app ossie validate
+```
+
+Seed the demo rig with labeled synthetic runs and gate history:
+
+```bash
+python scripts/seed_runs.py
+```
+
+Preflight compose, Grafana, and every board query:
+
+```bash
+python scripts/smoke_rig.py
+```
+
+The board is at http://127.0.0.1:3000/d/map-writes-the-test. Runs stored by
+the seeder are labeled `origin=seeded`; never present them as model results.
+
+## Tier-2 judge
+
+The citation judge defaults to the local Ollama model. To swap it for AWS
+Bedrock, set `JUDGE_PROVIDER=bedrock`, `JUDGE_MODEL=<bedrock model id>`,
+install `boto3`, and provide credentials through the standard AWS
+environment chain. No key material belongs in this repository. See
+`CONFIG.md`.
+
+## Layout
+
+`app/corpus` (conversion, chunking, embeddings, ingest), `app/retrieval`
+(hybrid search, bridge, reranker), `app/generation` (answer and judge model
+adapters, prompts), `app/harness` (map, tasks, scoring, agent, metrics),
+`app/storage` (database adapters), `app/observability` (OSSIE validation),
+`app/web` (local demo pages). See `ARCHITECTURE.md`.

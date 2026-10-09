@@ -6,15 +6,13 @@ import json
 import sys
 from pathlib import Path
 
-from app.cache import lookup, store
 from app.config import get_settings
-from app.db import DatabaseAdapter
-from app.evaluate import format_table, load_goldens, run_exam
-from app.generate import REFUSAL, LanguageModel, generate
-from app.ingest import EmptyCorpusError, run
-from app.pgadapter import PgAdapter
-from app.reranker import CrossEncoderReranker, Reranker
-from app.retrieve import search
+from app.corpus.ingest import EmptyCorpusError, run
+from app.generation.generate import LanguageModel
+from app.harness.evaluate import format_table, load_goldens, run_exam
+from app.retrieval.reranker import CrossEncoderReranker, Reranker
+from app.storage.db import DatabaseAdapter
+from app.storage.pgadapter import PgAdapter
 
 
 def main(
@@ -38,16 +36,10 @@ def main(
     """
     parser = argparse.ArgumentParser(prog="app")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("ingest", help="Ingest the Policy folder into the vector store")
-    ask_parser = sub.add_parser("ask", help="Answer a question from the policy")
-    ask_parser.add_argument("question")
-    ask_parser.add_argument(
-        "--include-superseded",
-        action="store_true",
-        help="Bypass the lineage filter to reproduce the planted defect; never cached",
-    )
-    # This is old, and not part of eval harness. Minion goldens in eval/goldens.json.
-    eval_parser = sub.add_parser("eval", help="Run the golden exam and write the harness record")
+    sub.add_parser("ingest", help="Ingest the corpus folder into the vector store")
+    # The retrieval exam: each fixed golden question through the same search
+    # the exam harness runs. Search reads policy_chunks.
+    eval_parser = sub.add_parser("eval", help="Run the golden retrieval exam and write the record")
     eval_parser.add_argument("--output", type=Path, default=Path("eval/record.json"))
     eval_parser.add_argument(
         "--retriever",
@@ -60,9 +52,6 @@ def main(
         action="store_true",
         help="Bypass the lineage filter in the exam retrieval",
     )
-    serve_parser = sub.add_parser("serve", help="Open the ask-trace page")
-    serve_parser.add_argument("--host", default="127.0.0.1")
-    serve_parser.add_argument("--port", type=int, default=8765)
     retrieve_parser = sub.add_parser("retrieve", help="Return chunk JSON without generating")
     retrieve_parser.add_argument("query")
     retrieve_parser.add_argument("--top-k", type=int, default=20)
@@ -71,6 +60,7 @@ def main(
     score_parser.add_argument("--repo", type=Path, required=True)
     score_parser.add_argument("--graph", type=Path, required=True)
     score_parser.add_argument("--output", type=Path, required=True)
+    score_parser.add_argument("--label", default=None, help="Human label stored as run provenance")
     score_parser.add_argument(
         "--no-metrics",
         action="store_true",
@@ -97,17 +87,6 @@ def main(
     )
     validate_parser.add_argument("--map", type=Path, help="Path to the OSSIE map YAML")
     args = parser.parse_args(argv)
-    if args.command == "serve":
-        from app.serve import serve
-
-        serve(
-            args.host,
-            args.port,
-            database_adapter=database_adapter,
-            language_model=language_model,
-            reranker=reranker,
-        )
-        return 0
     adapter = database_adapter or PgAdapter()
     if args.command == "ingest":
         configured = get_settings().corpus_dir.strip()
@@ -119,7 +98,7 @@ def main(
         print(f"ingested {count} policy chunks", file=sys.stderr)
         return 0
     if args.command == "retrieve":
-        from app.bridge import retrieve
+        from app.retrieval.bridge import retrieve
 
         payload = retrieve(args.query, adapter, top_k=args.top_k)
         text = json.dumps(payload, indent=2)
@@ -129,20 +108,25 @@ def main(
         print(text)
         return 0
     if args.command == "compare":
-        from app.compare import serve_compare
+        from app.web.compare import serve_compare
 
         serve_compare(args.report_dir, args.host, args.port)
         return 0
     if args.command == "gate":
-        from app.gate import run_gate
-        from app.metrics import MetricsSink
+        from app.harness.gate import run_gate
+        from app.harness.metrics import MetricsSink
 
         record = run_gate(args.repo, args.output)
-        MetricsSink(adapter).record_gate(record)
+        try:
+            MetricsSink(adapter).record_gate(record, label=args.repo.name)
+        except OSError as exc:
+            # The gate document is already on disk; losing the history row
+            # must not erase the run itself.
+            print(f"gate metrics not recorded: {exc}", file=sys.stderr)
         print(json.dumps(record, indent=2))
         return 0 if record["node_count"] else 1
     if args.command == "ossie":
-        from app.ossie import DEFAULT_MAP, materialize, validate
+        from app.observability.ossie import DEFAULT_MAP, materialize, validate
 
         if args.ossie_command == "materialize":
             try:
@@ -157,7 +141,7 @@ def main(
             print(message, file=sys.stderr)
         return code
     if args.command == "live":
-        from app.live import serve_live
+        from app.web.live import serve_live
 
         serve_live(
             args.host,
@@ -167,11 +151,11 @@ def main(
         )
         return 0
     if args.command == "score":
-        from app.bridge import retrieve
-        from app.score import TaskGenerationError, run_score
+        from app.harness.score import TaskGenerationError, run_score
+        from app.retrieval.bridge import retrieve
 
         if language_model is None:
-            from app.ollama import OllamaAdapter
+            from app.generation.ollama import OllamaAdapter
 
             language_model = OllamaAdapter()
 
@@ -186,6 +170,7 @@ def main(
                 model=language_model,
                 retrieve=bridge,
                 database_adapter=None if args.no_metrics else adapter,
+                label=args.label,
             )
         except TaskGenerationError as exc:
             print(str(exc), file=sys.stderr)
@@ -197,34 +182,15 @@ def main(
                 f"tools={row['tool_calls']}  cost=${row['cost_usd']:.4f}"
             )
         return 0
-    if args.command in {"ask", "eval"}:
+    if args.command == "eval":
         if language_model is None:
-            from app.ollama import OllamaAdapter
+            from app.generation.ollama import OllamaAdapter
 
             language_model = OllamaAdapter()
         if reranker is None:
             reranker = CrossEncoderReranker()
-    if args.command == "ask":
-        if not args.include_superseded:
-            cached = lookup(args.question, adapter)
-            if cached is not None:
-                print(cached.model_dump_json())
-                return 0
-        response = generate(
-            args.question,
-            reranker.rank(
-                args.question,
-                search(args.question, adapter, include_superseded=args.include_superseded),
-            ),
-            language_model,
-        )
-        if response.answer != REFUSAL and not args.include_superseded:
-            store(args.question, response, adapter)
-        print(response.model_dump_json())
-        return 0
-    # This is old, and not part of eval harness. Loads eval/goldens.json and
-    # runs each Minion question through the same search the ask path uses.
-    # Search reads policy_chunks.
+    # The retrieval exam loads eval/goldens.json and runs each golden
+    # question through the same search the exam harness runs.
     if args.command == "eval":
         goldens = load_goldens()
         record = run_exam(

@@ -4,7 +4,7 @@ A study guide for the evaluation harness. It teaches the mental model first, the
 anchors every concept to the code that implements it, so the architecture you
 designed and the implementation that exists can be read as one thing.
 
-Citations look like (tasks.py:135) and mean `app/tasks.py` line 135 on branch
+Citations look like (tasks.py:135) and mean `app/harness/tasks.py` line 135 on branch
 `feat/eval-harness`. Every citation in this document was checked against the
 branch at commit 30ec7fa. Entry points are given as `python -m app <command>`.
 
@@ -86,7 +86,7 @@ fleshes them out.
 
 There are two exam runners in this repo and they test different subjects.
 
-This is old, and not part of eval harness. The Minion golden exam,
+The ten-golden retrieval exam over the banking corpus,
 `python -m app eval`, loads eval/goldens.json and runs each question through
 the same search the ask path uses. Search reads policy_chunks. It runs ten
 fixed, hand-written cases (evaluate.py:16 loads eval/goldens.json; the ten
@@ -578,7 +578,7 @@ run path in the next section.
   edge, graded by a deterministic script (tasks.py:84-89; score.py:145-170).
 - **tier 2**: a domain-rule task, derived from an edge plus retrieved chunks,
   graded by a model judge plus a citation check (score.py:173-197).
-- **golden exam**: This is old, and not part of eval harness. The Minion exam,
+- **golden exam**: the banking exam,
   `python -m app eval`, loads eval/goldens.json and runs each question through
   the same search the ask path uses. Search reads policy_chunks.
   (evaluate.py:73-119; cli.py:49-61).
@@ -606,8 +606,8 @@ run path in the next section.
 ### Pairs that get confused
 
 - **score vs eval**: `python -m app score` is the harness (cli.py:69-77).
-  This is old, and not part of eval harness: `python -m app eval` loads
-  eval/goldens.json and runs each Minion question through the same search the
+  `python -m app eval` loads
+  eval/goldens.json and runs each golden question through the same search the
   ask path uses. Search reads policy_chunks. (cli.py:49-61).
 - **map vs corpus**: the map is exact and inside the repo; the corpus is prose
   and outside it. The map aims the questions, the corpus fills them
@@ -645,7 +645,7 @@ python -m app ossie materialize --graph P           # graph into Postgres
 python -m app ossie validate                        # contract, live
 python -m app live                                  # watch a score run
 python -m app compare DIR                           # three reports side by side
-python -m app eval                                  # This is old, and not part of eval harness. Minion goldens.json.
+python -m app eval                                  # banking goldens.json.
 python -m app retrieve "query"                      # the bridge, raw
 ```
 

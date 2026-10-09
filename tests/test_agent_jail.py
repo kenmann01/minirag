@@ -1,6 +1,6 @@
 """Repository tools stay inside the repo root."""
 
-from app.agent import list_directory, read_text, resolve_inside
+from app.harness.agent import list_directory, read_text, resolve_inside
 
 
 def test_reads_stay_inside_the_repo_and_listings_are_sorted(tmp_path):

@@ -5,8 +5,8 @@ import json
 import pytest
 
 from app.cli import main
-from app.ingest import run
-from app.pgadapter import PgAdapter
+from app.corpus.ingest import run
+from app.storage.pgadapter import PgAdapter
 
 pytestmark = pytest.mark.llm
 

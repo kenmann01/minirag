@@ -1,18 +1,17 @@
 {
   "scope": "loans",
-  "wall_time_seconds": 0.311,
-  "node_count": 1026,
-  "edge_count": 631,
+  "wall_time_seconds": 0.082,
+  "node_count": 30,
+  "edge_count": 21,
   "largest_mermaid": {
     "name": "loanaccount",
     "nodes": 24,
-    "module_nodes": 1026,
+    "module_nodes": 30,
     "rendered": false
   },
   "errors": [
-    "module mermaid diagrams are capped at 24 nodes",
     "mermaid renderer mmdc is not installed"
   ],
   "loans_covered": true,
-  "graph_path": "/tmp/minirag-gate/scan/graph.json"
+  "graph_path": "eval/demo-graph.json"
 }

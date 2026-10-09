@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS policy_chunks (
     parent_text TEXT NOT NULL,
     text TEXT NOT NULL,
     embedding vector(768) NOT NULL,
+    embedding_model TEXT NOT NULL DEFAULT '',
     tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', text)) STORED
 );
 

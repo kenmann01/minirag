@@ -4,9 +4,8 @@ import json
 from http.client import HTTPConnection
 from threading import Thread
 
-from app.live import STATIONS, demo_events, iter_live, serve_live
-from app.score import Prices
-from tests.test_score import AlwaysPass
+from app.harness.score import Prices
+from app.web.live import STATIONS, demo_events, iter_live, serve_live
 from tests.test_tasks import Phraser, retrieve_factory, write_graph
 
 
@@ -24,10 +23,10 @@ def test_a_score_emits_each_call_before_it_returns(tmp_path, monkeypatch):
     graph = tmp_path / "graph.json"
     write_graph(graph)
     monkeypatch.setattr(
-        "app.score.judge_rule",
-        lambda prompt, answer, allowed: {
-            "pass": True,
-            "citation": allowed[0],
+        "app.harness.score.judge_rule",
+        lambda prompt, answer, references: {
+            "passed": True,
+            "citation": references[0]["chunk_id"],
             "prompt_tokens": 1,
             "completion_tokens": 1,
         },
@@ -35,12 +34,12 @@ def test_a_score_emits_each_call_before_it_returns(tmp_path, monkeypatch):
     seen = []
 
     def task_fn(prompt: str, context: str):
-        from app.agent import RunOutput
+        from app.harness.agent import RunOutput
 
         answer = "unknown" if context == "bare" else prompt
         return RunOutput(answer=answer, tool_calls=0, prompt_tokens=1, completion_tokens=1)
 
-    from app.score import run_score
+    from app.harness.score import run_score
 
     rows = run_score(
         graph_path=graph,
@@ -49,7 +48,6 @@ def test_a_score_emits_each_call_before_it_returns(tmp_path, monkeypatch):
         model=Phraser(),
         retrieve=retrieve_factory("bank"),
         task_fn=task_fn,
-        tier2_judge=AlwaysPass(),
         prices=Prices(0.15, 0.60, 0.001),
         on_event=seen.append,
     )
@@ -75,7 +73,7 @@ def test_iter_live_yields_calls_until_the_worker_finishes(tmp_path, monkeypatch)
         )
         return []
 
-    monkeypatch.setattr("app.score.run_score", fake_run_score)
+    monkeypatch.setattr("app.harness.score.run_score", fake_run_score)
     events = list(
         iter_live(
             graph_path=tmp_path / "graph.json",

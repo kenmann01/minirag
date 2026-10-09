@@ -1,6 +1,6 @@
 """Module diagrams keep the most connected nodes, and their ids stay distinct."""
 
-from app.graph import Edge, callee_symbol, candidate_edges, module_mermaid
+from app.harness.graph import Edge, callee_symbol, candidate_edges, module_mermaid
 
 
 def _node(node_id: str, label: str) -> dict:

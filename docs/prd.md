@@ -129,12 +129,12 @@ Table 2. Functional requirements with true status
 
 Notes on the reconciled statuses:
 
-- FR-1: the mapping skill is `skills/call-scan` in this repo. `app/adapter.py` chooses the tree (Fineract's loans package today; another repository is another adapter). `app/gate.py` runs the skill on that tree. The 21.7s / 61,983 / 303,539 figures below are the previous Graphify measurement.
-- FR-2: app/tasks.py generate_tasks (tasks.py:92) derives tier 1 from graph edges. Selection is deterministic (graph.py:71-90): EXTRACTED call and import edges, loan-first ordering, limit 4. Zero human selection.
+- FR-1: the mapping skill is `skills/call-scan` in this repo. `app/harness/adapter.py` chooses the tree (Fineract's loans package today; another repository is another adapter). `app/harness/gate.py` runs the skill on that tree. The 21.7s / 61,983 / 303,539 figures below are the previous Graphify measurement.
+- FR-2: app/harness/tasks.py generate_tasks (tasks.py:92) derives tier 1 from graph edges. Selection is deterministic (graph.py:71-90): EXTRACTED call and import edges, loan-first ordering, limit 4. Zero human selection.
 - FR-3: tier 2 questions are grounded in bridge-returned chunk ids. A task citing chunks the bridge never returned fails the whole run (tasks.py:198-204).
 - FR-4: app/convert.py plus convert_docs.py. Emits "## N. Title" markdown and exits nonzero when a document yields zero sections (tests/test_convert.py).
-- FR-5: app/bridge.py. Retrieve-only JSON with chunk ids and sources. Logs every retrieved chunk to stderr. The reranker is off by default.
-- FR-6 (was PARTLY EXISTS): app/score.py runs the same task list three times (bare, map, map_rules) through pydantic-evals. ScoreboardReport reports tasks passed per tier, tool calls, and cost per run (cost formula at score.py:65-71).
+- FR-5: app/retrieval/bridge.py. Retrieve-only JSON with chunk ids and sources. Logs every retrieved chunk to stderr. The reranker is off by default.
+- FR-6 (was PARTLY EXISTS): app/harness/score.py runs the same task list three times (bare, map, map_rules) through pydantic-evals. ScoreboardReport reports tasks passed per tier, tool calls, and cost per run (cost formula at score.py:65-71).
 - FR-8: temperature 0, seed 77 at agent.py:67, score.py:86/93/117, and ollama.py:36. RRF fusion with k=60 is deterministic.
 - FR-9: the judge is the pydantic-evals LLMJudge pinned to local Ollama (set_default_judge_model, score.py:74-94). Swapping the provider is configuration, not code.
 - FR-10: the gate passed at full-repo scope, so the loans-module fallback never engaged. Kept documented as the fallback.
@@ -156,7 +156,7 @@ Public PDFs enter the converter, which emits markdown whose sections use the hea
 
 ### 7.3 The bridge command
 
-Built as app/bridge.py. The contract:
+Built as app/retrieval/bridge.py. The contract:
 
 ```
 python -m app retrieve <query> [--top-k N] [--json OUT]
@@ -182,7 +182,7 @@ The loud failure is a requirement, not a courtesy. Ingestion returns zero chunks
 
 The harness consumes a task list and emits scoreboard rows. A task carries its tier, its prompt, its expected evidence, and its origin, either map coordinates or chunk ids, so every task is auditable back to its source. A scoreboard row carries the run identity, the context level, tasks passed per tier, tool calls, and cost per run.
 
-This interface is implemented: the task generator lives in app/tasks.py, the scoring in app/score.py, and a compare page puts runs side by side.
+This interface is implemented: the task generator lives in app/harness/tasks.py, the scoring in app/harness/score.py, and a compare page puts runs side by side.
 
 ## 8. Data model
 
@@ -226,11 +226,11 @@ Table 5. Build plan, gate first
 | ID | Workstream | Exit evidence | Status |
 |---|---|---|---|
 | W0 | Gate: run the skill on Apache Fineract. | Five numbers recorded: wall 21.697s, 61,983 nodes, 303,539 edges, largest module mermaid capped at 24 nodes, errors: module mermaid diagrams capped at 24 nodes and mermaid renderer mmdc not installed. Scope: full repo, loans module covered. Caveats: graph.json was ephemeral (/tmp) so it must be regenerated on the demo rig, and the mmdc leg was never exercised. | DONE |
-| W1 | The bridge inside minirag. | app/bridge.py: retrieve-only command returns chunk JSON and logs chunk ids per query to stderr. | EXISTS |
+| W1 | The bridge inside minirag. | app/retrieval/bridge.py: retrieve-only command returns chunk JSON and logs chunk ids per query to stderr. | EXISTS |
 | W2 | The converter. | app/convert.py plus convert_docs.py: numbered section headings, nonzero exit on zero sections (tests/test_convert.py). | EXISTS |
 | W3 | Corpora curation. | Banking slice chosen: reg-z-1026, pairs with the loans module. Swap corpus chosen: FAA-H-8083-25 chapter 2. Public, manifest listed. | EXISTS |
-| W4 | Evaluation generation. | Two-tier task list derived from map and corpus in app/tasks.py. Tier 1 all deterministic (graph.py:71-90). Chunk-id grounding enforced (tasks.py:198-204). | EXISTS |
-| W5 | The three scored runs. | Harness and three-run protocol built (app/score.py, bare / map / map_rules), scoreboard JSON writer and compare page in place. Recorded live numbers happen on the demo rig. | EXISTS |
+| W4 | Evaluation generation. | Two-tier task list derived from map and corpus in app/harness/tasks.py. Tier 1 all deterministic (graph.py:71-90). Chunk-id grounding enforced (tasks.py:198-204). | EXISTS |
+| W5 | The three scored runs. | Harness and three-run protocol built (app/harness/score.py, bare / map / map_rules), scoreboard JSON writer and compare page in place. Recorded live numbers happen on the demo rig. | EXISTS |
 | W6 | The talk. | Slides, rehearsal, Docker start checklist, live swap rehearsal. | UNBUILT |
 | W7 | Metrics sink plus Grafana board. | Sink writes runs, task_results, tool_calls, gate_metrics. Board panels per FR-12: scoreboard by tier, tool calls, cost per run, retrieval distances, gate stats. Seeded and rendered on the cold-started rig; start checklist, seed recipe, and expected PASS lines in docs/demo-rig.md, preflight in scripts/smoke_rig.py. | EXISTS |
 | W8 | OSSIE materialization and live validation. | graph_nodes, graph_edges, and sections materialized; `python -m app ossie validate` passes live on stage (exit 0 on the cold-started rig, 7 October 2026). Fixture graph at eval/demo-graph.json; recipe in docs/demo-rig.md. | EXISTS |
@@ -276,7 +276,7 @@ Retrieval is hybrid: a dense lane of local sentence-transformer embeddings with 
 
 Generation runs on qwen3:8b via native host Ollama, temperature 0, seed 77, and no cloud API keys anywhere. Storage is Postgres with pgvector in Docker on local port 5433 via the compose override, which stays machine-local. The embedding dimension is fixed at 768 by the table schema, and the local environment pins all-mpnet-base-v2 while the code default names gte-modernbert-base, so the model must be pinned explicitly.
 
-This is old, and not part of eval harness. The eval corpus today is ten Minion markdown policy files with ten golden evaluation cases and persisted records. `python -m app eval` loads `eval/goldens.json` and runs each question through the same search the ask path uses. Search reads `policy_chunks`.
+The eval corpus today is the public Regulation Z slice in `corpora/banking` with ten golden evaluation cases in `eval/goldens.json`. `python -m app eval` runs each question through the same search the harness bridge uses. Search reads `policy_chunks`.
 
 The eval harness side is new since v0.1: pydantic-evals plus pydantic-ai drive a jailed repo agent with list_dir and read_file tools capped at 12 calls, a task generator derives the two-tier task list, scoreboard JSONs record each run, and a compare page puts runs side by side. The observability layer for this phase is Grafana over a metrics sink (FR-12).
 

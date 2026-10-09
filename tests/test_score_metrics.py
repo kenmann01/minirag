@@ -1,24 +1,16 @@
 """The score CLI writes its run metrics into Postgres while the run happens."""
 
 import json
-from dataclasses import dataclass
 
 import pytest
-from pydantic_evals.evaluators import Evaluator
 
-from app.agent import RunOutput
 from app.cli import main
-from app.ingest import run as run_ingest
-from app.pgadapter import PgAdapter
+from app.corpus.ingest import run as run_ingest
+from app.harness.agent import RunOutput
+from app.storage.pgadapter import PgAdapter
 from tests.test_tasks import tier2_items, write_graph
 
 METRICS_TABLES = ("tool_calls", "task_results", "runs")
-
-
-@dataclass
-class AlwaysPass(Evaluator):
-    def evaluate(self, ctx) -> bool:
-        return True
 
 
 class CorpusPhraser:
@@ -63,18 +55,19 @@ def score_through_cli(tmp_path, monkeypatch, *extra_args) -> None:
             completion_tokens=20,
         )
 
-    monkeypatch.setattr("app.score.prepare_local_judge", lambda settings: AlwaysPass())
     monkeypatch.setattr(
-        "app.score.judge_rule",
-        lambda prompt, answer, allowed: {
-            "pass": True,
-            "citation": allowed[0],
+        "app.harness.score.judge_rule",
+        lambda prompt, answer, references: {
+            "passed": True,
+            "citation": references[0]["chunk_id"],
             "prompt_tokens": 10,
             "completion_tokens": 5,
         },
     )
-    monkeypatch.setattr("app.score.build_agent", lambda repo, settings, on_tool=None: LockedAgent())
-    monkeypatch.setattr("app.score.run_agent", fake_run_agent)
+    monkeypatch.setattr(
+        "app.harness.score.build_agent", lambda repo, settings, on_tool=None: LockedAgent()
+    )
+    monkeypatch.setattr("app.harness.score.run_agent", fake_run_agent)
     exit_code = main(
         [
             "score",
@@ -222,6 +215,26 @@ def test_score_cli_no_metrics_writes_no_tables(tmp_path, monkeypatch):
         assert (tmp_path / "reports" / f"{context}.json").exists()
 
 
+def test_score_cli_stores_run_provenance(tmp_path, monkeypatch):
+    score_through_cli(tmp_path, monkeypatch, "--label", "ci-check")
+    adapter = PgAdapter()
+    with adapter.connect() as conn:
+        rows = conn.execute("""
+            SELECT context, label, model, corpus, graph, task_list_sha, origin
+            FROM runs
+            ORDER BY context
+            """).fetchall()
+    assert {row[0] for row in rows} == {"bare", "map", "map_rules"}
+    for row in rows:
+        assert row[1] == "ci-check"
+        assert row[2] == "qwen3:8b"
+        assert row[3] == "corpora/banking"
+        assert row[4] == "graph.json"
+        assert row[5] and len(row[5]) == 12
+        assert row[6] == "real"
+    assert len({row[5] for row in rows}) == 1
+
+
 def test_score_cli_self_heals_a_partial_runs_table(tmp_path, monkeypatch):
     adapter = PgAdapter()
     with adapter.connect() as conn:
@@ -251,6 +264,12 @@ def test_score_cli_self_heals_a_partial_runs_table(tmp_path, monkeypatch):
         "passed_tier2",
         "tool_calls",
         "cost_usd",
+        "label",
+        "model",
+        "corpus",
+        "graph",
+        "task_list_sha",
+        "origin",
     } <= columns
     assert [row[1] for row in rows] == ["bare", "map", "map_rules"]
     assert all(row[2] == 8 and row[3] >= 0 for row in rows)

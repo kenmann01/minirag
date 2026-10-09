@@ -1,10 +1,10 @@
 # Internal and Confidential - Not for External Distribution.
 """Lock docstring coverage: fail naming any public definition without one.
 
-The walk covers the ``app`` package and the root ``build_submission.py``
-script, parses each file with ``ast``, and demands a module docstring
-plus a one-line docstring on every public module-level def or class and
-every public method, so coverage cannot decay silently.
+The walk covers the ``app`` package and the ``scripts`` folder, parses each
+file with ``ast``, and demands a module docstring plus a one-line docstring
+on every public module-level def or class and every public method, so
+coverage cannot decay silently.
 
 Issue #39.
 """
@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-TARGETS = [ROOT / "app", ROOT / "build_submission.py"]
+TARGETS = [ROOT / "app", ROOT / "scripts"]
 
 
 def _python_files():

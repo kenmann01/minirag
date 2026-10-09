@@ -16,6 +16,47 @@ COMPOSE = ROOT / "docker-compose.yml"
 
 SINK_TABLES = ("runs", "task_results", "tool_calls", "gate_metrics")
 
+ARM_NAMES = ("Baseline (no map)", "Map only", "Map + rules")
+ARM_COLORS = ("#8F9BB3", "#3FB5A5", "#5B8DEF")
+
+PANEL_PLAN = [
+    ("Latest run", "text"),
+    ("Takeaway", "table"),
+    ("Leading arm", "table"),
+    ("Pass rate by arm", "stat"),
+    ("Tool calls", "stat"),
+    ("Cost per arm", "stat"),
+    ("Run context", "table"),
+    ("Across runs", "text"),
+    ("Pass rate across runs", "timeseries"),
+    ("Tool calls across runs", "timeseries"),
+    ("Cost across runs", "timeseries"),
+    ("Change vs previous run", "table"),
+    ("Task detail", "text"),
+    ("Tasks passed by tier", "barchart"),
+    ("Per-task matrix", "table"),
+    ("Grounding distance by tier-2 task", "table"),
+    ("Repository gate", "text"),
+    ("Gate result", "stat"),
+    ("Mapping time", "stat"),
+    ("Map nodes", "stat"),
+    ("Map edges", "stat"),
+    ("Gate history", "table"),
+]
+
+# Panels that follow the run picker; everything else reads full history.
+SELECTED_RUN_PANELS = {
+    "Takeaway",
+    "Leading arm",
+    "Pass rate by arm",
+    "Tool calls",
+    "Cost per arm",
+    "Run context",
+    "Tasks passed by tier",
+    "Per-task matrix",
+    "Grounding distance by tier-2 task",
+}
+
 
 def load_dashboard() -> dict:
     return json.loads(DASHBOARD.read_text(encoding="utf-8"))
@@ -30,49 +71,39 @@ def targets(dashboard: dict) -> list[dict]:
     return found
 
 
-def test_dashboard_json_parses_with_the_kiosk_sections():
+def test_dashboard_json_parses_with_the_board_sections():
     dashboard = load_dashboard()
-    types = [panel["type"] for panel in dashboard["panels"]]
-    assert types == [
-        "text",
-        "table",
-        "table",
-        "stat",
-        "stat",
-        "bargauge",
-        "barchart",
-        "text",
-        "barchart",
-        "barchart",
-        "text",
-        "table",
-        "text",
-        "table",
-        "timeseries",
-        "timeseries",
-        "stat",
-        "stat",
-        "stat",
-        "stat",
-    ]
-    titles = [panel["title"] for panel in dashboard["panels"]]
-    assert titles[0] == "Results"
-    assert "Cost and efficiency" in titles
-    assert "Retrieval quality" in titles
-    assert "Diagnostics" in titles
+    plan = [(panel["title"], panel["type"]) for panel in dashboard["panels"]]
+    assert plan == PANEL_PLAN
     assert dashboard["uid"] == "map-writes-the-test"
     assert dashboard["refresh"] == "5s"
     assert dashboard["timepicker"]["hidden"] is True
     text = DASHBOARD.read_text(encoding="utf-8")
     assert "palette-classic" not in text
-    assert "tool_calls_history" not in text
-    assert "cost_usd_history" not in text
-    for letter in "abcde":
-        assert f"Family {letter}." in text
-    assert any(
-        item["name"] == "datasource" and item["type"] == "datasource"
-        for item in dashboard["templating"]["list"]
-    )
+    assert "Family " not in text
+    for name in ARM_NAMES:
+        assert text.count(f'"{name}"') >= 1
+    for color in ARM_COLORS:
+        assert color in text
+
+
+def test_the_run_picker_exists_and_reads_the_sink():
+    dashboard = load_dashboard()
+    variables = {item["name"]: item for item in dashboard["templating"]["list"]}
+    assert set(variables) == {"datasource", "run"}
+    assert variables["datasource"]["type"] == "datasource"
+    assert variables["run"]["type"] == "query"
+    assert isinstance(variables["run"]["query"], str)
+    assert "FROM runs" in variables["run"]["query"]
+
+
+def test_selected_run_panels_follow_the_picker_and_history_panels_do_not():
+    for panel in load_dashboard()["panels"]:
+        sql = " ".join(" ".join(t.get("rawSql", "") for t in panel.get("targets", [])).split())
+        if not sql:
+            continue
+        follows = "${run}" in sql
+        assert follows == (panel["title"] in SELECTED_RUN_PANELS), panel["title"]
 
 
 def test_board_panels_tile_the_grid_without_overlap():
@@ -125,5 +156,15 @@ def test_compose_brings_up_grafana_with_a_pinned_tag():
 
 def test_smoke_family_queries_match_dashboard_targets():
     raw_sqls = {" ".join(target["rawSql"].split()) for target in targets(load_dashboard())}
-    for letter, label, query in FAMILIES:
-        assert " ".join(query.split()) in raw_sqls, f"family {letter} ({label}) left the board"
+    for key, label, query in FAMILIES:
+        assert " ".join(query.split()) in raw_sqls, f"family {key} ({label}) left the board"
+
+
+def test_the_board_is_reproducible_from_the_builder():
+    dashboard = load_dashboard()
+    import json as json_module
+
+    from scripts import build_dashboard
+
+    rebuilt = json_module.loads(json_module.dumps(build_dashboard.build()))
+    assert dashboard == rebuilt, "edit scripts/build_dashboard.py and rerun it, not the JSON"

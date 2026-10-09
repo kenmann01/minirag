@@ -7,9 +7,9 @@ import pytest
 import yaml
 
 from app.cli import main
-from app.ingest import run as run_ingest
-from app.metrics import MetricsSink
-from app.pgadapter import PgAdapter
+from app.corpus.ingest import run as run_ingest
+from app.harness.metrics import MetricsSink
+from app.storage.pgadapter import PgAdapter
 from tests.test_tasks import write_graph
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,9 +78,9 @@ def test_ingest_writes_one_sections_row_per_parent_section():
             "SELECT DISTINCT source_doc, section FROM policy_chunks"
         ).fetchall()
     assert {(row[0], row[1]) for row in sections} == set(chunk_pairs)
-    superseded = {row[0]: row for row in sections if row[0] == "minion_expense_policy_2021.md"}
-    assert superseded["minion_expense_policy_2021.md"][4] == "June 1, 2021"
-    assert superseded["minion_expense_policy_2021.md"][5] == "minion_expense_policy_2024.md"
+    assert all(
+        row[4] is None and row[5] is None for row in sections
+    ), "the public banking corpus carries no lineage markers"
     with adapter.connect() as conn:
         parent = conn.execute("""
             SELECT s.parent_text, c.parent_text

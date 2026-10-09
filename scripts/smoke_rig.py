@@ -1,4 +1,10 @@
-"""Preflight the local demo rig: compose config, Grafana health, and panel SQL."""
+"""Preflight the local demo rig: compose config, Grafana health, and panel SQL.
+
+Each FAMILIES query is imported from the dashboard builder, so the smoke run
+executes exactly what the board ships. Queries that follow the ``run``
+template variable get it substituted with the latest stored run before they
+execute against Postgres.
+"""
 
 import os
 import subprocess
@@ -15,63 +21,32 @@ GRAFANA_HEALTH_URL = "http://127.0.0.1:3000/api/health"
 HEALTH_RETRIES = 15
 HEALTH_RETRY_SECONDS = 2.0
 
-# One representative query per dashboard panel family (a through e).
-# Keep each string identical to the rawSql of its panel in
-# grafana/dashboards/map-writes-the-test.json.
+try:  # python scripts/smoke_rig.py
+    from build_dashboard import (
+        GATE_HISTORY_SQL,
+        MATRIX_SQL,
+        PASS_RATE_SQL,
+        TAKEAWAY_SQL,
+        TREND_SQL,
+    )
+except ImportError:  # imported as scripts.smoke_rig from the test suite
+    from scripts.build_dashboard import (
+        GATE_HISTORY_SQL,
+        MATRIX_SQL,
+        PASS_RATE_SQL,
+        TAKEAWAY_SQL,
+        TREND_SQL,
+    )
+
+# One representative query per board section. Each string is identical to the
+# rawSql of its panel in grafana/dashboards/map-writes-the-test.json, because
+# both come from scripts/build_dashboard.py.
 FAMILIES = (
-    (
-        "a",
-        "tasks passed by tier",
-        "SELECT 'Tier 1' AS tier, "
-        'MAX(CASE WHEN context = \'bare\' THEN passed_tier1 END) AS "Baseline (no map)", '
-        'MAX(CASE WHEN context = \'map\' THEN passed_tier1 END) AS "Map only", '
-        'MAX(CASE WHEN context = \'map_rules\' THEN passed_tier1 END) AS "Map + rules" '
-        "FROM runs "
-        "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) "
-        "UNION ALL "
-        "SELECT 'Tier 2', "
-        "MAX(CASE WHEN context = 'bare' THEN passed_tier2 END), "
-        "MAX(CASE WHEN context = 'map' THEN passed_tier2 END), "
-        "MAX(CASE WHEN context = 'map_rules' THEN passed_tier2 END) "
-        "FROM runs "
-        "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
-    ),
-    (
-        "b",
-        "tool calls, this run",
-        "SELECT 'This run' AS run, "
-        'MAX(CASE WHEN context = \'bare\' THEN tool_calls END) AS "Baseline (no map)", '
-        'MAX(CASE WHEN context = \'map\' THEN tool_calls END) AS "Map only", '
-        'MAX(CASE WHEN context = \'map_rules\' THEN tool_calls END) AS "Map + rules" '
-        "FROM runs "
-        "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
-    ),
-    (
-        "c",
-        "cost, this run",
-        "SELECT 'This run' AS run, "
-        'MAX(CASE WHEN context = \'bare\' THEN cost_usd END) AS "Baseline (no map)", '
-        'MAX(CASE WHEN context = \'map\' THEN cost_usd END) AS "Map only", '
-        'MAX(CASE WHEN context = \'map_rules\' THEN cost_usd END) AS "Map + rules" '
-        "FROM runs "
-        "WHERE run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1)",
-    ),
-    (
-        "d",
-        "grounding distance by task",
-        "SELECT DISTINCT ON (task_id) task_id, grounding_distance "
-        "FROM task_results "
-        "WHERE tier = 2 AND grounding_distance IS NOT NULL "
-        "AND run_id = (SELECT run_id FROM runs ORDER BY created_at DESC LIMIT 1) "
-        "ORDER BY task_id, context",
-    ),
-    (
-        "e",
-        "mapping time",
-        "SELECT created_at AS time, wall_time_seconds "
-        "FROM gate_metrics "
-        "ORDER BY created_at ASC",
-    ),
+    ("takeaway", "run takeaway", TAKEAWAY_SQL),
+    ("kpi", "pass rate by arm", PASS_RATE_SQL),
+    ("trend", "pass rate across runs", TREND_SQL["pass"]),
+    ("matrix", "per-task matrix", MATRIX_SQL),
+    ("gate", "gate history", GATE_HISTORY_SQL),
 )
 
 
@@ -114,14 +89,21 @@ def check_grafana_health() -> None:
 
 
 def check_panel_queries() -> None:
-    """Step 3: one representative query per panel family must run on the sink."""
+    """Step 3: one representative query per board section must run on the sink."""
     url = database_url()
     with psycopg.connect(url) as conn:
-        for letter, label, query in FAMILIES:
+        latest = conn.execute(
+            "SELECT run_id::text FROM runs ORDER BY created_at DESC LIMIT 1"
+        ).fetchone()
+        if latest is None:
+            raise RuntimeError("no runs stored; run the gate and a score run (or the seeder) first")
+        for key, label, query in FAMILIES:
+            executable = query.replace("'${run}'", f"'{latest[0]}'")
+            assert "${run}" not in executable, f"family {key} ({label}) still holds a variable"
             try:
-                conn.execute(query).fetchall()
+                conn.execute(executable).fetchall()
             except psycopg.Error as exc:
-                raise RuntimeError(f"panel family {letter} ({label}) query failed: {exc}") from exc
+                raise RuntimeError(f"board section {key} ({label}) query failed: {exc}") from exc
 
 
 def main() -> int:
@@ -129,10 +111,7 @@ def main() -> int:
     steps = (
         ("1: docker compose config", check_compose_config),
         ("2: grafana /api/health", check_grafana_health),
-        (
-            "3: panel family queries (a-e)",
-            check_panel_queries,
-        ),
+        ("3: board section queries", check_panel_queries),
     )
     for name, check in steps:
         try:

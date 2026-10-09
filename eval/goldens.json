@@ -1,0 +1,82 @@
+[
+  {
+    "id": "broker-fee",
+    "question": "If a creditor does not require a mortgage broker and does not retain any part of the broker's fee, is the mortgage broker fee still a finance charge?",
+    "expected": ["reg-z-1026:s1"],
+    "must_contain": ["finance charge"],
+    "must_not_contain": [],
+    "kind": "answer"
+  },
+  {
+    "id": "application-fee",
+    "question": "Is an application fee charged to all credit applicants whether or not credit is extended a finance charge?",
+    "expected": ["reg-z-1026:s1"],
+    "must_contain": ["all applicants"],
+    "must_not_contain": [],
+    "kind": "answer"
+  },
+  {
+    "id": "closing-agent-fee",
+    "question": "Under what conditions are fees charged by a settlement agent or title company that conducts the loan closing finance charges?",
+    "expected": ["reg-z-1026:s1"],
+    "must_contain": ["requires"],
+    "must_not_contain": [],
+    "kind": "answer"
+  },
+  {
+    "id": "statement-timing",
+    "question": "How many days before the payment due date must a credit card periodic statement be mailed or delivered?",
+    "expected": ["reg-z-1026:s2", "reg-z-1026:s3"],
+    "must_contain": ["21"],
+    "must_not_contain": [],
+    "kind": "answer"
+  },
+  {
+    "id": "minimum-interest-charge",
+    "question": "What threshold must a minimum interest charge exceed before it has to be disclosed on the account-opening table?",
+    "expected": ["reg-z-1026:s3"],
+    "must_contain": ["$1.00"],
+    "must_not_contain": [],
+    "kind": "answer"
+  },
+  {
+    "id": "change-in-terms-notice",
+    "question": "How many days of advance written notice must a creditor give before a significant change in account terms takes effect on an open-end plan?",
+    "expected": ["reg-z-1026:s6"],
+    "must_contain": ["45"],
+    "must_not_contain": [],
+    "kind": "answer"
+  },
+  {
+    "id": "counseling-referrals",
+    "question": "What must a card issuer provide through the toll-free telephone number for consumers asking about credit counseling services?",
+    "expected": ["reg-z-1026:s4"],
+    "must_contain": ["Trustee"],
+    "must_not_contain": [],
+    "kind": "answer"
+  },
+  {
+    "id": "grace-period-heading",
+    "question": "Which phrase must be used as the row heading when a grace period applies to all features on the account?",
+    "expected": ["reg-z-1026:s3"],
+    "must_contain": ["How to Avoid Paying Interest"],
+    "must_not_contain": [],
+    "kind": "hybrid_demo"
+  },
+  {
+    "id": "minimum-payment-warning",
+    "question": "What bold heading must appear with the minimum payment warning on each periodic statement?",
+    "expected": ["reg-z-1026:s4"],
+    "must_contain": ["Minimum Payment Warning"],
+    "must_not_contain": [],
+    "kind": "hybrid_demo"
+  },
+  {
+    "id": "out-of-scope",
+    "question": "Does the regulation say whether a creditor must reimburse employee gym memberships?",
+    "expected": [],
+    "must_contain": ["The provided policy does not answer this question."],
+    "must_not_contain": [],
+    "kind": "refusal"
+  }
+]

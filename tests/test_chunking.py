@@ -1,5 +1,5 @@
-import app.chunking as chunking
-from app.chunking import split
+import app.corpus.chunking as chunking
+from app.corpus.chunking import split
 
 _SHORT_POLICY = """\
 **Effective Date:** January 15, 2024
@@ -52,12 +52,12 @@ def test_chunking_docstring_states_the_window_and_why_not_flat():
 
 
 def test_short_section_is_one_child_carrying_lineage():
-    chunks = split(_SHORT_POLICY, "minion_expense_policy_2024.md")
+    chunks = split(_SHORT_POLICY, "sample_policy.md")
 
     assert chunks == [
         {
-            "chunk_id": "minion_expense_policy_2024:s1:c01",
-            "source_doc": "minion_expense_policy_2024.md",
+            "chunk_id": "sample_policy:s1:c01",
+            "source_doc": "sample_policy.md",
             "section": "1",
             "section_title": "Purpose",
             "effective_date": "January 15, 2024",

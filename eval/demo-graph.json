@@ -1,115 +1,282 @@
 {
   "nodes": [
     {
-      "id": "Loan",
-      "label": "Loan",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+      "id": "Client.notifyApproval",
+      "label": "notifyApproval",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Client.java"
     },
     {
-      "id": "approve",
+      "id": "Client.notifyDeferment",
+      "label": "notifyDeferment",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Client.java"
+    },
+    {
+      "id": "Client.notifyWithdrawal",
+      "label": "notifyWithdrawal",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Client.java"
+    },
+    {
+      "id": "Client.openAccount",
+      "label": "openAccount",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Client.java"
+    },
+    {
+      "id": "Client.updateAuditTrail",
+      "label": "updateAuditTrail",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Client.java"
+    },
+    {
+      "id": "Client.verifyIdentity",
+      "label": "verifyIdentity",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Client.java"
+    },
+    {
+      "id": "Collateral.appraise",
+      "label": "appraise",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Collateral.java"
+    },
+    {
+      "id": "Collateral.isRegistered",
+      "label": "isRegistered",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Collateral.java"
+    },
+    {
+      "id": "Collateral.register",
+      "label": "register",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Collateral.java"
+    },
+    {
+      "id": "Collateral.release",
+      "label": "release",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Collateral.java"
+    },
+    {
+      "id": "LoanAccount.accrueInterest",
+      "label": "accrueInterest",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanAccount.java"
+    },
+    {
+      "id": "LoanAccount.applyPenalty",
+      "label": "applyPenalty",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanAccount.java"
+    },
+    {
+      "id": "LoanAccount.approve",
       "label": "approve",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanAccount.java"
     },
     {
-      "id": "disburse",
+      "id": "LoanAccount.close",
+      "label": "close",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanAccount.java"
+    },
+    {
+      "id": "LoanAccount.disburse",
       "label": "disburse",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanAccount.java"
     },
     {
-      "id": "LoanApplication",
-      "label": "LoanApplication",
+      "id": "LoanAccount.recordPenalty",
+      "label": "recordPenalty",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanAccount.java"
+    },
+    {
+      "id": "LoanApplication.assignScore",
+      "label": "assignScore",
       "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java"
     },
     {
-      "id": "submit",
+      "id": "LoanApplication.score",
+      "label": "score",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java"
+    },
+    {
+      "id": "LoanApplication.submit",
       "label": "submit",
       "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java"
     },
     {
-      "id": "LoanSchedule",
-      "label": "LoanSchedule",
+      "id": "LoanApplication.validate",
+      "label": "validate",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java"
+    },
+    {
+      "id": "LoanApplication.withdraw",
+      "label": "withdraw",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java"
+    },
+    {
+      "id": "LoanProduct.describe",
+      "label": "describe",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanProduct.java"
+    },
+    {
+      "id": "LoanProduct.fetchRate",
+      "label": "fetchRate",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanProduct.java"
+    },
+    {
+      "id": "LoanProduct.isActive",
+      "label": "isActive",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanProduct.java"
+    },
+    {
+      "id": "LoanSchedule.activate",
+      "label": "activate",
       "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
     },
     {
-      "id": "recalc",
-      "label": "recalc",
+      "id": "LoanSchedule.deactivate",
+      "label": "deactivate",
       "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
     },
     {
-      "id": "Client",
-      "label": "Client",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java"
+      "id": "LoanSchedule.defer",
+      "label": "defer",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
     },
     {
-      "id": "identify",
-      "label": "identify",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java"
+      "id": "LoanSchedule.nextInstallment",
+      "label": "nextInstallment",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
+    },
+    {
+      "id": "LoanSchedule.recalculate",
+      "label": "recalculate",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
+    },
+    {
+      "id": "LoanSchedule.start",
+      "label": "start",
+      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
     }
   ],
   "links": [
     {
-      "source": "Loan",
-      "target": "approve",
+      "source": "Client.verifyIdentity",
+      "target": "Client.updateAuditTrail",
       "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java",
-      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+      "confidence": "EXTRACTED"
     },
     {
-      "source": "Loan",
-      "target": "disburse",
+      "source": "Collateral.appraise",
+      "target": "LoanProduct.describe",
       "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java",
-      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java"
+      "confidence": "EXTRACTED"
     },
     {
-      "source": "LoanApplication",
-      "target": "submit",
+      "source": "LoanAccount.accrueInterest",
+      "target": "LoanSchedule.recalculate",
       "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java",
-      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java"
+      "confidence": "EXTRACTED"
     },
     {
-      "source": "LoanSchedule",
-      "target": "recalc",
+      "source": "LoanAccount.applyPenalty",
+      "target": "LoanAccount.recordPenalty",
       "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java",
-      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
+      "confidence": "EXTRACTED"
     },
     {
-      "source": "Client",
-      "target": "identify",
+      "source": "LoanAccount.applyPenalty",
+      "target": "LoanProduct.fetchRate",
       "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java",
-      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java"
+      "confidence": "EXTRACTED"
     },
     {
-      "source": "LoanApplication",
-      "target": "LoanSchedule",
-      "relation": "imports",
-      "confidence": "EXTRACTED",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanApplication.java",
-      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/LoanSchedule.java"
-    },
-    {
-      "source": "Loan",
-      "target": "Client",
-      "relation": "imports",
-      "confidence": "EXTRACTED",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java",
-      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/client/Client.java"
-    },
-    {
-      "source": "Loan",
-      "target": "RepaymentSchedule",
+      "source": "LoanAccount.approve",
+      "target": "Client.notifyApproval",
       "relation": "calls",
-      "confidence": "INFERRED",
-      "source_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/Loan.java",
-      "target_file": "fineract-provider/src/main/java/org/apache/fineract/portfolio/loanaccount/RepaymentSchedule.java"
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanAccount.approve",
+      "target": "LoanSchedule.activate",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanAccount.close",
+      "target": "Collateral.release",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanAccount.close",
+      "target": "LoanSchedule.deactivate",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanAccount.disburse",
+      "target": "Client.openAccount",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanAccount.disburse",
+      "target": "LoanSchedule.start",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanApplication.assignScore",
+      "target": "LoanApplication.score",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanApplication.assignScore",
+      "target": "LoanProduct.describe",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanApplication.submit",
+      "target": "Client.verifyIdentity",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanApplication.submit",
+      "target": "LoanApplication.validate",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanApplication.validate",
+      "target": "Collateral.isRegistered",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanApplication.withdraw",
+      "target": "Client.notifyWithdrawal",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanSchedule.defer",
+      "target": "Client.notifyDeferment",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanSchedule.defer",
+      "target": "LoanSchedule.nextInstallment",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanSchedule.recalculate",
+      "target": "LoanProduct.fetchRate",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "LoanSchedule.start",
+      "target": "LoanSchedule.nextInstallment",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
     }
   ]
 }

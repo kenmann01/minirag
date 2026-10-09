@@ -4,8 +4,8 @@ from pathlib import Path
 
 import fitz
 
-from app.convert import convert_dir, to_markdown
-from convert_docs import main
+from app.corpus.convert import convert_dir, to_markdown
+from scripts.convert_docs import main
 
 
 def _pdf(path: Path, text: str) -> None:

@@ -2,7 +2,7 @@
 
 import json
 
-from app.gate import run_gate, summarize
+from app.harness.gate import run_gate, summarize
 
 
 def test_summarize_records_the_five_numbers(tmp_path):
@@ -56,7 +56,7 @@ def test_gate_runs_the_call_scan_script(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        "app.gate.render_largest",
+        "app.harness.gate.render_largest",
         lambda diagrams, out_dir: ({"name": "loanaccount", "nodes": 1, "rendered": False}, []),
     )
     record = run_gate(tmp_path, tmp_path / "gate.json", work_root=tmp_path / "work")
@@ -74,7 +74,7 @@ def test_scan_failure_records_an_empty_loans_map(tmp_path, monkeypatch):
         calls.append(work_dir.name)
         return None, ["source tree is missing"], 1.0
 
-    monkeypatch.setattr("app.gate.run_call_scan", fake_run)
+    monkeypatch.setattr("app.harness.gate.run_call_scan", fake_run)
     output = tmp_path / "fineract-gate.json"
     record = run_gate(tmp_path, output, work_root=tmp_path / "work")
     assert calls == ["scan"]
