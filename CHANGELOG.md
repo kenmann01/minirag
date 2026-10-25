@@ -15,16 +15,15 @@ Semantic Versioning.
   `scripts/seed_runs.py`, `scripts/smoke_rig.py`, the demo tree and gate
   records (`eval/demo-repo/`, `eval/demo-graph.json`, `eval/fineract-gate.json`)
   and the call-scan repository scanner (`skills/call-scan/`).
-- The CLI keeps `ingest`, `eval`, `retrieve`, `candidate` and `ossie`; the
-  `score`, `gate`, `live` and `compare` subcommands are gone with their flags.
+- The CLI keeps `ingest`, `eval`, `retrieve` and `candidate`; the `score`,
+  `gate`, `live`, `compare` and `ossie` subcommands are gone with their flags.
 - `pydantic-evals` is dropped (only the scoreboard used it); `pydantic-ai`
   stays for the Ollama judge.
 
 ### Changed (issue #16, 2026-10-25)
 
 - The golden retrieval exam moved from `app/harness/evaluate.py` to
-  `app/retrieval/exam.py`; the graph loader OSSIE needs moved to
-  `app/observability/graph.py`; `ollama_base_url` moved to
+  `app/retrieval/exam.py`; `ollama_base_url` moved to
   `app/generation/ollama.py`.
 - The candidate-v1 endpoint, the vendored contract and the committed parity
   fixture stay. The fixture is provenance; its drift guard now runs in the

@@ -2,10 +2,11 @@
 
 Issue #16 split the old `map-writes-the-test` repository into two products.
 This repository keeps retrieval, generation, the corpus and the candidate-v1
-endpoint. Everything that scored a run, and the OSSIE graph materialisation
-that fed the old gate, was removed and lives in
-[kenmann01/eval-harness](https://github.com/kenmann01/eval-harness). The
-candidate contract version is **candidate-v1**, vendored read-only at
+endpoint. Everything that scored a run moved to
+[kenmann01/eval-harness](https://github.com/kenmann01/eval-harness). The OSSIE
+graph materialisation that fed the old gate, and the repository scanner, were
+deleted outright: neither repository carries them now. The candidate contract
+version is **candidate-v1**, vendored read-only at
 `contract/candidate-v1.schema.json`.
 
 | Before (this repository) | Now |
@@ -25,9 +26,9 @@ candidate contract version is **candidate-v1**, vendored read-only at
 
 ## Commands
 
-Kept: `python -m app ingest`, `eval`, `retrieve`, `candidate`, `ossie`.
-Removed: `score`, `gate`, `live`, `compare`. To score a run, point the
-harness at `python -m app candidate --serve`; see `docs/CANDIDATE.md`.
+Kept: `python -m app ingest`, `eval`, `retrieve`, `candidate`.
+Removed: `score`, `gate`, `live`, `compare` and `ossie`. To score a run,
+point the harness at `python -m app candidate --serve`; see `docs/CANDIDATE.md`.
 
 ## Models and data
 
