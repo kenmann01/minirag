@@ -301,10 +301,8 @@ def test_a_crashed_case_is_stored_as_a_failed_task_row(tmp_path, monkeypatch):
     )
     assert all(row["tasks_total"] == 8 for row in rows)
     with adapter.connect() as conn:
-        stored = conn.execute(
-            """
+        stored = conn.execute("""
             SELECT task_id, tier, passed FROM task_results
             WHERE task_id = 't2-02' AND context = 'bare'
-            """
-        ).fetchone()
+            """).fetchone()
     assert stored == ("t2-02", 2, False)

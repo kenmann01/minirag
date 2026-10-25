@@ -59,8 +59,7 @@ def test_a_foreign_embedder_is_rejected_until_reingest():
     vector = "[" + ",".join(["0.0"] * 768) + "]"
     with adapter.connect() as conn:
         conn.execute("DROP TABLE IF EXISTS policy_chunks")
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE policy_chunks (
                 chunk_id TEXT PRIMARY KEY,
                 source_doc TEXT NOT NULL,
@@ -71,8 +70,7 @@ def test_a_foreign_embedder_is_rejected_until_reingest():
                 embedding vector(768) NOT NULL,
                 embedding_model TEXT NOT NULL DEFAULT ''
             )
-            """
-        )
+            """)
         conn.execute(
             """
             INSERT INTO policy_chunks (

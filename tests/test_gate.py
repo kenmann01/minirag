@@ -151,8 +151,8 @@ def test_render_largest_records_a_missing_renderer(tmp_path, monkeypatch):
         "module_nodes": 2,
         "rendered": False,
     }
-    assert (tmp_path / "m" / "loanaccount.mmd").read_text(encoding="utf-8").startswith(
-        "flowchart LR"
+    assert (
+        (tmp_path / "m" / "loanaccount.mmd").read_text(encoding="utf-8").startswith("flowchart LR")
     )
     assert errors == ["mermaid renderer mmdc is not installed"]
 
@@ -175,13 +175,18 @@ def test_render_largest_renders_the_first_diagram_that_succeeds(tmp_path, monkey
 
 def test_render_largest_falls_back_when_the_renderer_fails(tmp_path, monkeypatch):
     monkeypatch.setattr("app.harness.gate.shutil.which", lambda name: "mmdc")
-    replies = [SimpleNamespace(returncode=1, stderr="boom"), SimpleNamespace(returncode=1, stderr="")]
+    replies = [
+        SimpleNamespace(returncode=1, stderr="boom"),
+        SimpleNamespace(returncode=1, stderr=""),
+    ]
 
     def fake_run(cmd, **kwargs):
         return replies.pop(0)
 
     monkeypatch.setattr("app.harness.gate.subprocess.run", fake_run)
-    record, errors = render_largest([("a", "flowchart LR", 1, 1), ("b", "flowchart LR", 2, 2)], tmp_path / "m")
+    record, errors = render_largest(
+        [("a", "flowchart LR", 1, 1), ("b", "flowchart LR", 2, 2)], tmp_path / "m"
+    )
     assert errors == ["boom", "b did not render"]
     assert record == {"name": "a", "nodes": 1, "module_nodes": 1, "rendered": False}
 
