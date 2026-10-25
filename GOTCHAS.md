@@ -27,9 +27,6 @@ Landmines. Unwritten convention, surprising coupling, local-vs-container traps, 
 - `retrieve` is not `ask` without the printer. Evidence:
   `app/retrieval/bridge.py` skips the reranker because rerank keeps one
   chunk per section. Instead: use eval when you need the generation path.
-- Init SQL does not create the demo schema. Evidence: `sql/001_init.sql`
-  runs only on an empty volume. Graph tables appear only after
-  `ossie materialize`; `ossie validate` fails until they exist.
 - The candidate contract is vendored. Evidence:
   `contract/candidate-v1.schema.json` is a read-only copy owned by the
   harness repository. Instead: copy the harness file over it and update

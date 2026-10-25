@@ -13,9 +13,6 @@ Where work actually starts, and why a later agent would open that file first.
   `app/retrieval/bridge.py` to see why the reranker is skipped.
 - `python -m app candidate --serve --port 8768` — the candidate-v1 endpoint
   (`app/candidate.py`). `--request REQ --response OUT` runs one file instead.
-- `python -m app ossie materialize --graph FILE` and
-  `python -m app ossie validate` — graph tables and the OSSIE map
-  (`app/observability/ossie.py`, `ossie/map-writes-the-test.yaml`).
 - `python scripts/convert_docs.py <pdf_dir> --out <dir>` — PDF to heading
   markdown (`app/corpus/convert.py`).
 - `docker compose up -d` — Postgres only (`docker-compose.yml`).
@@ -32,7 +29,7 @@ Where work actually starts, and why a later agent would open that file first.
 
 ## Surfaces
 
-- CLI: `python -m app` with ingest, eval, retrieve, candidate, ossie.
+- CLI: `python -m app` with ingest, eval, retrieve, candidate.
 - HTTP: the candidate-v1 endpoint on 127.0.0.1:8768.
 - Workers / jobs: none.
 - Scripts: `scripts/convert_docs.py`.

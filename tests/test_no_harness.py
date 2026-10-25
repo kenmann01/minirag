@@ -17,7 +17,7 @@ from app.cli import main
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
 REMOVED_COMMANDS = ("score", "gate", "live", "compare")
-KEPT_COMMANDS = "{ingest,eval,retrieve,candidate,ossie}"
+KEPT_COMMANDS = "{ingest,eval,retrieve,candidate}"
 
 
 def _app_sources() -> list[Path]:

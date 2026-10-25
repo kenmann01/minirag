@@ -66,16 +66,6 @@ def main(
     candidate_parser.add_argument("--response", type=Path, help="Write the response JSON here")
     candidate_parser.add_argument("--host", default="127.0.0.1")
     candidate_parser.add_argument("--port", type=int, default=8768)
-    ossie_parser = sub.add_parser("ossie", help="Materialize the graph and validate the OSSIE map")
-    ossie_sub = ossie_parser.add_subparsers(dest="ossie_command", required=True)
-    materialize_parser = ossie_sub.add_parser(
-        "materialize", help="Load a graphify graph into graph_nodes and graph_edges"
-    )
-    materialize_parser.add_argument("--graph", type=Path, required=True)
-    validate_parser = ossie_sub.add_parser(
-        "validate", help="Check the OSSIE map against its schema and the live database"
-    )
-    validate_parser.add_argument("--map", type=Path, help="Path to the OSSIE map YAML")
     args = parser.parse_args(argv)
     if database_adapter is None:
         # The Postgres driver loads only when a command needs the real store,
@@ -120,21 +110,6 @@ def main(
             args.json.write_text(text + "\n", encoding="utf-8")
         print(text)
         return 0
-    if args.command == "ossie":
-        from app.observability.ossie import DEFAULT_MAP, materialize, validate
-
-        if args.ossie_command == "materialize":
-            try:
-                rows = materialize(adapter, args.graph)
-            except (OSError, ValueError) as exc:
-                print(str(exc), file=sys.stderr)
-                return 1
-            print(f"materialized {rows} graph rows", file=sys.stderr)
-            return 0
-        code, message = validate(adapter, args.map or DEFAULT_MAP)
-        if message:
-            print(message, file=sys.stderr)
-        return code
     if args.command == "eval":
         if language_model is None:
             from app.generation.ollama import OllamaAdapter

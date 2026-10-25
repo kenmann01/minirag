@@ -14,7 +14,7 @@ How configuration is loaded, and which file wins. Point at committed examples; c
   Postgres on 5433 for hosts whose 5432 is taken. Copy to
   `docker-compose.override.yml` (gitignored) and set `DATABASE_URL` to match.
 - `sql/001_init.sql` — first-boot `policy_chunks` only. Later tables are
-  created in Python (`app/corpus/ingest.py`, `app/observability/ossie.py`).
+  created in Python (`app/corpus/ingest.py`).
 - `app/generation/prompts/policy_answer_v3.md` — the grounded-answer prompt.
 
 ## Override order

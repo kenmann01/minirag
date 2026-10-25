@@ -65,14 +65,6 @@ Return chunks without generating:
 python -m app retrieve "What fees count as a finance charge?"
 ```
 
-Validate the semantic model against the live database, or materialise a
-graphify graph into the graph tables first:
-
-```bash
-python -m app ossie materialize --graph path/to/graph.json
-python -m app ossie validate
-```
-
 Convert a PDF corpus into heading markdown:
 
 ```bash
@@ -103,6 +95,5 @@ environment chain. No key material belongs in this repository. See
 
 `app/corpus` (conversion, chunking, embeddings, ingest), `app/retrieval`
 (hybrid search, bridge, reranker, the golden exam), `app/generation` (answer
-and judge model adapters, prompts), `app/storage` (database adapters),
-`app/observability` (graph loading and OSSIE validation), and
+and judge model adapters, prompts), `app/storage` (database adapters), and
 `app/candidate.py` (the v1 candidate seam). See `ARCHITECTURE.md`.

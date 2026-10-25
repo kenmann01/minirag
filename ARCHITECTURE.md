@@ -1,9 +1,8 @@
 # Architecture
 
 This repository is the RAG side of the evaluation split: corpus ingestion,
-hybrid retrieval, grounded generation, one fixed retrieval exam, OSSIE graph
-materialisation and validation, and the candidate-v1 HTTP seam. The evaluation
-harness that scores runs lives in
+hybrid retrieval, grounded generation, one fixed retrieval exam, and the
+candidate-v1 HTTP seam. The evaluation harness that scores runs lives in
 [kenmann01/eval-harness](https://github.com/kenmann01/eval-harness).
 `docs/MIGRATION.md` records what moved. Domain terms live in `docs/prd.md`.
 
@@ -15,7 +14,6 @@ flowchart TD
   cli --> eval
   cli --> retrieve
   cli --> candidate
-  cli --> ossie
 
   ingest["ingest"] --> chunk["corpus.chunking"]
   chunk --> embed["corpus.embeddings"]
@@ -32,8 +30,6 @@ flowchart TD
 
   candidate["candidate (v1)"] --> search
   candidate --> gen
-  ossie["observability.ossie"] --> graph["observability.graph"]
-  ossie --> pg
 ```
 
 ## Packages
@@ -51,8 +47,6 @@ flowchart TD
   `OllamaJudgeAdapter` by default, `BedrockJudgeAdapter` when
   `JUDGE_PROVIDER=bedrock`.
 - `app/storage` — `db.py` protocol and `pgadapter.py` implementation.
-- `app/observability` — the neutral graph loader (`graph.py`) and OSSIE
-  materialisation plus live validation (`ossie.py`).
 - `app/candidate.py` — the candidate-v1 seam. It imports retrieval and
   generation lazily so the module stays cheap to import.
 - `app/cli.py` + `app/config.py` — dispatch and pydantic-settings
@@ -64,9 +58,7 @@ flowchart TD
 and returns chunk JSON. `eval` runs the ten goldens through the same search
 plus the reranker and the generator, then writes `eval/record.json`. The
 candidate endpoint maps one v1 request onto the same retrieval and generation
-path; it never scores itself. `ossie materialize` loads a graphify graph into
-`graph_nodes` and `graph_edges`; `ossie validate` checks the pinned OSSIE map
-against those tables in the live database.
+path; it never scores itself.
 
 ## Boundaries
 

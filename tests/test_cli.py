@@ -38,17 +38,6 @@ def test_ingest_reports_an_empty_corpus(monkeypatch, capsys):
     assert "no chunks in corpora/empty" in capsys.readouterr().err
 
 
-def test_ossie_materialize_reports_an_unreadable_graph(tmp_path, capsys):
-    from app.storage.pgadapter import PgAdapter
-
-    code = main(
-        ["ossie", "materialize", "--graph", str(tmp_path / "missing.json")],
-        database_adapter=PgAdapter(),
-    )
-    assert code == 1
-    assert capsys.readouterr().err.strip() != ""
-
-
 def test_eval_builds_the_default_model_and_reranker(monkeypatch, tmp_path):
     wired = {}
 
