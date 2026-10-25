@@ -62,8 +62,8 @@ class OllamaAdapter:
             response_format: Ollama JSON mode. The string "json" asks for
                 free-form JSON. A schema dict constrains the keys, which the
                 task generator needs.
-            seed: Sampling seed. The documented default stays 77 so a plain
-                python -m app score run behaves exactly as before.
+            seed: Sampling seed. The documented default stays 77 so a
+                request that omits it behaves as before.
 
         Returns:
             The assistant content as a ChatReply carrying prompt and

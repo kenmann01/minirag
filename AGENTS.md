@@ -1,5 +1,13 @@
 Onboarding cache: ARCHITECTURE.md, ENTRYPOINTS.md, CONFIG.md, GOTCHAS.md.
 
+## Repository boundary
+
+This repository keeps retrieval, generation, the corpus, OSSIE and the
+candidate-v1 endpoint (`python -m app candidate`). The evaluation harness,
+scoring, dashboards and the repository scanner live in
+kenmann01/eval-harness; see `docs/MIGRATION.md`. `tests/test_no_harness.py`
+fails if the harness comes back into `app/`.
+
 ## Agent skills
 
 ### Issue tracker
