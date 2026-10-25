@@ -12,7 +12,6 @@ from app.generation.generate import LanguageModel
 from app.retrieval.exam import format_table, load_goldens, run_exam
 from app.retrieval.reranker import CrossEncoderReranker, Reranker
 from app.storage.db import DatabaseAdapter
-from app.storage.pgadapter import PgAdapter
 
 
 def main(
@@ -78,7 +77,13 @@ def main(
     )
     validate_parser.add_argument("--map", type=Path, help="Path to the OSSIE map YAML")
     args = parser.parse_args(argv)
-    adapter = database_adapter or PgAdapter()
+    if database_adapter is None:
+        # The Postgres driver loads only when a command needs the real store,
+        # so listing help or a candidate call never imports psycopg.
+        from app.storage.pgadapter import PgAdapter
+
+        database_adapter = PgAdapter()
+    adapter = database_adapter
     if args.command == "candidate":
         from app.candidate import DefaultCandidateDeps, run_request_file, serve_candidate
 
