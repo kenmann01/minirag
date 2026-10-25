@@ -14,7 +14,16 @@ from tests.parity_fixture import TASK_BY_ID, FixtureDeps
 
 ROOT = Path(__file__).resolve().parents[1]
 VENDORED = ROOT / "contract" / "candidate-v1.schema.json"
-PINNED_SHA256 = "9aa9a92551e715e604e4b1a33e7cce68271fcd3fba8ae6f169a21c175beb9651"
+PINNED_SHA256 = "28d47b300f1d808e48d8d4532507194ce5032aa35015f5e3649bb604286a61b6"
+
+
+def _normalized(path: Path) -> bytes:
+    """Read a file with LF endings so the checksum does not depend on the checkout.
+
+    Git can hand a Windows checkout CRLF while CI sees LF for the same blob; the
+    contract bytes are what the harness owns, not the platform's line endings.
+    """
+    return path.read_bytes().replace(b"\r\n", b"\n")
 
 
 def _schema() -> dict:
@@ -29,7 +38,7 @@ def _harness_schema() -> Path | None:
 
 
 def test_the_vendored_schema_is_the_pinned_checksum():
-    digest = hashlib.sha256(VENDORED.read_bytes()).hexdigest()
+    digest = hashlib.sha256(_normalized(VENDORED)).hexdigest()
     assert digest == PINNED_SHA256, (
         "contract/candidate-v1.schema.json changed; re-vendor the harness copy and "
         "update PINNED_SHA256 in this test"
@@ -40,7 +49,7 @@ def test_the_vendored_schema_matches_the_harness_clone_when_present():
     upstream = _harness_schema()
     if upstream is None:
         pytest.skip("harness clone is not present; the pinned checksum is the guard")
-    assert VENDORED.read_bytes() == upstream.read_bytes(), (
+    assert _normalized(VENDORED) == _normalized(upstream), (
         f"contract/candidate-v1.schema.json drifted from {upstream}; the harness owns "
         "the schema, so copy its file verbatim and update PINNED_SHA256"
     )

@@ -1,0 +1,5 @@
+# The vendored contract and its fixtures are byte-identical across checkouts:
+# the checksum guard is meaningless if line endings vary by platform.
+contract/*.json text eol=lf
+eval/fixtures/**/*.json text eol=lf
+eval/fixtures/**/*.yaml text eol=lf

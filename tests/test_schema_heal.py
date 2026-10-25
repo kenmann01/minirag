@@ -45,7 +45,9 @@ def test_a_missing_corpus_directory_yields_no_chunks(tmp_path):
 def test_an_unset_corpus_dir_falls_back_to_the_default(monkeypatch):
     monkeypatch.setattr(
         "app.corpus.ingest.get_settings",
-        lambda: Settings(database_url="postgresql://minirag:minirag@127.0.0.1:5432/minirag", corpus_dir=""),
+        lambda: Settings(
+            database_url="postgresql://minirag:minirag@127.0.0.1:5432/minirag", corpus_dir=""
+        ),
     )
     assert corpus_path(None) == DEFAULT_CORPUS_DIR
 
