@@ -1,24 +1,26 @@
 """The deterministic fakes behind the committed parity fixture.
 
 The fixture uses a fake graph, a canned model, and a canned judge. No Postgres
-and no Ollama are involved. The helper is imported by tests/test_candidate.py
-and tests/parity_score.py; it lives outside the app package so the runtime
-path never depends on a test seam.
+and no Ollama are involved. The helper is imported by tests/test_candidate.py;
+it lives outside the app package so the runtime path never depends on a test
+seam.
+
+The fixture data itself stays committed at ``eval/fixtures/parity/`` as the
+provenance of the three-arm scoreboard. The drift guard that used to run it
+through the repository scoreboard now lives in the harness repository, because
+that is where scoring lives (issue #16).
 """
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
-from app.candidate import run_candidate
 from app.generation.generate import generate
 from app.generation.ollama import ChatReply
 from app.generation.validate import REFUSAL
-from app.harness.agent import RunOutput
-from app.harness.graph import load_graph
-from app.harness.tasks import Task, map_excerpt
 
 FIXTURES = Path(__file__).resolve().parents[1] / "eval" / "fixtures" / "parity"
 GRAPH = FIXTURES / "graph.json"
@@ -29,13 +31,12 @@ def load_json(name: str) -> Any:
     return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
 
-TASKS = [Task.model_validate(item) for item in load_json("tasks.json")]
+TASKS = [SimpleNamespace(**item) for item in load_json("tasks.json")]
 RETRIEVAL = load_json("retrieval.json")
 ANSWERS = load_json("answers.json")
 EXPECTED = load_json("expected.json")
 TASK_BY_PROMPT = {task.prompt: task for task in TASKS}
 TASK_BY_ID = {task.id: task for task in TASKS}
-NODES, EDGES = load_graph(GRAPH)
 
 
 def fixture_retrieve(query: str) -> dict:
@@ -132,70 +133,3 @@ class FixtureDeps:
 
     def judge(self, prompt: str, answer: str, references: list[dict]) -> dict:
         return fixture_judge(prompt, answer, references)
-
-
-def _task_for(prompt: str) -> Task:
-    """Recover the fixture task from the scored prompt's first paragraph."""
-    return TASK_BY_PROMPT[prompt.split("\n\n", 1)[0]]
-
-
-def legacy_task_fn(prompt: str, context: str) -> RunOutput:
-    """The current path: the fixture table, without the candidate adapter."""
-    task = _task_for(prompt)
-    usage = ANSWERS["usage"][task.id]
-    if context == "bare":
-        answering = task.tier == 2
-        prompt_tokens = usage["prompt_tokens"] if answering else 0
-        completion_tokens = usage["completion_tokens"] if answering else 0
-    elif context == "map":
-        answering = task.tier == 1
-        prompt_tokens = usage["prompt_tokens"]
-        completion_tokens = usage["completion_tokens"]
-    else:
-        answering = True
-        prompt_tokens = usage["prompt_tokens"]
-        completion_tokens = usage["completion_tokens"]
-    answer = ANSWERS["answers"][task.id] if answering else REFUSAL
-    return RunOutput(
-        answer=answer,
-        tool_calls=1 if context == "bare" else 0,
-        prompt_tokens=prompt_tokens,
-        completion_tokens=completion_tokens,
-    )
-
-
-def make_candidate_task_fn() -> Any:
-    """The spec path: every turn is a v1 request through run_candidate."""
-    deps = FixtureDeps()
-
-    def candidate_task_fn(prompt: str, context: str) -> RunOutput:
-        task = _task_for(prompt)
-        chunks: list[dict] = []
-        if context in {"map", "map_rules"}:
-            chunks.append(
-                {
-                    "chunk_id": f"map-{task.id}",
-                    "text": map_excerpt(task, NODES, EDGES),
-                }
-            )
-        if context == "map_rules":
-            chunks.extend(
-                {"chunk_id": chunk["chunk_id"], "text": chunk["text"]}
-                for chunk in task.origin.get("chunks") or []
-            )
-        request = {
-            "case_id": f"{context}/{task.id}",
-            "prompt": task.prompt,
-            "context": chunks,
-            "prompt_override": None,
-            "seed": ANSWERS["seed"],
-        }
-        response = run_candidate(request, deps=deps)
-        return RunOutput(
-            answer=response["answer"],
-            tool_calls=response["tool_calls"],
-            prompt_tokens=response["usage"]["prompt_tokens"],
-            completion_tokens=response["usage"]["completion_tokens"],
-        )
-
-    return candidate_task_fn
