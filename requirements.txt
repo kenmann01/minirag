@@ -6,7 +6,6 @@ sentence-transformers>=3
 transformers>=4.48
 huggingface_hub>=1
 pydantic-ai>=1.0
-pydantic-evals>=1.0
 pymupdf>=1.24
 jsonschema>=4
 PyYAML>=6

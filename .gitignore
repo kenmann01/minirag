@@ -7,7 +7,6 @@ __pycache__/
 
 submission/
 .coverage
-eval/gate-work/
 
 scratch/
 docker-compose.override.yml

@@ -390,4 +390,4 @@ semantic_model:
         to_columns: [node_id]
     custom_extensions:
       - vendor_name: COMMON
-        data: '{"minirag":{"corpus_dir":"corpora/banking","embedding_model":"Alibaba-NLP/gte-modernbert-base","heading":"## N. Title"},"call_scan":{"skill":"skills/call-scan","graph":"graph.json","mermaid":"module-level"}}'
+        data: '{"minirag":{"corpus_dir":"corpora/banking","embedding_model":"Alibaba-NLP/gte-modernbert-base","heading":"## N. Title"}}'
