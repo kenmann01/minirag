@@ -96,6 +96,19 @@ python scripts/smoke_rig.py
 The board is at http://127.0.0.1:3000/d/map-writes-the-test. Runs stored by
 the seeder are labeled `origin=seeded`; never present them as model results.
 
+## Candidate endpoint
+
+The RAG pipeline is also exposed as an eval-harness candidate over the v1
+HTTP contract:
+
+```bash
+python -m app candidate --serve --port 8768
+```
+
+See [docs/CANDIDATE.md](docs/CANDIDATE.md) for the request/response mapping,
+the vendored contract, the parity fixture, and the two-command demo against
+the harness's HTTP candidate.
+
 ## Tier-2 judge
 
 The citation judge defaults to the local Ollama model. To swap it for AWS
