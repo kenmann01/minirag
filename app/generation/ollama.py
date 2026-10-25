@@ -7,6 +7,14 @@ import urllib.request
 from app.config import get_settings
 
 
+def ollama_base_url(host: str) -> str:
+    """Ollama's OpenAI-compatible base URL, with ``/v1`` appended when missing."""
+    base = host.rstrip("/")
+    if not base.endswith("/v1"):
+        base = f"{base}/v1"
+    return base
+
+
 class ChatReply(str):
     """Model content that also carries the provider's token counts.
 
@@ -54,8 +62,8 @@ class OllamaAdapter:
             response_format: Ollama JSON mode. The string "json" asks for
                 free-form JSON. A schema dict constrains the keys, which the
                 task generator needs.
-            seed: Sampling seed. The documented default stays 77 so a plain
-                python -m app score run behaves exactly as before.
+            seed: Sampling seed. The documented default stays 77 so a
+                request that omits it behaves as before.
 
         Returns:
             The assistant content as a ChatReply carrying prompt and

@@ -1,8 +1,9 @@
 # The RAG candidate (candidate-v1)
 
-The eval harness lives in its own repository. This repository keeps retrieval
-and generation, and `app/candidate.py` exposes them behind the harness's
-candidate-v1 HTTP contract. The candidate never scores itself and never reads a
+The eval harness lives in [kenmann01/eval-harness](https://github.com/kenmann01/eval-harness).
+This repository keeps retrieval and generation, and `app/candidate.py` exposes
+them behind the harness's HTTP contract, **candidate-v1**. `docs/MIGRATION.md`
+maps what the split moved. The candidate never scores itself and never reads a
 spec: the harness owns cases, metrics, prompt variants, context, and prices.
 
 ## The contract and the vendoring rule
@@ -58,8 +59,8 @@ model as the contract allows.
 - A request context replaces retrieval; a request without context uses
   `app.retrieval.bridge.retrieve`, which is the same hybrid search the eval
   pipeline already uses.
-- `python -m app score` is unchanged: it never calls the candidate, and the
-  adapter defaults are the same as before.
+- Nothing in this repository scores a run any more. The harness owns scoring,
+  and this repository only answers a v1 request.
 
 ## Transport
 
@@ -93,10 +94,12 @@ A bad body is a 400 with a JSON `error`. A failure inside retrieval or
 generation is a 500, which the harness treats as a retryable transport failure;
 a wrong answer is still a 200 and is scored, never retried.
 
-## The fixture and the parity test
+## The fixture and the drift guard
 
 `eval/fixtures/parity/` is deterministic and was generated from fakes, not a
-live model:
+live model. It is kept here as the provenance of the recorded three-arm
+scoreboard; the drift guard that replays it moved to the harness repository
+with scoring (issue #16):
 
 - `graph.json`: the four-loan graph the task generator reads.
 - `tasks.json`: four tier-1 and four tier-2 tasks, in the `Task` shape.
@@ -115,33 +118,18 @@ The three arms are the existing `run_score` arms: `bare` (`no map, no rules`),
 | map | 4/8 | 4/4 | 0/4 | 0 | 1212 | 204 | 0.0003042 |
 | map_rules | 8/8 | 4/4 | 4/4 | 0 | 1212 | 204 | 0.0003042 |
 
-`tests/test_candidate.py` runs the same cases twice through `run_score`:
+`tests/test_candidate.py` still checks the candidate-side contract: every
+fixture request validates against v1, and the v1 responses match the committed
+answers per task and per arm. It needs no Postgres and no Ollama: it injects
+the fake retriever, generator, and judge. Only the `DefaultCandidateDeps`
+wiring test needs the installed RAG stack; it runs in CI.
 
-1. The **current path**: a `task_fn` that reads the fixture table directly.
-2. The **spec path**: a `task_fn` that builds a v1 request for every turn and
-   calls `run_candidate`.
-
-`run_score` gained one small seam, `tasks=None`. When it is given a list it
-loads the graph for the map excerpts and skips task generation, so both paths
-score the identical committed task list. The parity assertions are:
-
-- the same task totals and the same pass count for every tier, cell for cell;
-- the same tool-call count;
-- the same prompt and completion totals;
-- cost within one cent of the committed price-table figure;
-- the committed `expected.json` scoreboard unchanged, so any drift fails.
-
-Costs come from the spec price table, not one global triple. `expected.json`
-holds a table keyed by model and the parity test recomputes every row's cost
-from that row and the observed tokens. The candidate itself only reports model
-names and provider usage; pricing belongs to the harness spec, exactly as the
-design note requires. `harness-spec.yaml` carries the same `input`/`output`
-shape under `prices:`.
-
-The test needs no Postgres and no Ollama: it injects `database_adapter=None`
-and the fake retriever, generator, and judge. Only a test that wires the real
-modules (the `DefaultCandidateDeps` wiring test) needs the installed RAG stack;
-it runs in CI.
+The scoreboard-level parity assertions (task totals and pass counts per tier,
+tool calls, prompt and completion totals, cost within one cent of the
+committed price table) now live in the harness repository, where the scorer
+and the price table are. They run the same committed fixture through the
+harness CLI against a replay server. The candidate itself only reports model
+names and provider usage; pricing belongs to the harness spec.
 
 ## Two-command demo against the harness HTTP candidate
 
@@ -179,11 +167,11 @@ The `--adapter` form of the command does not read the manifest's `base_url`,
 so pass the endpoint through `run_suite(options=...)` as above. This repository
 was checked against the eight `candidate/*` clauses with that call.
 
-## What the split follow-up can delete
+## After the split
 
-`app/candidate.py` does not import `app.harness`; a test enforces that. The
-parity test is the only new code allowed to import `run_score`. When issue
-#16 deletes the harness from this repository, `app/candidate.py`, the
-`candidate` subcommand, the vendored contract, and the fixture can stay; the
-`tasks=` seam in `app/harness/score.py` and the `tests/test_candidate.py`
-parity tests go with the harness.
+Issue #16 removed `app/harness`, the live and compare pages, the Grafana
+provisioning, the demo tree and the call-scan scanner. What stayed is
+`app/candidate.py`, the `candidate` subcommand, the vendored contract, the
+committed fixture, and `tests/test_no_harness.py`, which fails if any harness
+import, harness name, or removed CLI command comes back. `docs/MIGRATION.md`
+maps the move.

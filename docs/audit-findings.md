@@ -1,5 +1,9 @@
 # Audit findings, 2026-10-09
 
+> **Status note (issue #16).** This audit records the pre-split tree. The
+> evaluation harness it audits moved to kenmann01/eval-harness; see
+> `docs/MIGRATION.md`.
+
 Final audit of `feat/eval-harness` at commit 43b0333 plus the same-day repair
 branch state. Every finding lists the evidence at the audited commit, what
 changed, and what was deliberately left. Severity is the audit's, not the fix
@@ -154,5 +158,5 @@ zagat-grade biscuit fixtures (now a neutral sprocket allowance).
 - `ruff check` and `black --check`: clean across `app/ scripts/ tests/`.
 - `python scripts/smoke_rig.py`: all steps PASS against 127.0.0.1:5433/minirag.
 - Every board panel query executed against the seeded database (0 failures).
-- Board reviewed in a browser at 1920x1080 kiosk mode; screenshots in
-  `D:\Genspark\minirag-board-shots\board-final-{1-top,2-mid,3-bottom}.png`.
+- Board reviewed in a browser at 1920x1080 kiosk mode. The board and its
+  screenshots left this repository with issue #16.
