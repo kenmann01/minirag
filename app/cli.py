@@ -21,6 +21,7 @@ def main(
     database_adapter: DatabaseAdapter | None = None,
     language_model: LanguageModel | None = None,
     reranker: Reranker | None = None,
+    candidate_deps=None,
 ) -> int:
     """Run a Mini RAG command.
 
@@ -30,6 +31,7 @@ def main(
         database_adapter: Optional database dependency, primarily for testing.
         language_model: Optional generation dependency, primarily for testing.
         reranker: Optional reranking dependency, primarily for testing.
+        candidate_deps: Optional candidate dependency bundle, primarily for testing.
 
     Returns:
         A process exit status: zero for a handled command and one otherwise.
@@ -66,6 +68,15 @@ def main(
         action="store_true",
         help="Skip writing the run metrics into Postgres",
     )
+    candidate_parser = sub.add_parser(
+        "candidate", help="Serve the v1 candidate endpoint or run one request file"
+    )
+    candidate_mode = candidate_parser.add_mutually_exclusive_group()
+    candidate_mode.add_argument("--serve", action="store_true", help="Serve POST /run")
+    candidate_mode.add_argument("--request", type=Path, help="Run one request JSON file")
+    candidate_parser.add_argument("--response", type=Path, help="Write the response JSON here")
+    candidate_parser.add_argument("--host", default="127.0.0.1")
+    candidate_parser.add_argument("--port", type=int, default=8768)
     compare_parser = sub.add_parser("compare", help="Show the three-run comparison")
     compare_parser.add_argument("report_dir", type=Path)
     compare_parser.add_argument("--host", default="127.0.0.1")
@@ -88,6 +99,23 @@ def main(
     validate_parser.add_argument("--map", type=Path, help="Path to the OSSIE map YAML")
     args = parser.parse_args(argv)
     adapter = database_adapter or PgAdapter()
+    if args.command == "candidate":
+        from app.candidate import DefaultCandidateDeps, run_request_file, serve_candidate
+
+        deps = candidate_deps
+        if deps is None:
+            deps = DefaultCandidateDeps(adapter=adapter, model=language_model)
+        if args.serve:
+            return serve_candidate(args.host, args.port, deps=deps)
+        if args.request is None or args.response is None:
+            print(
+                "candidate needs --serve, or --request FILE --response FILE",
+                file=sys.stderr,
+            )
+            return 2
+        response = run_request_file(args.request, args.response, deps=deps)
+        print(json.dumps(response, indent=2))
+        return 0
     if args.command == "ingest":
         configured = get_settings().corpus_dir.strip()
         try:

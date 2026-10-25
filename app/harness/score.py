@@ -17,7 +17,7 @@ from app.config import Settings, get_settings
 from app.generation.generate import LanguageModel
 from app.generation.judge import judge_rule
 from app.harness.agent import RunOutput, build_agent, run_agent
-from app.harness.graph import callee_symbol
+from app.harness.graph import callee_symbol, load_graph
 from app.harness.metrics import MetricsSink
 from app.harness.tasks import Task, TaskGenerationError, generate_tasks, map_excerpt
 from app.storage.db import DatabaseAdapter
@@ -352,6 +352,7 @@ def run_score(
     model: LanguageModel,
     retrieve: Callable[[str], dict],
     task_fn: Callable[[str, str], RunOutput] | None = None,
+    tasks: list[Task] | None = None,
     prices: Prices | None = None,
     on_event: Callable[[dict], None] | None = None,
     database_adapter: DatabaseAdapter | None = None,
@@ -368,6 +369,9 @@ def run_score(
         model: Model that phrases the tasks.
         retrieve: Bridge call. Run 3 calls it again and logs the returned chunk ids.
         task_fn: Optional stand-in for the agent. Receives the prompt and context.
+        tasks: Optional committed task list. When given, the graph is still
+            loaded for map excerpts but task generation is skipped. This is
+            the injection seam the parity fixture uses.
         prices: Accounting rates. Defaults to configuration.
         on_event: Optional listener. Each graph, retrieve, agent, and grade call is passed through.
         database_adapter: Optional database adapter. When given, run metrics are
@@ -391,6 +395,7 @@ def run_score(
             model=model,
             retrieve=retrieve,
             task_fn=task_fn,
+            tasks=tasks,
             prices=prices,
             on_event=on_event,
             database_adapter=database_adapter,
@@ -410,6 +415,7 @@ def _run_score(
     model: LanguageModel,
     retrieve: Callable[[str], dict],
     task_fn: Callable[[str, str], RunOutput] | None,
+    tasks: list[Task] | None,
     prices: Prices | None,
     on_event: Callable[[dict], None] | None,
     database_adapter: DatabaseAdapter | None,
@@ -418,9 +424,12 @@ def _run_score(
     model_name: str | None,
 ) -> list[dict]:
     """Generate one task list and run it bare, with the map, and with the rules."""
-    tasks, nodes, edges = generate_tasks(
-        graph_path, model=model, retrieve=retrieve, on_event=on_event
-    )
+    if tasks is None:
+        tasks, nodes, edges = generate_tasks(
+            graph_path, model=model, retrieve=retrieve, on_event=on_event
+        )
+    else:
+        nodes, edges = load_graph(graph_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "tasks.json").write_text(
         json.dumps([task.model_dump() for task in tasks], indent=2) + "\n",

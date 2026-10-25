@@ -187,3 +187,72 @@ def test_the_module_entrypoint_runs_the_cli(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["app", "no-such-command"])
     with pytest.raises(SystemExit):
         runpy.run_module("app", run_name="__main__")
+
+
+def test_candidate_serves_with_the_injected_deps(monkeypatch):
+    served = {}
+    deps = object()
+
+    def fake_serve(host, port, *, deps=None):
+        served.update(host=host, port=port, deps=deps)
+        return 0
+
+    monkeypatch.setattr("app.candidate.serve_candidate", fake_serve)
+    code = main(
+        ["candidate", "--serve", "--port", "9000"],
+        database_adapter=FakeAdapter(),
+        candidate_deps=deps,
+    )
+    assert code == 0
+    assert served == {"host": "127.0.0.1", "port": 9000, "deps": deps}
+
+
+def test_candidate_runs_one_request_file(monkeypatch, capsys):
+    called = {}
+    deps = object()
+
+    def fake_run(request, response, *, deps=None):
+        called.update(request=str(request), response=str(response), deps=deps)
+        return {"answer": "ok"}
+
+    monkeypatch.setattr("app.candidate.run_request_file", fake_run)
+    code = main(
+        ["candidate", "--request", "req.json", "--response", "out.json"],
+        database_adapter=FakeAdapter(),
+        candidate_deps=deps,
+    )
+    assert code == 0
+    assert called == {"request": "req.json", "response": "out.json", "deps": deps}
+    assert '"answer": "ok"' in capsys.readouterr().out
+
+
+def test_candidate_needs_a_request_and_response(capsys):
+    code = main(
+        ["candidate"],
+        database_adapter=FakeAdapter(),
+        candidate_deps=object(),
+    )
+    assert code == 2
+    assert "candidate needs" in capsys.readouterr().err
+
+
+def test_candidate_builds_the_default_deps(monkeypatch):
+    built = {}
+
+    class FakeDeps:
+        def __init__(self, *, adapter=None, model=None):
+            built.update(adapter=adapter, model=model)
+
+    monkeypatch.setattr("app.candidate.DefaultCandidateDeps", FakeDeps)
+    monkeypatch.setattr(
+        "app.candidate.serve_candidate",
+        lambda host, port, *, deps=None: 0,
+    )
+    adapter, model = FakeAdapter(), FakeModel()
+    code = main(
+        ["candidate", "--serve"],
+        database_adapter=adapter,
+        language_model=model,
+    )
+    assert code == 0
+    assert built == {"adapter": adapter, "model": model}

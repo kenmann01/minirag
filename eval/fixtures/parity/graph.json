@@ -1,0 +1,104 @@
+{
+  "nodes": [
+    {
+      "id": "Loan1",
+      "label": "Loan1",
+      "source_file": "loanaccount/Loan1.java"
+    },
+    {
+      "id": "apply1",
+      "label": "apply1",
+      "source_file": "loanaccount/Loan1.java"
+    },
+    {
+      "id": "Loan2",
+      "label": "Loan2",
+      "source_file": "loanaccount/Loan2.java"
+    },
+    {
+      "id": "apply2",
+      "label": "apply2",
+      "source_file": "loanaccount/Loan2.java"
+    },
+    {
+      "id": "Loan3",
+      "label": "Loan3",
+      "source_file": "loanaccount/Loan3.java"
+    },
+    {
+      "id": "apply3",
+      "label": "apply3",
+      "source_file": "loanaccount/Loan3.java"
+    },
+    {
+      "id": "Loan4",
+      "label": "Loan4",
+      "source_file": "loanaccount/Loan4.java"
+    },
+    {
+      "id": "apply4",
+      "label": "apply4",
+      "source_file": "loanaccount/Loan4.java"
+    },
+    {
+      "id": "Other",
+      "label": "Other",
+      "source_file": "other/Other.java"
+    },
+    {
+      "id": "helper",
+      "label": "helper",
+      "source_file": "other/Other.java"
+    }
+  ],
+  "links": [
+    {
+      "source": "Loan1",
+      "target": "apply1",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "loanaccount/Loan1.java",
+      "target_file": "loanaccount/Loan1.java"
+    },
+    {
+      "source": "Loan2",
+      "target": "apply2",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "loanaccount/Loan2.java",
+      "target_file": "loanaccount/Loan2.java"
+    },
+    {
+      "source": "Loan3",
+      "target": "apply3",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "loanaccount/Loan3.java",
+      "target_file": "loanaccount/Loan3.java"
+    },
+    {
+      "source": "Loan4",
+      "target": "apply4",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "loanaccount/Loan4.java",
+      "target_file": "loanaccount/Loan4.java"
+    },
+    {
+      "source": "Other",
+      "target": "helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "other/Other.java",
+      "target_file": "other/Other.java"
+    },
+    {
+      "source": "Loan1",
+      "target": "guessed",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "loanaccount/Loan1.java",
+      "target_file": "loanaccount/Loan1.java"
+    }
+  ]
+}

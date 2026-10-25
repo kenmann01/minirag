@@ -1,0 +1,250 @@
+[
+  {
+    "id": "t1-01",
+    "tier": 1,
+    "prompt": "In Loan1 (Loan1.java), which symbol does it call? Name the symbol and the source file.",
+    "expected": {
+      "source": "Loan1",
+      "relation": "calls",
+      "target": "apply1",
+      "source_file": "loanaccount/Loan1.java",
+      "target_file": "loanaccount/Loan1.java"
+    },
+    "origin": {
+      "node_ids": [
+        "Loan1",
+        "apply1"
+      ],
+      "edge": {
+        "source": "Loan1",
+        "relation": "calls",
+        "target": "apply1",
+        "source_file": "loanaccount/Loan1.java",
+        "target_file": "loanaccount/Loan1.java"
+      }
+    },
+    "grounding_distance": null
+  },
+  {
+    "id": "t1-02",
+    "tier": 1,
+    "prompt": "In Loan2 (Loan2.java), which symbol does it call? Name the symbol and the source file.",
+    "expected": {
+      "source": "Loan2",
+      "relation": "calls",
+      "target": "apply2",
+      "source_file": "loanaccount/Loan2.java",
+      "target_file": "loanaccount/Loan2.java"
+    },
+    "origin": {
+      "node_ids": [
+        "Loan2",
+        "apply2"
+      ],
+      "edge": {
+        "source": "Loan2",
+        "relation": "calls",
+        "target": "apply2",
+        "source_file": "loanaccount/Loan2.java",
+        "target_file": "loanaccount/Loan2.java"
+      }
+    },
+    "grounding_distance": null
+  },
+  {
+    "id": "t1-03",
+    "tier": 1,
+    "prompt": "In Loan3 (Loan3.java), which symbol does it call? Name the symbol and the source file.",
+    "expected": {
+      "source": "Loan3",
+      "relation": "calls",
+      "target": "apply3",
+      "source_file": "loanaccount/Loan3.java",
+      "target_file": "loanaccount/Loan3.java"
+    },
+    "origin": {
+      "node_ids": [
+        "Loan3",
+        "apply3"
+      ],
+      "edge": {
+        "source": "Loan3",
+        "relation": "calls",
+        "target": "apply3",
+        "source_file": "loanaccount/Loan3.java",
+        "target_file": "loanaccount/Loan3.java"
+      }
+    },
+    "grounding_distance": null
+  },
+  {
+    "id": "t1-04",
+    "tier": 1,
+    "prompt": "In Loan4 (Loan4.java), which symbol does it call? Name the symbol and the source file.",
+    "expected": {
+      "source": "Loan4",
+      "relation": "calls",
+      "target": "apply4",
+      "source_file": "loanaccount/Loan4.java",
+      "target_file": "loanaccount/Loan4.java"
+    },
+    "origin": {
+      "node_ids": [
+        "Loan4",
+        "apply4"
+      ],
+      "edge": {
+        "source": "Loan4",
+        "relation": "calls",
+        "target": "apply4",
+        "source_file": "loanaccount/Loan4.java",
+        "target_file": "loanaccount/Loan4.java"
+      }
+    },
+    "grounding_distance": null
+  },
+  {
+    "id": "t2-01",
+    "tier": 2,
+    "prompt": "What rule does Loan1 state in bank-1?",
+    "expected": {
+      "chunk_ids": [
+        "bank-1"
+      ]
+    },
+    "origin": {
+      "chunk_ids": [
+        "bank-1"
+      ],
+      "chunks": [
+        {
+          "chunk_id": "bank-1",
+          "source_doc": "fixture-policy.md",
+          "section": "1.1",
+          "section_title": "Rule bank-1",
+          "effective_date": "2026-01-01",
+          "text": "Rule bank-1 states the fixture obligation for Loan1.",
+          "distance": 0.11,
+          "rrf_score": 0.5
+        }
+      ],
+      "node_id": "Loan1",
+      "edge": {
+        "source": "Loan1",
+        "relation": "calls",
+        "target": "apply1",
+        "source_file": "loanaccount/Loan1.java",
+        "target_file": "loanaccount/Loan1.java"
+      }
+    },
+    "grounding_distance": 0.11
+  },
+  {
+    "id": "t2-02",
+    "tier": 2,
+    "prompt": "What rule does Loan2 state in bank-2?",
+    "expected": {
+      "chunk_ids": [
+        "bank-2"
+      ]
+    },
+    "origin": {
+      "chunk_ids": [
+        "bank-2"
+      ],
+      "chunks": [
+        {
+          "chunk_id": "bank-2",
+          "source_doc": "fixture-policy.md",
+          "section": "1.2",
+          "section_title": "Rule bank-2",
+          "effective_date": "2026-01-01",
+          "text": "Rule bank-2 states the fixture obligation for Loan2.",
+          "distance": 0.12000000000000001,
+          "rrf_score": 0.5
+        }
+      ],
+      "node_id": "Loan2",
+      "edge": {
+        "source": "Loan2",
+        "relation": "calls",
+        "target": "apply2",
+        "source_file": "loanaccount/Loan2.java",
+        "target_file": "loanaccount/Loan2.java"
+      }
+    },
+    "grounding_distance": 0.12000000000000001
+  },
+  {
+    "id": "t2-03",
+    "tier": 2,
+    "prompt": "What rule does Loan3 state in bank-3?",
+    "expected": {
+      "chunk_ids": [
+        "bank-3"
+      ]
+    },
+    "origin": {
+      "chunk_ids": [
+        "bank-3"
+      ],
+      "chunks": [
+        {
+          "chunk_id": "bank-3",
+          "source_doc": "fixture-policy.md",
+          "section": "1.3",
+          "section_title": "Rule bank-3",
+          "effective_date": "2026-01-01",
+          "text": "Rule bank-3 states the fixture obligation for Loan3.",
+          "distance": 0.13,
+          "rrf_score": 0.5
+        }
+      ],
+      "node_id": "Loan3",
+      "edge": {
+        "source": "Loan3",
+        "relation": "calls",
+        "target": "apply3",
+        "source_file": "loanaccount/Loan3.java",
+        "target_file": "loanaccount/Loan3.java"
+      }
+    },
+    "grounding_distance": 0.13
+  },
+  {
+    "id": "t2-04",
+    "tier": 2,
+    "prompt": "What rule does Loan4 state in bank-4?",
+    "expected": {
+      "chunk_ids": [
+        "bank-4"
+      ]
+    },
+    "origin": {
+      "chunk_ids": [
+        "bank-4"
+      ],
+      "chunks": [
+        {
+          "chunk_id": "bank-4",
+          "source_doc": "fixture-policy.md",
+          "section": "1.4",
+          "section_title": "Rule bank-4",
+          "effective_date": "2026-01-01",
+          "text": "Rule bank-4 states the fixture obligation for Loan4.",
+          "distance": 0.14,
+          "rrf_score": 0.5
+        }
+      ],
+      "node_id": "Loan4",
+      "edge": {
+        "source": "Loan4",
+        "relation": "calls",
+        "target": "apply4",
+        "source_file": "loanaccount/Loan4.java",
+        "target_file": "loanaccount/Loan4.java"
+      }
+    },
+    "grounding_distance": 0.14
+  }
+]
