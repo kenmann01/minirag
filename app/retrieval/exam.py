@@ -1,4 +1,5 @@
-"""The fixed exam: golden cases, recall and answer checks, the harness run.
+# Internal and Confidential - Not for External Distribution.
+"""The fixed retrieval exam: golden cases, recall and answer checks.
 
 ``python -m app eval`` loads ``eval/goldens.json`` and runs each golden
 question through the same search the ask path uses. Search reads

@@ -7,6 +7,14 @@ import urllib.request
 from app.config import get_settings
 
 
+def ollama_base_url(host: str) -> str:
+    """Ollama's OpenAI-compatible base URL, with ``/v1`` appended when missing."""
+    base = host.rstrip("/")
+    if not base.endswith("/v1"):
+        base = f"{base}/v1"
+    return base
+
+
 class ChatReply(str):
     """Model content that also carries the provider's token counts.
 

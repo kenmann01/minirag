@@ -13,7 +13,7 @@ from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
 
-from app.harness.graph import load_graph, node_file
+from app.observability.graph import load_graph, node_file
 from app.storage.db import DatabaseAdapter
 
 DEFAULT_MAP = Path(__file__).resolve().parents[2] / "ossie" / "map-writes-the-test.yaml"

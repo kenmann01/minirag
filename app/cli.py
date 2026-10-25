@@ -1,5 +1,5 @@
 # Internal and Confidential - Not for External Distribution.
-"""Dispatch Mini RAG ingestion, question answering, and evaluation commands."""
+"""Dispatch Mini RAG ingestion, retrieval, answering, and exam commands."""
 
 import argparse
 import json
@@ -9,7 +9,7 @@ from pathlib import Path
 from app.config import get_settings
 from app.corpus.ingest import EmptyCorpusError, run
 from app.generation.generate import LanguageModel
-from app.harness.evaluate import format_table, load_goldens, run_exam
+from app.retrieval.exam import format_table, load_goldens, run_exam
 from app.retrieval.reranker import CrossEncoderReranker, Reranker
 from app.storage.db import DatabaseAdapter
 from app.storage.pgadapter import PgAdapter
@@ -40,7 +40,7 @@ def main(
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("ingest", help="Ingest the corpus folder into the vector store")
     # The retrieval exam: each fixed golden question through the same search
-    # the exam harness runs. Search reads policy_chunks.
+    # the answer path runs. Search reads policy_chunks.
     eval_parser = sub.add_parser("eval", help="Run the golden retrieval exam and write the record")
     eval_parser.add_argument("--output", type=Path, default=Path("eval/record.json"))
     eval_parser.add_argument(
@@ -58,16 +58,6 @@ def main(
     retrieve_parser.add_argument("query")
     retrieve_parser.add_argument("--top-k", type=int, default=20)
     retrieve_parser.add_argument("--json", type=Path)
-    score_parser = sub.add_parser("score", help="Score one task list three times")
-    score_parser.add_argument("--repo", type=Path, required=True)
-    score_parser.add_argument("--graph", type=Path, required=True)
-    score_parser.add_argument("--output", type=Path, required=True)
-    score_parser.add_argument("--label", default=None, help="Human label stored as run provenance")
-    score_parser.add_argument(
-        "--no-metrics",
-        action="store_true",
-        help="Skip writing the run metrics into Postgres",
-    )
     candidate_parser = sub.add_parser(
         "candidate", help="Serve the v1 candidate endpoint or run one request file"
     )
@@ -77,16 +67,6 @@ def main(
     candidate_parser.add_argument("--response", type=Path, help="Write the response JSON here")
     candidate_parser.add_argument("--host", default="127.0.0.1")
     candidate_parser.add_argument("--port", type=int, default=8768)
-    compare_parser = sub.add_parser("compare", help="Show the three-run comparison")
-    compare_parser.add_argument("report_dir", type=Path)
-    compare_parser.add_argument("--host", default="127.0.0.1")
-    compare_parser.add_argument("--port", type=int, default=8766)
-    gate_parser = sub.add_parser("gate", help="Map a repository and record the scale numbers")
-    gate_parser.add_argument("--repo", type=Path, required=True)
-    gate_parser.add_argument("--output", type=Path, default=Path("eval/fineract-gate.json"))
-    live_parser = sub.add_parser("live", help="Watch each score call while it runs")
-    live_parser.add_argument("--host", default="127.0.0.1")
-    live_parser.add_argument("--port", type=int, default=8767)
     ossie_parser = sub.add_parser("ossie", help="Materialize the graph and validate the OSSIE map")
     ossie_sub = ossie_parser.add_subparsers(dest="ossie_command", required=True)
     materialize_parser = ossie_sub.add_parser(
@@ -135,24 +115,6 @@ def main(
             args.json.write_text(text + "\n", encoding="utf-8")
         print(text)
         return 0
-    if args.command == "compare":
-        from app.web.compare import serve_compare
-
-        serve_compare(args.report_dir, args.host, args.port)
-        return 0
-    if args.command == "gate":
-        from app.harness.gate import run_gate
-        from app.harness.metrics import MetricsSink
-
-        record = run_gate(args.repo, args.output)
-        try:
-            MetricsSink(adapter).record_gate(record, label=args.repo.name)
-        except OSError as exc:
-            # The gate document is already on disk; losing the history row
-            # must not erase the run itself.
-            print(f"gate metrics not recorded: {exc}", file=sys.stderr)
-        print(json.dumps(record, indent=2))
-        return 0 if record["node_count"] else 1
     if args.command == "ossie":
         from app.observability.ossie import DEFAULT_MAP, materialize, validate
 
@@ -168,48 +130,6 @@ def main(
         if message:
             print(message, file=sys.stderr)
         return code
-    if args.command == "live":
-        from app.web.live import serve_live
-
-        serve_live(
-            args.host,
-            args.port,
-            database_adapter=database_adapter,
-            language_model=language_model,
-        )
-        return 0
-    if args.command == "score":
-        from app.harness.score import TaskGenerationError, run_score
-        from app.retrieval.bridge import retrieve
-
-        if language_model is None:
-            from app.generation.ollama import OllamaAdapter
-
-            language_model = OllamaAdapter()
-
-        def bridge(query: str) -> dict:
-            return retrieve(query, adapter)
-
-        try:
-            rows = run_score(
-                graph_path=args.graph,
-                repo=args.repo,
-                output_dir=args.output,
-                model=language_model,
-                retrieve=bridge,
-                database_adapter=None if args.no_metrics else adapter,
-                label=args.label,
-            )
-        except TaskGenerationError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
-        for row in rows:
-            print(
-                f"{row['run_id']}  {row['context']}  "
-                f"{row['tasks_passed']} of {row['tasks_total']}  "
-                f"tools={row['tool_calls']}  cost=${row['cost_usd']:.4f}"
-            )
-        return 0
     if args.command == "eval":
         if language_model is None:
             from app.generation.ollama import OllamaAdapter
@@ -217,9 +137,6 @@ def main(
             language_model = OllamaAdapter()
         if reranker is None:
             reranker = CrossEncoderReranker()
-    # The retrieval exam loads eval/goldens.json and runs each golden
-    # question through the same search the exam harness runs.
-    if args.command == "eval":
         goldens = load_goldens()
         record = run_exam(
             goldens,

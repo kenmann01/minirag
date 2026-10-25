@@ -18,6 +18,7 @@ from typing import Protocol
 from pydantic import BaseModel
 
 from app.config import Settings, get_settings
+from app.generation.ollama import ollama_base_url
 
 
 class CitationVerdict(BaseModel):
@@ -73,8 +74,6 @@ class OllamaJudgeAdapter:
         from pydantic_ai import Agent
         from pydantic_ai.models.ollama import OllamaModel
         from pydantic_ai.providers.ollama import OllamaProvider
-
-        from app.harness.agent import ollama_base_url
 
         model = OllamaModel(
             self._settings.ollama_model,
