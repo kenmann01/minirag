@@ -698,4 +698,3 @@ def test_the_fixture_contract_responses_match_the_committed_answers():
             if context == "map_rules" and task.tier == 2:
                 assert response["citations"] == [task.expected["chunk_ids"][0]]
     assert all(seed == ANSWERS["seed"] for seed in deps.model.seeds)
-

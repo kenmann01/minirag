@@ -21,9 +21,7 @@ KEPT_COMMANDS = "{ingest,eval,retrieve,candidate,ossie}"
 
 
 def _app_sources() -> list[Path]:
-    return sorted(
-        path for path in APP.rglob("*.py") if "__pycache__" not in path.parts
-    )
+    return sorted(path for path in APP.rglob("*.py") if "__pycache__" not in path.parts)
 
 
 def test_no_application_module_names_the_harness():
@@ -58,6 +56,4 @@ def test_the_candidate_runtime_module_imports_no_harness_module():
             modules.extend(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module:
             modules.append(node.module)
-    assert not any(
-        name == "app.harness" or name.startswith("app.harness.") for name in modules
-    )
+    assert not any(name == "app.harness" or name.startswith("app.harness.") for name in modules)
