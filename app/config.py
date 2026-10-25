@@ -21,9 +21,6 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen3:8b"
     ollama_host: str = "http://host.docker.internal:11434"
     corpus_dir: str = "corpora/banking"
-    input_usd_per_million: float = 0.15
-    output_usd_per_million: float = 0.60
-    tool_usd: float = 0.001
     judge_provider: Literal["ollama", "bedrock"] = "ollama"
     judge_model: str = ""
     aws_region: str = "us-east-1"

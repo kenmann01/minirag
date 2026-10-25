@@ -1,0 +1,72 @@
+{
+  "model": "fixture-model",
+  "prices": {
+    "fixture-model": {
+      "input_usd_per_million": 0.15,
+      "output_usd_per_million": 0.6,
+      "tool_usd": 0.001
+    }
+  },
+  "scoreboard": [
+    {
+      "run_id": "RUN 1",
+      "context": "bare",
+      "tasks_passed": 4,
+      "tasks_total": 8,
+      "passed_by_tier": {
+        "1": {
+          "passed": 0,
+          "total": 4
+        },
+        "2": {
+          "passed": 4,
+          "total": 4
+        }
+      },
+      "tool_calls": 8,
+      "prompt_tokens": 726,
+      "completion_tokens": 118,
+      "cost_usd": 0.0081797
+    },
+    {
+      "run_id": "RUN 2",
+      "context": "map",
+      "tasks_passed": 4,
+      "tasks_total": 8,
+      "passed_by_tier": {
+        "1": {
+          "passed": 4,
+          "total": 4
+        },
+        "2": {
+          "passed": 0,
+          "total": 4
+        }
+      },
+      "tool_calls": 0,
+      "prompt_tokens": 1212,
+      "completion_tokens": 204,
+      "cost_usd": 0.00030419999999999997
+    },
+    {
+      "run_id": "RUN 3",
+      "context": "map_rules",
+      "tasks_passed": 8,
+      "tasks_total": 8,
+      "passed_by_tier": {
+        "1": {
+          "passed": 4,
+          "total": 4
+        },
+        "2": {
+          "passed": 4,
+          "total": 4
+        }
+      },
+      "tool_calls": 0,
+      "prompt_tokens": 1212,
+      "completion_tokens": 204,
+      "cost_usd": 0.00030419999999999997
+    }
+  ]
+}

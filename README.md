@@ -1,28 +1,32 @@
-# Map Writes the Test
+# Mini RAG
 
-An evaluation harness that scores one task list three ways: the question
-alone, the question with a code map, and the question with the map plus the
-cited rule text. A call-scan skill maps a Java repository, the map generates
-the task list, a jailed agent answers, and a judge grades the citations.
-Postgres with pgvector stores the corpus chunks and every run's metrics;
-Grafana shows the runs.
+Retrieval and grounded generation over a policy corpus. Postgres with pgvector
+stores the corpus chunks; one CLI ingests, retrieves, answers, runs the fixed
+retrieval exam, and serves the pipeline as an eval-harness candidate.
 
 Public-domain corpora only: `corpora/banking` (12 CFR 1026, Regulation Z) and
-`corpora/aviation` (FAA handbook). The demo repository mapped by the gate is
-committed at `eval/demo-repo`.
+`corpora/aviation` (FAA handbook).
+
+The evaluation harness that used to live here now lives in
+[kenmann01/eval-harness](https://github.com/kenmann01/eval-harness). This
+repository keeps retrieval, generation, the corpus, the candidate-v1 endpoint,
+and the vendored candidate contract (`contract/candidate-v1.schema.json`,
+version `candidate-v1`). Scoring, prompt-variant matrices, price tables and
+result dashboards are the harness's job. `docs/MIGRATION.md` maps what moved
+where.
 
 ## Setup
 
-1. Start Postgres and Grafana:
+1. Start Postgres:
 
    ```bash
    docker compose up -d
    ```
 
-   Compose publishes Postgres on 5432 and Grafana on 127.0.0.1:3000. When the
-   host already runs Postgres on 5432, copy
-   `docker-compose.override.yml.example` to `docker-compose.override.yml` to
-   publish on 5433 and set `DATABASE_URL` accordingly.
+   Compose publishes Postgres on 5432. When the host already runs Postgres on
+   5432, copy `docker-compose.override.yml.example` to
+   `docker-compose.override.yml` to publish on 5433 and set `DATABASE_URL`
+   accordingly.
 
 2. Install and start Ollama on the host, then pull the model:
 
@@ -55,46 +59,29 @@ python -m app eval
 python -m app eval --retriever vector --output eval/record-vector.json
 ```
 
-Map a repository and record the gate numbers:
+Return chunks without generating:
 
 ```bash
-python -m app gate --repo eval/demo-repo
+python -m app retrieve "What fees count as a finance charge?"
 ```
 
-Score one task list three times (bare, map, map plus rules):
+Convert a PDF corpus into heading markdown:
 
 ```bash
-python -m app score --repo eval/demo-repo --graph eval/demo-graph.json \
-    --output eval/runs --label "run name"
+python scripts/convert_docs.py <pdf_dir> --out <dir>
 ```
 
-Watch a score run stream each call, or compare three written reports:
+## Candidate endpoint
+
+The RAG pipeline is exposed as an eval-harness candidate over the v1 HTTP
+contract:
 
 ```bash
-python -m app live      # http://127.0.0.1:8767
-python -m app compare eval/runs   # http://127.0.0.1:8766
+python -m app candidate --serve --port 8768
 ```
 
-Validate the semantic model against the live database:
-
-```bash
-python -m app ossie validate
-```
-
-Seed the demo rig with labeled synthetic runs and gate history:
-
-```bash
-python scripts/seed_runs.py
-```
-
-Preflight compose, Grafana, and every board query:
-
-```bash
-python scripts/smoke_rig.py
-```
-
-The board is at http://127.0.0.1:3000/d/map-writes-the-test. Runs stored by
-the seeder are labeled `origin=seeded`; never present them as model results.
+See [docs/CANDIDATE.md](docs/CANDIDATE.md) for the request/response mapping,
+the vendored contract, and the parity fixture.
 
 ## Tier-2 judge
 
@@ -107,7 +94,6 @@ environment chain. No key material belongs in this repository. See
 ## Layout
 
 `app/corpus` (conversion, chunking, embeddings, ingest), `app/retrieval`
-(hybrid search, bridge, reranker), `app/generation` (answer and judge model
-adapters, prompts), `app/harness` (map, tasks, scoring, agent, metrics),
-`app/storage` (database adapters), `app/observability` (OSSIE validation),
-`app/web` (local demo pages). See `ARCHITECTURE.md`.
+(hybrid search, bridge, reranker, the golden exam), `app/generation` (answer
+and judge model adapters, prompts), `app/storage` (database adapters), and
+`app/candidate.py` (the v1 candidate seam). See `ARCHITECTURE.md`.

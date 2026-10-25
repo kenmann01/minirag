@@ -45,7 +45,9 @@ def test_a_missing_corpus_directory_yields_no_chunks(tmp_path):
 def test_an_unset_corpus_dir_falls_back_to_the_default(monkeypatch):
     monkeypatch.setattr(
         "app.corpus.ingest.get_settings",
-        lambda: Settings(database_url="postgresql://minirag:minirag@127.0.0.1:5432/minirag", corpus_dir=""),
+        lambda: Settings(
+            database_url="postgresql://minirag:minirag@127.0.0.1:5432/minirag", corpus_dir=""
+        ),
     )
     assert corpus_path(None) == DEFAULT_CORPUS_DIR
 
@@ -57,8 +59,7 @@ def test_a_foreign_embedder_is_rejected_until_reingest():
     vector = "[" + ",".join(["0.0"] * 768) + "]"
     with adapter.connect() as conn:
         conn.execute("DROP TABLE IF EXISTS policy_chunks")
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE policy_chunks (
                 chunk_id TEXT PRIMARY KEY,
                 source_doc TEXT NOT NULL,
@@ -69,8 +70,7 @@ def test_a_foreign_embedder_is_rejected_until_reingest():
                 embedding vector(768) NOT NULL,
                 embedding_model TEXT NOT NULL DEFAULT ''
             )
-            """
-        )
+            """)
         conn.execute(
             """
             INSERT INTO policy_chunks (

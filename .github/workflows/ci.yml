@@ -145,7 +145,7 @@ jobs:
           key: ${{ steps.ollama-cache.outputs.cache-primary-key }}
       - name: Bootstrap the store before the tests
         run: python -m app ingest
-      - name: Real harness through the real generator
+      - name: Real retrieval exam through the real generator
         run: python -m app eval --output eval/record-real.json
       - name: llm-marked tests
         run: pytest -q -m llm

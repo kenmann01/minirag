@@ -1,0 +1,56 @@
+{
+  "model": "fixture-model",
+  "seed": 77,
+  "answers": {
+    "t1-01": "It calls apply1 in Loan1.java.",
+    "t1-02": "It calls apply2 in Loan2.java.",
+    "t1-03": "It calls apply3 in Loan3.java.",
+    "t1-04": "It calls apply4 in Loan4.java.",
+    "t2-01": "The rule is stated in bank-1.",
+    "t2-02": "The rule is stated in bank-2.",
+    "t2-03": "The rule is stated in bank-3.",
+    "t2-04": "The rule is stated in bank-4."
+  },
+  "usage": {
+    "t1-01": {
+      "prompt_tokens": 120,
+      "completion_tokens": 20
+    },
+    "t1-02": {
+      "prompt_tokens": 121,
+      "completion_tokens": 21
+    },
+    "t1-03": {
+      "prompt_tokens": 122,
+      "completion_tokens": 22
+    },
+    "t1-04": {
+      "prompt_tokens": 123,
+      "completion_tokens": 23
+    },
+    "t2-01": {
+      "prompt_tokens": 140,
+      "completion_tokens": 18
+    },
+    "t2-02": {
+      "prompt_tokens": 141,
+      "completion_tokens": 19
+    },
+    "t2-03": {
+      "prompt_tokens": 142,
+      "completion_tokens": 20
+    },
+    "t2-04": {
+      "prompt_tokens": 143,
+      "completion_tokens": 21
+    }
+  },
+  "judge": {
+    "prompt_tokens": 40,
+    "completion_tokens": 10
+  },
+  "tool_calls": {
+    "retrieval": 1,
+    "injected": 0
+  }
+}

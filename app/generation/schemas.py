@@ -30,8 +30,16 @@ class RetrievedChunk(BaseModel):
 
 
 class AskResponse(BaseModel):
-    """Return a grounded answer together with its retrieval evidence."""
+    """Return a grounded answer together with its retrieval evidence.
+
+    The token counts are what the model adapter reported for the call that
+    produced the answer. They stay zero when no model call happened (an empty
+    retrieval refuses before generation) or when an adapter cannot report
+    usage; the candidate forwards them to the harness as provider usage.
+    """
 
     answer: str
     citation: Citation | None
     retrieved_chunks: list[RetrievedChunk]
+    prompt_tokens: int = 0
+    completion_tokens: int = 0

@@ -1,0 +1,56 @@
+spec_version: 1
+name: minirag-candidate-demo
+description: >
+  Point the eval harness at the minirag candidate over the v1 HTTP contract.
+  Start the endpoint with: python -m app candidate --serve --port 8768.
+  The injected rule means this demo needs no Postgres; it still needs the
+  configured Ollama model to generate the answer.
+seed: 77
+
+source:
+  adapter: evalharness.adapters.sources.inline:build
+  options:
+    cases:
+      - case_id: parity-t2-01
+        prompt: What rule does Loan1 state in bank-1?
+        expected: {answer: bank-1}
+        tier: 2
+      - case_id: parity-t2-02
+        prompt: What rule does Loan2 state in bank-2?
+        expected: {answer: bank-2}
+        tier: 2
+
+contexts:
+  rule:
+    - chunk_id: bank-1
+      text: Rule bank-1 states the fixture obligation for Loan1.
+    - chunk_id: bank-2
+      text: Rule bank-2 states the fixture obligation for Loan2.
+
+candidates:
+  - name: minirag-candidate
+    adapter: evalharness.adapters.candidates.http:build
+    model: fixture-model
+    options:
+      base_url: http://127.0.0.1:8768
+      path: /run
+      timeout_s: 60
+      auth: none
+      context: rule
+
+replicas: 1
+concurrency: 1
+budget_usd: 0.10
+
+metrics:
+  - key: contains
+    adapter: evalharness.adapters.metrics.contains:build
+    options: {}
+
+judges: []
+gates: []
+
+prices:
+  fixture-model:
+    input: 0.15
+    output: 0.60

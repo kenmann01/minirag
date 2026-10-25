@@ -2,6 +2,14 @@
 
 Product Requirements Document. Domain onboarding for agents.
 
+> **Status note (issue #16).** This is the pre-split record of the
+> `map-writes-the-test` demo. The evaluation harness, scoring, the dashboard,
+> the repository scanner and the OSSIE graph materialisation moved to
+> kenmann01/eval-harness; this repository now keeps retrieval, generation, the
+> corpus and the candidate-v1 endpoint.
+> Read `docs/MIGRATION.md` for the mapping. Commands quoted below describe the
+> old tree and no longer run here.
+
 - **Project:** Domain Onboarding Pipeline
 - **Owner:** Associate FDE, Forward Deployed Engineering
 - **Status:** v0.2.1, demo rig accepted

@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evalharness.local/contract/candidate-v1.schema.json",
+  "title": "eval-harness candidate contract, version 1",
+  "description": "The wire contract between the harness and an HTTP candidate. The harness POSTs a request to the candidate's path (default /run) and reads one response. Version 1 is append-compatible only: a later version may add optional request or response fields, but no v1 field is removed, renamed, or given a new type. A server must ignore response fields it does not know; the harness ignores response fields it does not need. See docs/http-candidate.md.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/response"
+    }
+  ],
+  "$defs": {
+    "request": {
+      "title": "Request",
+      "description": "What the harness sends. prompt_override is null when the spec did not select a prompt variant. context is empty when the spec did not inject chunks. seed is the spec seed, repeated on every cell so the endpoint can be deterministic.",
+      "type": "object",
+      "required": [
+        "case_id",
+        "prompt",
+        "context",
+        "prompt_override",
+        "seed"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The case this cell runs; unique within one spec."
+        },
+        "prompt": {
+          "type": "string",
+          "description": "The case prompt exactly as the source supplied it."
+        },
+        "context": {
+          "type": "array",
+          "description": "Injected context chunks in spec order.",
+          "items": {
+            "$ref": "#/$defs/context_chunk"
+          }
+        },
+        "prompt_override": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The resolved prompt variant, or null when there is none."
+        },
+        "seed": {
+          "type": "integer",
+          "description": "The run seed. The same seed and case must give a deterministic answer if the endpoint claims determinism."
+        }
+      }
+    },
+    "context_chunk": {
+      "title": "Context chunk",
+      "type": "object",
+      "required": [
+        "chunk_id",
+        "text"
+      ],
+      "properties": {
+        "chunk_id": {
+          "type": "string",
+          "description": "Stable identifier a citation can refer to."
+        },
+        "text": {
+          "type": "string",
+          "description": "The chunk text."
+        }
+      }
+    },
+    "response": {
+      "title": "Response",
+      "description": "What the endpoint returns on HTTP 2xx. answer is the only required field. A missing usage object, or a missing token count, makes the harness estimate usage and record usage_source=estimated. Unknown fields are ignored.",
+      "type": "object",
+      "required": [
+        "answer"
+      ],
+      "properties": {
+        "answer": {
+          "type": "string",
+          "description": "The candidate's answer. A wrong answer is a scored output, never an error and never a retry."
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Chunk ids or URLs the answer relies on, in the endpoint's own order."
+        },
+        "usage": {
+          "$ref": "#/$defs/usage",
+          "description": "Provider-reported token counts. Omit it when the endpoint cannot report usage; the harness estimates instead."
+        },
+        "tool_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many tool calls the endpoint made for this case."
+        },
+        "artifacts": {
+          "type": "object",
+          "description": "Opaque JSON the endpoint wants recorded on the cell (trace ids, file paths, timings)."
+        },
+        "model": {
+          "type": "string",
+          "description": "The model that answered, when it differs from the spec's candidate model. Optional; the spec model is the fallback."
+        }
+      }
+    },
+    "usage": {
+      "title": "Usage",
+      "type": "object",
+      "properties": {
+        "prompt_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Input tokens the provider billed."
+        },
+        "completion_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Output tokens the provider billed."
+        }
+      }
+    }
+  }
+}

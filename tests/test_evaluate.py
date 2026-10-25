@@ -15,7 +15,7 @@ from app.corpus.ingest import run
 from app.generation.generate import PROMPT_PATH
 from app.generation.schemas import AskResponse, Citation
 from app.generation.validate import REFUSAL
-from app.harness.evaluate import (
+from app.retrieval.exam import (
     Golden,
     answer_failures,
     format_table,

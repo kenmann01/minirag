@@ -22,13 +22,13 @@ class FakeResponse:
         return False
 
 
-def _capture_urlopen(monkeypatch, reply: str):
+def _capture_urlopen(monkeypatch, reply: str, **extra):
     captured = {}
 
     def fake_urlopen(request):
         captured["url"] = request.full_url
         captured["body"] = json.loads(request.data.decode())
-        return FakeResponse({"message": {"content": reply}})
+        return FakeResponse({"message": {"content": reply}, **extra})
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
     return captured
@@ -59,3 +59,37 @@ def test_a_schema_response_format_widens_the_context_window(monkeypatch):
     # The default 4096-token window drops the task-list instructions.
     assert body["options"]["num_ctx"] == 8192
     assert body["options"]["temperature"] == 0
+
+
+def test_the_adapter_returns_the_provider_token_counts(monkeypatch):
+    captured = _capture_urlopen(
+        monkeypatch,
+        '{"answer": "yes"}',
+        prompt_eval_count=812,
+        eval_count=96,
+        model="qwen3:8b",
+    )
+    adapter = OllamaAdapter()
+
+    reply = adapter.chat("Say hi")
+
+    assert reply == '{"answer": "yes"}'
+    assert reply.prompt_tokens == 812
+    assert reply.completion_tokens == 96
+    assert reply.model == "qwen3:8b"
+    assert captured["body"]["model"] == "qwen3:8b"
+
+
+def test_the_adapter_threads_a_custom_seed(monkeypatch):
+    captured = _capture_urlopen(monkeypatch, '{"answer": "yes"}')
+    adapter = OllamaAdapter()
+
+    adapter.chat("Say hi", seed=7)
+
+    assert captured["body"]["options"] == {"temperature": 0, "seed": 7}
+
+
+def test_the_adapter_exposes_its_model_name(monkeypatch):
+    _capture_urlopen(monkeypatch, '{"answer": "yes"}')
+    adapter = OllamaAdapter()
+    assert adapter.model_name == adapter.chat("Say hi").model
