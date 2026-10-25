@@ -9,6 +9,7 @@ submission/
 .coverage
 
 scratch/
+.test-tmp/
 docker-compose.override.yml
 .vscode/
 myenv/
